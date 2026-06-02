@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+    <meta charset="utf-8" />
+
+    <title>{% if meta.title %}{{ meta.title }} | {% endif %}{{ site_title }}</title>
+    {% if meta.description %}
+        <meta name="description" content="{{ meta.description|striptags }}">
+    {% endif %}{% if meta.robots %}
+        <meta name="robots" content="{{ meta.robots }}">
+    {% endif %}
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" type="text/css" />
+    <link rel="stylesheet" href="{{ theme_url }}/style.css" type="text/css" />
+    <link rel="stylesheet" href="{{ theme_url }}/fontello.css" type="text/css" />
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/smoothness/jquery-ui.css" />
+    <script src="{{ theme_url }}/scripts/modernizr-2.6.1.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.0/jquery.min.js" type="text/javascript"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/jquery-ui.min.js" type="text/javascript"></script>
+    <script src="{{ theme_url }}/scripts/edit.js"></script>
+    <script type="text/x-mathjax-config">
+		MathJax.Hub.Config({
+		  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+		});
+		</script>
+    <script src="/apps/files_markdown/js/mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</head>
+<body>
+
+    <header id="header">
+        <div class="inner clearfix">
+            <h1>
+            <a href="{{ ""|link }}" id="logo">{{ site_title }}</a>
+            </h1>
+            {% if meta.image and pages | length == 1 %}
+            <img class="menu-image" src="{{ meta.image }}" />
+            {% endif %}
+            {% if pages | length > 1 %}
+            <nav>
+                <a href="#" class="menu-icon"></a>
+                <ul>
+                    {% for page in pages if page.title %}
+                        <li{% if page.id == current_page.id %} class="active"{% endif %}>
+                            <a href="{{ page.url }}">{{ page.title }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+        {% if editable is not empty %}
+            <button class="edit-button btn btn-primary btn-flat" path="{{  oc_path }}"
+            id="{{  oc_id }}" dir_id="{{  oc_parent_id }}" user="{{  oc_user }}"
+            owner="{{  oc_owner }}" group="{{  oc_group }}" host="{{  oc_user_home_url }}">
+            Show files</button>
+        {% endif %}
+    </header>
+    {% if editable is not empty and folder!="/" and folder!="" %}
+    	<div class="up-button btn btn-primary btn-flat">
+				<a href="../">⤴</a>
+			</div>
+		{% endif %}
+
+			<div id="nav" class="inner contents">
+				<ul>
+					{% if current_page.contents is not empty %}
+						{% for file in current_page.contents | sort %}
+							<li class="toc1">
+								<a href="{{ file }}">{{ file }}</a>
+							</li>
+						{% endfor %}
+					{% endif %}
+				</ul>
+			</div>
+		
+		<!-- If this is a Joplin directory/notebook with no index file, show a list of md files -->
+    <section id="content">
+    	<div class="inner">
+        {{ content }}
+    	</div>
+		</section>
+
+    <footer id="footer">
+        <div class="inner">
+            <div class="social">
+                {% for social in meta.social %}
+                    <a href="{{ social.url }}" title="{{ social.title }}"><span class="icon-{{ social.icon }}"></span></a>
+                {% endfor %}
+            </div>
+            {{ meta.footer }}
+        </div>
+    </footer>
+
+</body>
+</html>

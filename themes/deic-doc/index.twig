@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8" />
+
+    <title>{{ site_title }}{% if meta.title %} | {{ meta.title }}{% endif %}</title>
+    {% if meta.description %}
+        <meta name="description" content="{{ meta.description|striptags }}">
+    {% endif %}{% if meta.indexinferred %}
+        <meta name="indexinferred" content="{{ meta.indexinferred }}">
+    {% endif %}{% if meta.robots %}
+        <meta name="robots" content="{{ meta.robots }}">
+    {% endif %}
+    <link type="text/css" rel="stylesheet" href="{{ theme_url }}/css/bootstrap.css"/>
+    <style>
+      body {
+        padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+      }
+    </style>
+    <link type="text/css" rel="stylesheet" href="{{ theme_url }}/css/bootstrap-responsive.css"/>
+    <link type="text/css" rel="stylesheet" href="{{ theme_url }}/css/pilcrow.css"/>
+    <link type="text/css" rel="stylesheet" href="{{ theme_url }}/css/hljs-github.min.css"/>
+    <link type="text/css" rel="stylesheet" href="{{ theme_url }}/css/style.css"/>
+    <link type="text/css" rel="stylesheet" href="{{ theme_url }}/css/default_style.css"/>
+    <link type="text/css" rel="stylesheet" href="{{ theme_url }}/css/ekko-lightbox.css"/>
+    <script type="text/javascript" src="{{ theme_url }}/js/jquery.min.js"></script>
+    <script type="text/javascript" src="{{ theme_url }}/js/tether.min.js"></script>
+    <script type="text/javascript" src="{{ theme_url }}/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="{{ theme_url }}/js/ekko-lightbox.js"></script>
+    <script type="text/javascript" src="{{ theme_url }}/js/toc.js"></script>
+    {% if meta.favicon %}
+      <link id="favicon" rel="shortcut icon" type="image/png" href="{{ base_url }}/{{ meta.favicon }}" />
+    {% endif %}	
+  </head>
+<body>
+
+	<div class="container-fluid doc-container">
+		<div class="row-fluid">
+			<div class="span2 navigation">
+				<form id="search_form" action="{{ base_url  }}/search">
+					<label id="search_label" for="search_input">
+					<a href="{{ base_url  }}">
+					<i class="icon icon-home icon-white"></i>{{ (pages|first).meta.site }}
+					</a>
+					<a href="{{ base_url }}" target="_top" class="popout hidden">
+					<i title="Pop out" class="icon icon-fullscreen icon-white"></i>
+					</a></label>
+					<input type="search" id="search_input" name="q" placeholder="Search the docs" />
+					<!--<input type="submit" id="search_submit" value="Search" />-->
+				</form>
+				<script type="text/javascript">
+						// Intercept form submit and go to the search results page directly, avoiding a redirect
+						document.getElementById('search_form').addEventListener('submit', function (e) {
+								var search_terms = document.getElementById('search_input').value;
+								location.href = '{{ base_url  }}/search/' + search_terms;
+								e.preventDefault();
+						});
+				</script>
+				
+				{% if found_pages %}
+				<div id="nav">
+					<ul>
+						{% set len = '0' %}
+						{% for folder in found_folders|sort_by("date") %}
+							{% for page in found_pages|sort_by("date") %}
+								{% if page.folder == folder  %}
+									{% set arr = page.id|split('/') %}
+									{% set len = arr|length %}
+									{% if arr|last == 'index' and len > 0 %}
+										{% set len = len - 1 %}
+									{% endif %}
+									{% if meta.title == page.title %}
+										<li class="current toc{{ len }}">
+											{% if len == 2 and not toc %}
+												<a href="{{ page.url }}">{{ page.title }}</a>
+											{% endif %}
+											{% if toc %}
+												{{ toc }}
+											{% else %}
+												{% if len != 2 %}
+													<a href="{{ page.url }}">{{ page.title }}</a>
+												{% endif %}
+											{% endif %}
+										</li>
+									{% else %}
+										<li class="toc{{ len }}">
+											<a href="{{ page.url }}">{{ page.title }}</a>
+										</li>
+									{% endif %}
+								{% endif %}
+							{% endfor %}
+						{% endfor %}
+					</ul>
+				</div>
+				{% endif %}
+
+      </div>
+      <div class="span9 main">
+        {{ content}}
+      </div>
+    </div>
+  </div>
+
+	<script type="text/x-mathjax-config">
+		MathJax.Hub.Config({
+	 		tex2jax: {ignoreClass: 'ace_content',  inlineMath: [['$','$'], ['\\(','\\)']] },
+	 		TeX: {extensions: ['mhchem.js']}
+		});
+	</script>
+	<script src="/apps/files_markdown/js/mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</body>
+</html>

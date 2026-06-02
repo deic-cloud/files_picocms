@@ -1,0 +1,47 @@
+#filesPicoSettings .siteFolder {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 6px;
+	height: 42px;
+}
+
+#filesPicoSettings .siteFolder .folder,
+#filesPicoSettings .siteFolder .url {
+	flex: 1;
+	min-width: 0;
+}
+
+#filesPicoSettings .siteFolder input[type="text"] {
+	width: 200px;
+}
+
+#filesPicoSettings .addSiteFolder {
+	display: flex;
+	gap: 8px;
+	margin-top: 8px;
+	align-items: center;
+}
+
+#filesPicoSettings .addSiteFolder input[type="text"] {
+	width: 240px;
+}
+
+#picoWizardDialog {
+	border: 1px solid var(--color-border);
+	padding: 16px;
+	border-radius: 4px;
+	margin-top: 12px;
+	max-width: 560px;
+}
+
+#picoWizardDialog label {
+	display: block;
+	margin: 4px 0;
+}
+
+#picoAdminSettings input[type="text"] {
+	width: 240px;
+	display: block;
+	margin: 4px 0 10px;
+}
