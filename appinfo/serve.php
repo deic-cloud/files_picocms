@@ -148,7 +148,6 @@ if (is_dir($siteFsPath . '/content')) {
 // ── Handle raw asset requests (themes, images, CSS, JS, etc.) ────────────────
 
 $extension = $sitePath !== '' ? strtolower(pathinfo($sitePath, PATHINFO_EXTENSION)) : '';
-$rawAsset  = false;
 
 // Serve theme files directly from the themes directory
 if (str_starts_with($sitePath, 'themes/')) {
@@ -158,6 +157,7 @@ if (str_starts_with($sitePath, 'themes/')) {
 	}
 	if (file_exists($themeFile)) {
 		header('Content-Type: ' . _pico_mime($extension));
+		_pico_cache_headers($themeFile, 86400);
 		readfile($themeFile);
 	} else {
 		http_response_code(404);
@@ -165,7 +165,7 @@ if (str_starts_with($sitePath, 'themes/')) {
 	exit;
 }
 
-// Serve image/binary files directly
+// Serve image/binary/font files directly
 $rawExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'eot', 'pdf', 'nb'];
 if ($sitePath !== '' && in_array($extension, $rawExtensions, true)) {
 	$filePath = $siteFsPath . '/' . $sitePath;
@@ -174,6 +174,9 @@ if ($sitePath !== '' && in_array($extension, $rawExtensions, true)) {
 	}
 	if (file_exists($filePath)) {
 		header('Content-Type: ' . _pico_mime($extension));
+		// Long cache for fonts/icons; shorter for user images (may be updated)
+		$ttl = in_array($extension, ['woff', 'woff2', 'ttf', 'eot'], true) ? 604800 : 3600;
+		_pico_cache_headers($filePath, $ttl);
 		readfile($filePath);
 	} else {
 		http_response_code(404);
@@ -193,6 +196,7 @@ if (in_array($extension, ['html', 'css', 'js'], true) && $extension !== 'md') {
 	}
 	if (file_exists($filePath)) {
 		header('Content-Type: ' . _pico_mime($extension));
+		_pico_cache_headers($filePath, 3600);
 		readfile($filePath);
 	} else {
 		http_response_code(404);
@@ -242,6 +246,22 @@ $pico->ocOwner = $uid;
 echo $pico->run();
 
 // ── Helper ────────────────────────────────────────────────────────────────────
+
+/**
+ * Emit Cache-Control + Last-Modified + conditional 304 for a static file.
+ * Exits with 304 if the client's If-Modified-Since matches.
+ */
+function _pico_cache_headers(string $filePath, int $maxAge): void {
+	$mtime = filemtime($filePath);
+	$lastModified = gmdate('D, d M Y H:i:s', $mtime) . ' GMT';
+	header('Cache-Control: public, max-age=' . $maxAge);
+	header('Last-Modified: ' . $lastModified);
+	$ifModifiedSince = $_SERVER['HTTP_IF_MODIFIED_SINCE'] ?? '';
+	if ($ifModifiedSince !== '' && strtotime($ifModifiedSince) >= $mtime) {
+		http_response_code(304);
+		exit;
+	}
+}
 
 function _pico_mime(string $ext): string {
 	return match ($ext) {
