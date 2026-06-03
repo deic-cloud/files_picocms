@@ -84,6 +84,7 @@ $servePublic = $_['serve_public'];
 		<p><?php p($l->t('Point to a folder that already contains Markdown files.')); ?></p>
 		<div class="picoRow">
 			<input type="text" id="picoAddPath" placeholder="<?php p($l->t('/folder/path')); ?>" />
+			<button id="picoAddPathBrowse" class="button"><?php p($l->t('Browse')); ?></button>
 			<input type="text" id="picoAddName" placeholder="<?php p($l->t('site-name')); ?>" />
 			<button id="picoAddBtn"><?php p($l->t('Serve')); ?></button>
 		</div>
