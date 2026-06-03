@@ -1,0 +1,178 @@
+#picocms-app {
+	padding: 20px 40px;
+	max-width: 960px;
+}
+
+.picocms-header {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	margin-bottom: 24px;
+}
+
+.picocms-header h2 {
+	margin: 0;
+	font-size: 1.4em;
+}
+
+/* Site table */
+#picoSiteTable {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 8px;
+}
+
+#picoSiteTable th {
+	text-align: left;
+	padding: 6px 10px;
+	border-bottom: 1px solid var(--color-border);
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85em;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+#picoSiteTable td {
+	padding: 8px 10px;
+	border-bottom: 1px solid var(--color-border-dark);
+	vertical-align: middle;
+}
+
+.picoSiteRow:last-child td {
+	border-bottom: none;
+}
+
+.picoSiteName {
+	width: 160px;
+	font-family: monospace;
+	font-size: 0.95em;
+}
+
+#picoSiteTable td a {
+	color: var(--color-main-text);
+	font-family: monospace;
+	font-size: 0.85em;
+	word-break: break-all;
+}
+
+.picoActions {
+	white-space: nowrap;
+	display: flex;
+	gap: 6px;
+}
+
+#picoNoSites {
+	color: var(--color-text-maxcontrast);
+	margin: 12px 0 24px;
+}
+
+/* Public page + add manual sections */
+#picoPublicSection,
+#picoAddManual {
+	margin-top: 32px;
+	padding-top: 20px;
+	border-top: 1px solid var(--color-border);
+}
+
+#picoPublicSection h3,
+#picoAddManual h3 {
+	margin: 0 0 6px;
+	font-size: 1em;
+	font-weight: 600;
+}
+
+#picoPublicSection label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+}
+
+#picoPublicSection p,
+#picoAddManual p {
+	color: var(--color-text-maxcontrast);
+	margin: 0 0 10px;
+	font-size: 0.9em;
+}
+
+.picoRow {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+#picoAddPath {
+	width: 220px;
+}
+
+#picoAddName {
+	width: 160px;
+	font-family: monospace;
+}
+
+/* Wizard dialog */
+#picoWizardDialog {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.5);
+	z-index: 9999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.picoWizardInner {
+	background: var(--color-main-background);
+	border-radius: var(--border-radius-large);
+	padding: 28px 32px;
+	max-width: 520px;
+	width: 100%;
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+.picoWizardInner h3 {
+	margin: 0 0 8px;
+	font-size: 1.2em;
+}
+
+.picoWizardInner p {
+	margin: 0 0 16px;
+	color: var(--color-text-maxcontrast);
+}
+
+#picoWizardTypes {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-bottom: 18px;
+}
+
+#picoWizardTypes label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	padding: 6px 8px;
+	border-radius: var(--border-radius);
+}
+
+#picoWizardTypes label:hover {
+	background: var(--color-background-hover);
+}
+
+.picoWizardInner .picoRow {
+	margin-bottom: 18px;
+}
+
+.picoWizardActions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+#picoWizardMsg {
+	font-size: 0.9em;
+	color: var(--color-text-maxcontrast);
+}
