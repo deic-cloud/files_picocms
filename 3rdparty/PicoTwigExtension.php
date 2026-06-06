@@ -62,6 +62,7 @@ class PicoTwigExtension extends Twig_Extension
             'markdown' => new Twig_SimpleFilter('markdown', array($this, 'markdownFilter')),
             'map' => new Twig_SimpleFilter('map', array($this, 'mapFilter')),
             'sort_by' => new Twig_SimpleFilter('sort_by', array($this, 'sortByFilter')),
+            'md5' => new Twig_SimpleFilter('md5', function($value) { return md5((string)$value); }),
         );
     }
 
@@ -173,11 +174,7 @@ class PicoTwigExtension extends Twig_Extension
                 	if($sortKeyPath=="date"){
                 		$dateA = DateTime::createFromFormat('d F Y', $aSortValue);
                 		$dateB = DateTime::createFromFormat('d F Y', $bSortValue);
-                		\OCP\Util::writeLog('TWIG', "Comparing: ".$aSortValue." : ".
-                				$bSortValue." --> ".
-                				!empty($dateA) && !empty($dateB)?
-                				$dateA->format('U')." : ".$dateB->format('U'):'', \OC_Log::INFO);
-                		if(!empty($dateA) && !empty($dateB)){
+                		if($dateA !== false && $dateB !== false){
                 			return ($dateA->format('U') > $dateB->format('U')) ? 1 : -1;
                 		}
                 	}

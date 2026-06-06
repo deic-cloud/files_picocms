@@ -7,16 +7,26 @@
  *   remote.php/files_picocms/sites/{name}[/{path}]  → named site
  *   remote.php/files_picocms/users/{email}[/{path}]  → user public page
  *
- * This file is registered as <files_picocms>appinfo/serve.php</files_picocms>
- * in info.xml. NC's remote.php loads the NC bootstrap before executing it,
- * so \OC::$server is available.
+ * Per-site config lives in _config.md at the site (or sub-directory) root.
+ * The leading underscore prevents Pico from serving it as a page.
+ * Frontmatter keys recognised here:
+ *   access:     public (default) | private
+ *   theme:      theme directory name
+ *   edit_links: yes | no
+ *   title:      overrides the DB site name
+ *   description: site description passed to Pico
+ *   favicon:    path to favicon relative to site root (e.g. img/favicon.png)
+ *
+ * Access: "private" requires an active NC session. Unauthenticated visitors
+ * receive HTTP 403 and see the site's content/403.md if present, or a plain
+ * fallback page with a link to the NC login screen.
  */
 
 declare(strict_types=1);
 
-use OCA\FilesPicoCMS\Db\SiteMapper;
 use OCA\FilesPicoCMS\Service\SiteService;
 use OCP\IConfig;
+use Symfony\Component\Yaml\Yaml;
 
 // ── Load Pico and its dependencies ───────────────────────────────────────────
 require_once __DIR__ . '/../3rdparty/bootstrap.php';
@@ -107,6 +117,14 @@ try {
 	// files_sharding not available or error — serve locally
 }
 
+// ── Determine master login base URL ──────────────────────────────────────────
+
+$masterBase = rtrim((string)$config->getSystemValue('files_sharding_master_url', ''), '/');
+if ($masterBase === '') {
+	$scheme     = \OC::$server->get(\OCP\IRequest::class)->getServerProtocol();
+	$masterBase = $scheme . '://' . $_SERVER['HTTP_HOST'] . $webRoot;
+}
+
 // ── Build filesystem paths ────────────────────────────────────────────────────
 
 $dataDir = $config->getSystemValue('datadirectory', '');
@@ -128,35 +146,30 @@ if (!is_dir($siteFsPath)) {
 	exit;
 }
 
-// ── Determine themes and content directories ──────────────────────────────────
+// ── Override NC's restrictive CSP with one suitable for website serving ───────
+header('Content-Security-Policy: default-src \'self\'; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\'; img-src \'self\' data: blob:; font-src \'self\' data: https://fonts.gstatic.com; connect-src \'self\'; frame-ancestors \'self\'');
 
-$appDir    = dirname(__DIR__);
-$hasThemes = is_dir($siteFsPath . '/themes');
+// ── Determine content directory ───────────────────────────────────────────────
 
-if ($hasThemes) {
-	$themesDir   = $siteFsPath . '/themes/';
-} else {
-	$themesDir   = $appDir . '/themes/';
-}
+$appDir = dirname(__DIR__);
 
-if (is_dir($siteFsPath . '/content')) {
+// Use content/ subdirectory only if it exists AND has an index.md (i.e. is not just an empty leftover dir)
+if (is_dir($siteFsPath . '/content') && is_file($siteFsPath . '/content/index.md')) {
 	$contentDir = $siteFsPath . '/content';
 } else {
 	$contentDir = $siteFsPath;
 }
 
-// ── Handle raw asset requests (themes, images, CSS, JS, etc.) ────────────────
+// ── Serve theme files early (always public, even for private sites) ──────────
 
-$extension = $sitePath !== '' ? strtolower(pathinfo($sitePath, PATHINFO_EXTENSION)) : '';
-
-// Serve theme files directly from the themes directory
 if (str_starts_with($sitePath, 'themes/')) {
 	$themeFile = $siteFsPath . '/' . $sitePath;
 	if (!file_exists($themeFile)) {
 		$themeFile = $appDir . '/' . $sitePath;
 	}
+	$ext = strtolower(pathinfo($sitePath, PATHINFO_EXTENSION));
 	if (file_exists($themeFile)) {
-		header('Content-Type: ' . _pico_mime($extension));
+		header('Content-Type: ' . _pico_mime($ext));
 		_pico_cache_headers($themeFile, 86400);
 		readfile($themeFile);
 	} else {
@@ -164,6 +177,44 @@ if (str_starts_with($sitePath, 'themes/')) {
 	}
 	exit;
 }
+
+// ── Read _config.md and enforce access ───────────────────────────────────────
+
+$siteConfig = _pico_site_config($contentDir, $sitePath);
+$access     = strtolower(trim($siteConfig['access'] ?? 'public'));
+
+if ($access === 'private') {
+	$loggedIn = false;
+	try {
+		$loggedIn = \OC::$server->get(\OCP\IUserSession::class)->isLoggedIn();
+	} catch (\Throwable) {}
+
+	if (!$loggedIn) {
+		http_response_code(403);
+		if (file_exists($contentDir . '/403.md')) {
+			// Render the site's own 403 page through Pico (themed)
+			$_SERVER['QUERY_STRING'] = '403';
+			// fall through to Pico rendering below
+		} else {
+			header('Content-Type: text/html; charset=utf-8');
+			$loginUrl = $masterBase . '/index.php/login?redirect_url=' . urlencode($_SERVER['REQUEST_URI']);
+			echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>403 Forbidden</title></head>'
+			   . '<body><h1>403 Forbidden</h1>'
+			   . '<p>This page is private. <a href="' . htmlspecialchars($loginUrl) . '">Log in</a></p>'
+			   . '</body></html>';
+			exit;
+		}
+	}
+}
+
+// ── Determine themes directory ────────────────────────────────────────────────
+
+$hasThemes = is_dir($siteFsPath . '/themes');
+$themesDir = $hasThemes ? $siteFsPath . '/themes/' : $appDir . '/themes/';
+
+// ── Handle raw asset requests (themes, images, CSS, JS, etc.) ────────────────
+
+$extension = $sitePath !== '' ? strtolower(pathinfo($sitePath, PATHINFO_EXTENSION)) : '';
 
 // Serve image/binary/font files directly
 $rawExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'eot', 'pdf', 'nb'];
@@ -174,7 +225,6 @@ if ($sitePath !== '' && in_array($extension, $rawExtensions, true)) {
 	}
 	if (file_exists($filePath)) {
 		header('Content-Type: ' . _pico_mime($extension));
-		// Long cache for fonts/icons; shorter for user images (may be updated)
 		$ttl = in_array($extension, ['woff', 'woff2', 'ttf', 'eot'], true) ? 604800 : 3600;
 		_pico_cache_headers($filePath, $ttl);
 		readfile($filePath);
@@ -206,7 +256,13 @@ if (in_array($extension, ['html', 'css', 'js'], true) && $extension !== 'md') {
 
 // ── Run Pico ──────────────────────────────────────────────────────────────────
 
-// Tell Pico which sub-page to render
+// Block direct requests to _ prefixed files (e.g. _config.md — config only, not content)
+if ($sitePath !== '' && substr(ltrim(basename($sitePath), '/'), 0, 1) === '_') {
+	http_response_code(404);
+	exit;
+}
+
+// Always give Pico the clean path — $_GET is already populated by PHP and is unaffected
 if ($sitePath !== '') {
 	$_SERVER['QUERY_STRING'] = $sitePath;
 }
@@ -216,7 +272,7 @@ $picoConfig = [
 	'base_uri'          => $webRoot . '/remote.php/files_picocms/' . ($siteName !== null ? 'sites/' . urlencode($siteName) : 'users/' . urlencode($userEmail)),
 	'content_dir'       => $contentDir,
 	'rewrite_url'       => true,
-	'site_title'        => $siteInfo['site'],
+	'site_title'        => $siteConfig['title'] ?? $siteInfo['site'],
 	'user'              => $uid,
 	'group'             => $gid,
 	'pages_order_by'    => 'date',
@@ -224,6 +280,24 @@ $picoConfig = [
 	'pagination_limit'  => 10,
 	'toc_top_txt'       => '',
 ];
+
+// Merge optional _config.md keys into Pico config
+if (!empty($siteConfig['theme'])) {
+	$picoConfig['theme'] = $siteConfig['theme'];
+}
+if (!empty($siteConfig['description'])) {
+	$picoConfig['description'] = $siteConfig['description'];
+}
+if (isset($siteConfig['edit_links'])) {
+	$picoConfig['edit_links'] = (strtolower((string)$siteConfig['edit_links']) === 'yes');
+}
+if (!empty($siteConfig['favicon'])) {
+	$picoConfig['favicon'] = $siteConfig['favicon'];
+}
+
+// Login URL for themes (e.g. "log in" link on 403 pages)
+$picoConfig['login_url']      = $masterBase . '/index.php/login?redirect_url=' . urlencode($_SERVER['REQUEST_URI']);
+$picoConfig['original_path']  = $sitePath;
 
 // Provide request token for authenticated calls within the site (e.g. avatars)
 try {
@@ -243,16 +317,82 @@ $pico = new Pico(
 $pico->setConfig($picoConfig);
 $pico->ocOwner = $uid;
 
-echo $pico->run();
+try {
+	echo $pico->run();
+} catch (\Throwable $e) {
+	http_response_code(500);
+	header('Content-Type: text/html; charset=utf-8');
+	$msg = htmlspecialchars($e->getMessage(), ENT_QUOTES);
+	$file = htmlspecialchars(str_replace(\OC::$SERVERROOT, '', $e->getFile()), ENT_QUOTES);
+	echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>500 — Site Error</title>'
+	   . '<style>body{font-family:sans-serif;padding:2em}pre{background:#f4f4f4;padding:1em;overflow:auto;border-radius:4px}</style></head>'
+	   . '<body><h1>500 — Site Error</h1>'
+	   . '<p><strong>' . $msg . '</strong></p>'
+	   . '<p><code>' . $file . ':' . (int)$e->getLine() . '</code></p>'
+	   . '</body></html>';
+	error_log('files_picocms serve error [' . $siteName . ']: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+	exit;
+}
 
-// ── Helper ────────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Find the effective _config.md for a given request path by walking upward
+ * from the most-specific subdirectory to the site root. Returns frontmatter
+ * from the first _config.md found (most-specific wins).
+ */
+function _pico_site_config(string $contentDir, string $sitePath): array {
+	// Build candidate directories from most-specific to root
+	$dirs = [$contentDir];
+	if ($sitePath !== '') {
+		$parts = explode('/', ltrim(dirname($sitePath), '.'));
+		$cur   = $contentDir;
+		foreach ($parts as $part) {
+			if ($part === '' || $part === '.') {
+				continue;
+			}
+			$cur    .= '/' . $part;
+			$dirs[] = $cur;
+		}
+		$dirs = array_reverse($dirs); // most-specific first
+	}
+
+	foreach ($dirs as $dir) {
+		$file = $dir . '/_config.md';
+		if (file_exists($file)) {
+			return _pico_parse_frontmatter($file);
+		}
+	}
+	return [];
+}
+
+/**
+ * Parse YAML frontmatter from a Markdown file.
+ * Expects content to start with "---\n"; returns [] if not present or on error.
+ */
+function _pico_parse_frontmatter(string $filePath): array {
+	$raw = file_get_contents($filePath);
+	if ($raw === false || !str_starts_with($raw, "---\n")) {
+		return [];
+	}
+	$end = strpos($raw, "\n---", 4);
+	if ($end === false) {
+		return [];
+	}
+	try {
+		$parsed = Yaml::parse(substr($raw, 4, $end - 4));
+		return is_array($parsed) ? $parsed : [];
+	} catch (\Throwable) {
+		return [];
+	}
+}
 
 /**
  * Emit Cache-Control + Last-Modified + conditional 304 for a static file.
  * Exits with 304 if the client's If-Modified-Since matches.
  */
 function _pico_cache_headers(string $filePath, int $maxAge): void {
-	$mtime = filemtime($filePath);
+	$mtime        = filemtime($filePath);
 	$lastModified = gmdate('D, d M Y H:i:s', $mtime) . ' GMT';
 	header('Cache-Control: public, max-age=' . $maxAge);
 	header('Last-Modified: ' . $lastModified);
@@ -265,20 +405,20 @@ function _pico_cache_headers(string $filePath, int $maxAge): void {
 
 function _pico_mime(string $ext): string {
 	return match ($ext) {
-		'css'  => 'text/css',
-		'js'   => 'application/javascript',
-		'svg'  => 'image/svg+xml',
-		'png'  => 'image/png',
+		'css'   => 'text/css',
+		'js'    => 'application/javascript',
+		'svg'   => 'image/svg+xml',
+		'png'   => 'image/png',
 		'jpg', 'jpeg' => 'image/jpeg',
-		'gif'  => 'image/gif',
-		'ico'  => 'image/x-icon',
-		'html' => 'text/html',
-		'pdf'  => 'application/pdf',
-		'woff' => 'font/woff',
-		'woff2'=> 'font/woff2',
-		'ttf'  => 'font/ttf',
-		'eot'  => 'application/vnd.ms-fontobject',
-		'nb'   => 'application/vnd.wolfram.mathematica',
+		'gif'   => 'image/gif',
+		'ico'   => 'image/x-icon',
+		'html'  => 'text/html',
+		'pdf'   => 'application/pdf',
+		'woff'  => 'font/woff',
+		'woff2' => 'font/woff2',
+		'ttf'   => 'font/ttf',
+		'eot'   => 'application/vnd.ms-fontobject',
+		'nb'    => 'application/vnd.wolfram.mathematica',
 		default => 'application/octet-stream',
 	};
 }

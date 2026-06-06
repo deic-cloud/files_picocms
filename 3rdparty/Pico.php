@@ -129,6 +129,18 @@ class Pico
 	 */
 	protected $indexInferred;
 
+	/** Current page number for paginated index views (1-based) */
+	protected $currentPageNumber = 1;
+
+	/** URL segment used for pagination links (e.g. "page") */
+	protected $pageIndicator = 'page';
+
+	/** Search query for filtered views, e.g. 'author:fror@dtu.dk' or 'labels:tag' or 'q:term' */
+	protected $searchQuery = '';
+
+	/** Posts per page for blog index pagination */
+	const POSTS_PER_PAGE = 8;
+
 	/**
 	 * Raw, not yet parsed contents to serve
 	 *
@@ -323,15 +335,12 @@ class Pico
 		$this->configDir = $this->getAbsolutePath($configDir);
 		$this->pluginsDir = $this->getAbsolutePath($pluginsDir);
 		$this->themesDir = $this->getAbsolutePath($themesDir);
-		if(\OCP\App::isEnabled('files_sharding') ){
-			$this->ocMasterUrl = \OCA\FilesSharding\Lib::getMasterURL();
-			$user_id = \OCP\User::getUser();
-			$this->ocUserHomeUrl = empty($user_id)?$this->ocMasterUrl:OCA\FilesSharding\Lib::getServerForUser($user_id);
+		$this->ocMasterUrl = rtrim((string)\OC::$server->get(\OCP\IConfig::class)->getSystemValue('files_sharding_master_url', ''), '/');
+		if (empty($this->ocMasterUrl)) {
+			$scheme = \OC::$server->get(\OCP\IRequest::class)->getServerProtocol();
+			$this->ocMasterUrl = $scheme . '://' . $_SERVER['HTTP_HOST'];
 		}
-		else{
-			$this->ocMasterUrl = $_SERVER['HTTP_HOST'];
-			$this->ocUserHomeUrl = $_SERVER['HTTP_HOST'];
-		}
+		$this->ocUserHomeUrl = $this->ocMasterUrl;
 		$this->ocSupportEmail = \OCP\Config::getSystemValue('fromemail', '');
 		if(\OCP\App::isEnabled('user_orcid')){
 			require_once('user_orcid/lib/lib_orcid.php');
@@ -349,15 +358,15 @@ class Pico
 
 		// is a user logged in?
 		$user_id = \OCP\User::getUser();
-		\OCP\Util::writeLog('files_picocms', 'user_id '.$user_id, \OC_Log::WARN);
+		pico_log('files_picocms', 'user_id '.$user_id, \OC_Log::WARN);
 		if(\OCP\App::isEnabled('files_sharding') && (empty($user_id) ||
 				!\OCA\FilesSharding\Lib::onServerForUser($user_id)) &&
 				!\OCA\FilesSharding\Lib::isMaster()){
 					$instanceId = \OC_Config::getValue('instanceid', null);
 			if(!empty($_COOKIE[$instanceId])){
-				\OCP\Util::writeLog('files_picocms', 'Getting session from master '.$_COOKIE[$instanceId], \OC_Log::WARN);
+				pico_log('files_picocms', 'Getting session from master '.$_COOKIE[$instanceId], \OC_Log::WARN);
 				$session = \OCA\FilesSharding\Lib::getUserSession($_COOKIE[$instanceId], false);
-				\OC_Log::write('files_picocms', 'got session '.serialize($session), \OC_Log::WARN);
+				pico_log('files_picocms', 'got session '.serialize($session), \OC_Log::WARN);
 				if(!empty($session['user_id'])){
 					$user_id = $session['user_id'];
 				}
@@ -371,8 +380,8 @@ class Pico
 	public static function shutDownFunction() {
 		$error = error_get_last();
 		// fatal error, E_ERROR === 1
-		if ($error['type'] === E_ERROR) {
-			\OCP\Util::writeLog('files_picocms', 'FATAL ERROR. Shutting down.', \OC_Log::ERROR);
+		if ($error !== null && $error['type'] === E_ERROR) {
+			pico_log('files_picocms', 'FATAL ERROR. Shutting down.', \OC_Log::ERROR);
 			header('Location: ' . \OCA\FilesSharding\Lib::getMasterURL()."index.php?logout=true&requesttoken=".
 					\OC_Util::callRegister());
 		}
@@ -456,12 +465,34 @@ class Pico
 
 		// discover requested file
 		$this->discoverRequestFile();
+
+		// Handle pagination URLs like 'page/2' — rewrite to index
+		if (preg_match('|^page/(\d+)$|', $this->requestUrl, $pageMatch)) {
+			$this->currentPageNumber = max(1, (int)$pageMatch[1]);
+			$indexFile = $this->getConfig('content_dir') . 'index' . $this->getConfig('content_ext');
+			$this->requestFile = file_exists($indexFile) ? $indexFile : null;
+			$this->indexInferred = true;
+		}
+
+		// Handle search URLs like 'search/author:uid' or 'search/labels:tag' — rewrite to index
+		if (preg_match('|^search/(.+)$|', $this->requestUrl, $searchMatch)) {
+			$this->searchQuery = rawurldecode($searchMatch[1]);
+			$indexFile = $this->getConfig('content_dir') . 'index' . $this->getConfig('content_ext');
+			$this->requestFile = file_exists($indexFile) ? $indexFile : null;
+			$this->indexInferred = true;
+		} elseif ($this->requestUrl === 'search' && !empty($_GET['q'])) {
+			$this->searchQuery = 'q:' . $_GET['q'];
+			$indexFile = $this->getConfig('content_dir') . 'index' . $this->getConfig('content_ext');
+			$this->requestFile = file_exists($indexFile) ? $indexFile : null;
+			$this->indexInferred = true;
+		}
+
 		$this->triggerEvent('onRequestFile', array(&$this->requestFile));
 
 		// load raw file content
 		$this->triggerEvent('onContentLoading', array(&$this->requestFile));
 
-		\OCP\Util::writeLog('files_picocms', "Running Pico ".$_SERVER['REQUEST_URI'].':'.$this->requestFile.':'.serialize($this->config), \OC_Log::INFO);
+		pico_log('files_picocms', "Running Pico ".$_SERVER['REQUEST_URI'].':'.$this->requestFile.':'.serialize($this->config), \OC_Log::INFO);
 
 		$notFoundFile = '404' . $this->getConfig('content_ext');
 		if($this->requestFile===null){
@@ -483,7 +514,7 @@ class Pico
 		elseif($this->indexInferred){
 		}
 		else{
-			\OCP\Util::writeLog('files_picocms', 'No such file '.$this->requestFile.' : '.$_SERVER['REQUEST_URI'].' : '.$_SERVER['QUERY_STRING'], \OC_Log::ERROR);
+			pico_log('files_picocms', 'No such file '.$this->requestFile.' : '.$_SERVER['REQUEST_URI'].' : '.$_SERVER['QUERY_STRING'], \OC_Log::ERROR);
 			$this->triggerEvent('on404ContentLoading', array(&$this->requestFile));
 			header($_SERVER['SERVER_PROTOCOL'] . ' 404 Not Found');
 			$this->rawContent = $this->load404Content($this->requestFile);
@@ -512,7 +543,7 @@ class Pico
 			$generatedIndex = true;
 			// Default to not allowing directory listings for non-owners or sharees
 			$this->meta['access'] = 'private';
-			\OCP\Util::writeLog('files_picocms', 'Generating index '.$this->requestFile.' : '.
+			pico_log('files_picocms', 'Generating index '.$this->requestFile.' : '.
 					$this->getConfig('content_dir'), \OC_Log::WARN);
 		}
 
@@ -520,7 +551,7 @@ class Pico
 		if(!empty($this->meta['access']) && !$this->notFound){
 			if(!$this->checkReadPermission($this->requestFile, $this->meta['access'],
 					$this->getConfig('user'), $this->getConfig('group'))){
-				\OCP\Util::writeLog('files_picocms', 'Not allowed '.$this->requestFile.':'.$this->meta['access'].':'.$this->rawContent, \OC_Log::WARN);
+				pico_log('files_picocms', 'Not allowed '.$this->requestFile.':'.$this->meta['access'].':'.$this->rawContent, \OC_Log::WARN);
 				//header($_SERVER['SERVER_PROTOCOL'] . ' 403 Forbidden');
 				$this->rawContent = $this->loadStatusContent($this->requestFile, 403);
 				$this->forbidden = true;
@@ -599,7 +630,7 @@ class Pico
 
 		$this->triggerEvent('onPageRendering', array(&$this->twig, &$this->twigVariables, &$templateName));
 
-		\OCP\Util::writeLog('files_picocms', 'Rendering...'.$this->twigVariables['page_of_page'].':'.$templateName.':'.serialize($this->twigVariables['editable']), \OC_Log::WARN);
+		pico_log('files_picocms', 'Rendering...'.$this->twigVariables['page_of_page'].':'.$templateName.':'.serialize($this->twigVariables['editable']), \OC_Log::WARN);
 
 		$output = $this->twig->render($templateName, $this->twigVariables);
 		$this->triggerEvent('onPageRendered', array(&$output));
@@ -892,7 +923,7 @@ class Pico
 			if (is_dir($this->requestFile)) {
 				$indexHtmlFile = $this->requestFile . '/index.html';
 				if (file_exists($indexHtmlFile)) {
-					\OCP\Util::writeLog('files_picocms', 'Using '.$indexHtmlFile, \OC_Log::WARN);
+					pico_log('files_picocms', 'Using '.$indexHtmlFile, \OC_Log::WARN);
 					$this->requestFile = $indexHtmlFile;
 					$this->indexInferred = true;
 					return;
@@ -1015,7 +1046,7 @@ class Pico
 		}
 		$ownerRoot = $view->getLocalFile('/');
 		if($file!==null && strpos($file, $ownerRoot)!==0){
-			\OCP\Util::writeLog('files_picocms', 'Trying to access file '.$file.' outside of user dir '.$ownerRoot, \OC_Log::ERROR);
+			pico_log('files_picocms', 'Trying to access file '.$file.' outside of user dir '.$ownerRoot, \OC_Log::ERROR);
 			if($setPermissions){
 				$this->shareType = self::$SHARE_TYPE_NONE;
 			}
@@ -1024,7 +1055,7 @@ class Pico
 		$ocPath = "/".ltrim(substr($file, strlen($ownerRoot)), "/");
 
 		if(empty($this->ocUser)){
-			\OCP\Util::writeLog('files_picocms', 'No user '.$this->ocUser.', '.$access, \OC_Log::INFO);
+			pico_log('files_picocms', 'No user '.$this->ocUser.', '.$access, \OC_Log::INFO);
 			if($setPermissions){
 				$this->shareType = self::$SHARE_TYPE_NONE;
 			}
@@ -1035,7 +1066,7 @@ class Pico
 				// Check if current folder is publicly shared.
 				if(\OCP\App::isEnabled('files_sharding') && $setPermissions){
 					$share_permissions = (int)\OCA\FilesSharding\Lib::checkPubliclyShared($ocPath, $owner, $group);
-					\OCP\Util::writeLog('files_picocms', 'Public share permissions: '.$share_permissions, \OC_Log::INFO);
+					pico_log('files_picocms', 'Public share permissions: '.$share_permissions, \OC_Log::INFO);
 					$this->permissions = $share_permissions;
 					if($share_permissions & \OCP\PERMISSION_DELETE){
 						$this->shareType = self::$SHARE_TYPE_SHARED_PUBLIC_RW;
@@ -1059,7 +1090,7 @@ class Pico
 			$this->ocPath = $this->ocUser===$owner&&$this->indexInferred&&substr($ocPath,-1)!="/"?
 			(dirname($ocPath)."/"):$ocPath;
 		}
-		\OCP\Util::writeLog('files_picocms', 'Checking permissions. Access: '.$access.' Path: '.$ocPath. ' in '.
+		pico_log('files_picocms', 'Checking permissions. Access: '.$access.' Path: '.$ocPath. ' in '.
 				$ownerRoot." :: ".$this->ocPath." :: ".$this->ocUser." :: ".$owner, \OC_Log::WARN);
 		// First check if I own the file
 		if($this->ocUser===$owner){
@@ -1075,7 +1106,7 @@ class Pico
 				else{
 					$this->ocParentId = $view->getFileInfo(dirname($ocPath))->getId();
 				}
-				\OCP\Util::writeLog('files_picocms', 'All fine: '.$this->editable, \OC_Log::WARN);
+				pico_log('files_picocms', 'All fine: '.$this->editable, \OC_Log::WARN);
 			}
 			return true;
 		}
@@ -1128,7 +1159,7 @@ class Pico
 						$fileType = $fileInfo->getType()===\OCP\Files\FileInfo::TYPE_FOLDER?'folder':'file';
 						$itemSharedPermissions = \OCA\FilesSharding\Lib::checkAccess($this->ocUser, $fileInfo->getId(), $fileType);
 					}
-					\OCP\Util::writeLog('files_picocms', 'Checking sharing of: '.$ocPath.':'.$fileInfo->getId().':'.
+					pico_log('files_picocms', 'Checking sharing of: '.$ocPath.':'.$fileInfo->getId().':'.
 							$fileInfo->getType().':'.$this->ocId.':'.$this->ocParentId.':'.serialize($itemShared).':'.
 							serialize($itemSharedPermissions), \OC_Log::WARN);
 					if(!empty($itemSharedPermissions)){
@@ -1149,7 +1180,7 @@ class Pico
 				}
 			}
 			catch(\Exception $e){
-				\OCP\Util::writeLog('files_picocms', 'ERROR: exception thrown '.$e.getMessage(), \OC_Log::ERROR);
+				pico_log('files_picocms', 'ERROR: exception thrown '.$e.getMessage(), \OC_Log::ERROR);
 			}
 			finally {
 				\OC_Util::teardownFS();
@@ -1396,7 +1427,7 @@ class Pico
 					}
 					$mime = mime_content_type($imageFile);
 		  			$imageData = file_get_contents($imageFile);
-		  			\OCP\Util::writeLog('files_picocms', 'Fixing image '.
+		  			pico_log('files_picocms', 'Fixing image '.
 		  					'!['.$matches[1][$i].'](:/'.$matches[2][$i].')'
 		  					, \OC_Log::WARN);
 		  			$content = str_replace('!['.$matches[1][$i].'](/'.$matches[2][$i].')',
@@ -1417,7 +1448,7 @@ class Pico
 					}
 					$mime = mime_content_type($imageFile);
 					$imageData = file_get_contents($imageFile);
-					\OCP\Util::writeLog('files_picocms', 'Fixing image '.
+					pico_log('files_picocms', 'Fixing image '.
 							'!['.$matches[1][$i].'](:/'.$matches[2][$i].')'
 							, \OC_Log::WARN);
 					$content = str_replace('!['.$matches[1][$i].'](:/'.$matches[2][$i].')',
@@ -1434,12 +1465,12 @@ class Pico
 					$datadir = OC_Config::getValue( 'datadirectory' );
 					$imageFile = $datadir.'/'.$this->ocOwner.'/files/'.\OCA\Notes\Lib::getNotesFolder($this->ocOwner).".resource/".
 							$matches[1][$i];
-					\OCP\Util::writeLog('files_picocms', 'Fixing image '.':/'.$matches[1][$i].'-->'.$imageFile, \OC_Log::WARN);
+					pico_log('files_picocms', 'Fixing image '.':/'.$matches[1][$i].'-->'.$imageFile, \OC_Log::WARN);
 					if(!file_exists($imageFile)){
 						++$i;
 						continue;
 					}
-					\OCP\Util::writeLog('files_picocms', 'Fixing this image '.':/'.$matches[1][$i].'-->'.$imageFile, \OC_Log::WARN);
+					pico_log('files_picocms', 'Fixing this image '.':/'.$matches[1][$i].'-->'.$imageFile, \OC_Log::WARN);
 					$mime = mime_content_type($imageFile);
 					$imageData = file_get_contents($imageFile);
 					$content = str_replace(':/'.$matches[1][$i],
@@ -1500,6 +1531,10 @@ class Pico
 		$content = str_replace('%url%', rawurlencode($this->requestUrl), $content);
 		if(!empty($this->ocMasterUrl)){
 			$content = str_replace('%master_url%', $this->ocMasterUrl, $content);
+			$loginUrl = $this->getConfig('login_url') ?: ($this->ocMasterUrl . '/index.php/login');
+			$content  = str_replace('%login_url%', $loginUrl, $content);
+			$origPath = $this->getConfig('original_path') ?? '';
+			$content  = str_replace('%original_path%', rawurlencode($origPath), $content);
 		}
 		if(!empty($this->ocSupportEmail)){
 			$content = str_replace('%support_email%', $this->ocSupportEmail, $content);
@@ -1625,13 +1660,13 @@ class Pico
 			
 			$readable = $this->checkReadPermission($file, $meta['access'],
 					$this->getConfig('user'), $this->getConfig('group'));
-			\OCP\Util::writeLog('files_picocms', 'Readable: '.$readable.':'.$absfolder.':'.$file, \OC_Log::INFO);
+			pico_log('files_picocms', 'Readable: '.$readable.':'.$absfolder.':'.$file, \OC_Log::INFO);
 			// To generate a contents listing of files, contents must be 'yes' in the
 			//  meta of both the page we're listing and the page we're viewing
 			if(!$this->notFound && $meta['contents']=='yes' &&
 					(!empty($folder)||$folder=="") &&
 					strpos($absfolder, dirname($this->requestFile))===0){
-				\OCP\Util::writeLog('files_picocms', 'Scanning '.$absfolder.':'.$file, \OC_Log::WARN);
+				pico_log('files_picocms', 'Scanning '.$absfolder.':'.$file, \OC_Log::WARN);
 				$contents = array_diff(scandir($absfolder),
 						array(".", "..", "index.md", "403.md", "404.md", "rss.md", ".DS_Store"));
 				$contents = array_map(function($name) use ($absfolder) {return $name.(is_dir($absfolder."/".$name)?"/":"");}, $contents);
@@ -1766,7 +1801,7 @@ class Pico
 
 		$contentExt = $this->getConfig('content_ext');
 		$currentPageId = substr($this->requestFile, $contentDirLength, -strlen($contentExt));
-		\OCP\Util::writeLog('files_picocms', 'Searching for current page '.$this->requestFile.':'.$currentPageId.':'.implode(':', $pageIds), \OC_Log::INFO);
+		pico_log('files_picocms', 'Searching for current page '.$this->requestFile.':'.$currentPageId.':'.implode(':', $pageIds), \OC_Log::INFO);
 		$currentPageIndex = array_search($currentPageId, $pageIds);
 		if ($currentPageIndex !== false) {
 			$this->currentPage = &$this->pages[$currentPageId];
@@ -1839,13 +1874,13 @@ class Pico
 		
 		$theme = (!empty($this->meta['theme'])?$this->meta['theme']:$this->getConfig('theme'));
 		$themePath = $this->getThemesDir() . $theme;
-		\OCP\Util::writeLog('files_picocms', 'Rendering '.$themePath, \OC_Log::WARN);
+		pico_log('files_picocms', 'Rendering '.$themePath, \OC_Log::WARN);
 		if(!file_exists($themePath)){
 			// If the theme is not found, but there is one and only one present, use it
 			$themes_found = scandir($this->getThemesDir());
 			$themes_found = array_filter($themes_found, function($el){if(strpos($el, '.')!==0){return true;} else{return false;}});
 			$themes_found = array_values($themes_found);
-			\OCP\Util::writeLog('files_picocms', 'Found themes '.implode(':', $themes_found), \OC_Log::WARN);
+			pico_log('files_picocms', 'Found themes '.implode(':', $themes_found), \OC_Log::WARN);
 			if(count($themes_found)==1 && is_dir($this->getThemesDir().$themes_found[0])){
 				$theme = $themes_found[0];
 				$this->meta['theme'] = $theme;
@@ -1915,13 +1950,100 @@ class Pico
 	{
 		$frontPage = $this->getConfig('content_dir') . 'index' . $this->getConfig('content_ext');
 		$user_id = \OCP\User::getUser();
+
+		// Generate TOC from current page headings, adding id= to heading tags
+		$toc = '';
+		if (!empty($this->content) && !$this->notFound) {
+			$tocItems = [];
+			$this->content = preg_replace_callback(
+				'/<h([2-4])([^>]*?)>(.*?)<\/h\1>/is',
+				function ($m) use (&$tocItems) {
+					$level = (int)$m[1];
+					$attrs = $m[2];
+					$text  = strip_tags($m[3]);
+					if (!preg_match('/\bid\s*=/i', $attrs)) {
+						$id = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($text)), '-');
+						$attrs .= ' id="' . htmlspecialchars($id, ENT_QUOTES) . '"';
+					} else {
+						preg_match('/\bid\s*=\s*["\']([^"\']+)["\']/', $attrs, $idm);
+						$id = $idm[1] ?? '';
+					}
+					$tocItems[] = ['level' => $level, 'id' => $id, 'text' => $text];
+					return '<h' . $level . $attrs . '>' . $m[3] . '</h' . $level . '>';
+				},
+				$this->content
+			);
+			if (!empty($tocItems)) {
+				$pageUrl = $this->currentPage['url'] ?? '';
+				$toc = '<div id="toc"><ul>';
+				foreach ($tocItems as $item) {
+					$toc .= '<li class="toc' . $item['level'] . '">'
+						 . '<a href="' . htmlspecialchars($pageUrl . '#' . $item['id'], ENT_QUOTES) . '">'
+						 . htmlspecialchars($item['text'], ENT_QUOTES) . '</a></li>';
+				}
+				$toc .= '</ul></div>';
+			}
+		}
+
+		// Special page basenames that should not appear as blog posts
+		$specialPages = ['index', 'search', '403', '404', 'rss', 'profile', 'error'];
+
+		// Pages visible in navigation: readable, not special, not _ prefixed
+		$navPages = array_values(array_filter($this->pages, function($p) use ($specialPages) {
+			$base = basename(ltrim($p['id'], '/'));
+			return !empty($p['readable'])
+				&& !in_array($base, $specialPages, true)
+				&& substr($base, 0, 1) !== '_';
+		}));
+
+		// Detect whether a search page exists (enables search link and post-author links in themes)
+		$hasSearchPage = !empty(array_filter($this->pages, function($p) {
+			return basename(ltrim($p['id'], '/')) === 'search';
+		}));
+
+		// Sort posts by time descending (newest first) before paginating
+		usort($navPages, function($a, $b) {
+			return (int)($b['time'] ?? 0) - (int)($a['time'] ?? 0);
+		});
+
+		// Filter pages for search result views
+		if ($this->searchQuery !== '') {
+			[$searchType, $searchValue] = explode(':', $this->searchQuery, 2) + [0 => '', 1 => ''];
+			if ($searchType === 'author') {
+				$navPages = array_values(array_filter($navPages, fn($p) =>
+					strtolower(trim($p['author'] ?? '')) === strtolower(trim($searchValue))
+				));
+			} elseif ($searchType === 'labels') {
+				$navPages = array_values(array_filter($navPages, function($p) use ($searchValue) {
+					$raw = $p['meta']['labels'] ?? '';
+					$labels = is_array($raw)
+						? array_map('trim', $raw)
+						: array_map('trim', explode(',', (string)$raw));
+					return in_array(trim($searchValue), $labels, true);
+				}));
+			} else {
+				// 'q:term' — full-text search on title and description
+				$navPages = array_values(array_filter($navPages, function($p) use ($searchValue) {
+					return stripos($p['title'] ?? '', $searchValue) !== false
+						|| stripos($p['description'] ?? '', $searchValue) !== false;
+				}));
+			}
+		}
+
+		// Paginate blog posts for index views
+		$totalPosts   = count($navPages);
+		$perPage      = self::POSTS_PER_PAGE;
+		$totalPages   = max(1, (int)ceil($totalPosts / $perPage));
+		$pageNum      = min($this->currentPageNumber, $totalPages);
+		$pagedPages   = array_slice($navPages, ($pageNum - 1) * $perPage, $perPage);
+
 		return array(
 			'config' => $this->getConfig(),
 			'base_dir' => rtrim($this->getRootDir(), '/'),
 			'base_url' => rtrim($this->getBaseUrl(), '/'),
 			// NC change
 			'folder' => preg_replace("|^".$this->getConfig('content_dir')."|", "",
-					dirname($this->requestFile)."/"),
+					($this->requestFile !== null ? dirname($this->requestFile) : rtrim($this->getConfig('content_dir'), '/\\')) . "/"),
 			//'theme_dir' => $this->getThemesDir() . $this->getConfig('theme'),
 			'theme_dir' => $this->getThemesDir() . (!empty($this->meta['theme'])?
 			$this->meta['theme']:$this->getConfig('theme')),
@@ -1940,7 +2062,7 @@ class Pico
 					(!empty($this->site)?$this->site:$this->getConfig('site_title')),
 			//'oc_user' => $this->getConfig('user'),
 			'oc_user' => $user_id,
-			'oc_full_name' => \OC_User::getDisplayName($user_id),
+			'oc_full_name' => \OCP\User::getDisplayName((string)$user_id),
 			'oc_path' => $this->ocPath,
 			'oc_share' => $this->ocShare,
 			'oc_id' => $this->ocId,
@@ -1963,6 +2085,19 @@ class Pico
 			'permissions' => $this->permissions,
 			'readable' => $this->readable,
 			'editable' => $this->editable,
+			// NC themes expect found_pages / found_folders for navigation
+			'found_pages'   => $navPages,
+			'found_folders' => array_values(array_unique(array_map(function($p) {
+				return $p['folder'];
+			}, $navPages))),
+			'paged_pages'   => $pagedPages,
+			'page_of_page'  => 1,
+			'has_search_page' => $hasSearchPage,
+			'search_query'  => $this->searchQuery,
+			'page_number'   => $pageNum,
+			'total_pages'   => $totalPages,
+			'page_indicator' => $this->pageIndicator,
+			'toc'           => $toc,
 		);
 	}
 
