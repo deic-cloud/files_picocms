@@ -238,6 +238,8 @@ class ParsedownExtra extends Parsedown
     {
         $Block = parent::blockSetextHeader($Line, $Block);
 
+        if ($Block === null) return null;
+
         if (preg_match('/[ ]*{('.$this->regexAttribute.'+)}[ ]*$/', $Block['element']['text'], $matches, PREG_OFFSET_CAPTURE))
         {
             $attributeString = $matches[1][0];
