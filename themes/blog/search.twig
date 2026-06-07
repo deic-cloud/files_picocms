@@ -21,7 +21,8 @@
     <link href="{{ theme_url }}/css/font-awesome.css" rel="stylesheet" type="text/css">
     <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
     <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
-  </head>
+      {% if config.favicon %}<link rel="shortcut icon" href="{{ base_url }}/{{ config.favicon }}" />{% endif %}
+</head>
 
  <body>
 
