@@ -317,22 +317,40 @@ $pico = new Pico(
 $pico->setConfig($picoConfig);
 $pico->ocOwner = $uid;
 
-// If the logged-in user is the site owner, enable editing.
-// ocPath is the WebDAV path to the current file (relative to the user's files root).
+// Grant write/edit access based on NC ownership or share permissions.
+// ocPath is the WebDAV path to the current file relative to the user's files root.
 try {
 	$currentUser = \OC::$server->get(\OCP\IUserSession::class)->getUser();
 	$currentUid  = $currentUser ? $currentUser->getUID() : '';
-	if ($currentUid === $uid) {
+	if ($currentUid !== '') {
 		$filesRoot       = $dataDir . '/' . $uid . ($gid !== '' ? '/user_group_admin/' . $gid : '/files');
 		$contentRelative = ltrim(substr($contentDir, strlen($filesRoot)), '/');
-		if ($sitePath === '') {
-			// Index page: pass the directory so the Write button knows where to create files
-			$ocPath = '/' . $contentRelative . '/';
-		} else {
-			// Specific page: Pico appends .md to resolve the file
-			$ocPath = '/' . $contentRelative . '/' . $sitePath . '.md';
+
+		if ($currentUid === $uid) {
+			// Site owner: full edit access
+			$ocPath = ($sitePath === '')
+				? '/' . $contentRelative . '/'
+				: '/' . $contentRelative . '/' . $sitePath . '.md';
+			$pico->setOwnerEditMode($ocPath);
+		} elseif ($gid === '') {
+			// Non-owner on a user site: check NC share permissions
+			try {
+				$rootFolder  = \OC::$server->get(\OCP\Files\IRootFolder::class);
+				$siteNode    = $rootFolder->getUserFolder($uid)->get($contentRelative);
+				$nodeId      = $siteNode->getId();
+				foreach ($rootFolder->getUserFolder($currentUid)->getById($nodeId) as $node) {
+					if ($node->isUpdateable()) {
+						// Compute path from the shared user's perspective
+						$sharedRel = substr($node->getPath(), strlen('/' . $currentUid . '/files'));
+						$ocPath = ($sitePath === '')
+							? $sharedRel . '/'
+							: $sharedRel . '/' . $sitePath . '.md';
+						$pico->setWriteAccess($ocPath);
+						break;
+					}
+				}
+			} catch (\Throwable) {}
 		}
-		$pico->setOwnerEditMode($ocPath);
 	}
 } catch (\Throwable) {}
 

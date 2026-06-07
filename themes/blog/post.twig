@@ -96,7 +96,7 @@
                 </div>
             </div>
         </div>
-   			{% if editable is not empty %}
+   			{% if editable is not empty or (writable is not empty and oc_user is not empty and oc_user == meta.author) %}
 	        <button class="edit-button btn btn-primary btn-flat" path="{{ oc_path }}"
 	        dir_id="{{ oc_parent_id }}" id="{{ oc_id }}"
 	        user="{{ oc_user }}" owner="{{ oc_owner }}" group="{{ oc_group }}"

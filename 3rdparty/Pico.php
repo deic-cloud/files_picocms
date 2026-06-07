@@ -306,6 +306,7 @@ class Pico
 	protected $sharetype;
 	protected $readable;
 	protected $editable;
+	protected $writable = false;
 	
 	public static $SHARE_TYPE_NONE = 'none';
 	public static $SHARE_TYPE_MINE = 'mine';
@@ -379,14 +380,26 @@ class Pico
 
 	/**
 	 * Called by serve.php when the authenticated user is the site owner.
-	 * Sets editable=true and ocPath so the blog edit/write buttons appear.
+	 * Sets editable=writable=true and ocPath so the blog edit/write buttons appear.
 	 */
 	public function setOwnerEditMode(string $ocPath): void {
-		$this->editable   = true;
-		$this->readable   = true;
+		$this->editable    = true;
+		$this->writable    = true;
+		$this->readable    = true;
 		$this->permissions = \OCP\PERMISSION_ALL;
-		$this->shareType  = self::$SHARE_TYPE_MINE;
-		$this->ocPath     = $ocPath;
+		$this->shareType   = self::$SHARE_TYPE_MINE;
+		$this->ocPath      = $ocPath;
+	}
+
+	/**
+	 * Called by serve.php when a non-owner has r/w share access to the site folder.
+	 * Sets writable=true (but not editable) so the Write button appears and per-author
+	 * Edit buttons can be shown when oc_user matches meta.author.
+	 */
+	public function setWriteAccess(string $ocPath): void {
+		$this->writable = true;
+		$this->readable = true;
+		$this->ocPath   = $ocPath;
 	}
 
 	public static function shutDownFunction() {
@@ -2109,6 +2122,7 @@ class Pico
 			'permissions' => $this->permissions,
 			'readable' => $this->readable,
 			'editable' => $this->editable,
+			'writable' => $this->writable,
 			// NC themes expect found_pages / found_folders for navigation
 			'found_pages'   => $foundPages,
 			'found_folders' => array_values(array_unique(array_map(function($p) {

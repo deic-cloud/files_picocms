@@ -1283,8 +1283,8 @@ jQuery(document).ready(function($) {
 			$('.popout').show('slow');
 		});
 		
-        // Show write button only when user has edit permission
-        if ($('.write-post').attr('editable')) {
+        // Show write button when user has write access (owner or r/w share)
+        if ($('.write-post').attr('writable')) {
             $('.write-post').show();
         }
 
