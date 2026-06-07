@@ -86,7 +86,7 @@ $servePublic = $_['serve_public'];
 			<input type="text" id="picoAddPath" placeholder="<?php p($l->t('/folder/path')); ?>" />
 			<button id="picoAddPathBrowse" class="button"><?php p($l->t('Browse')); ?></button>
 			<input type="text" id="picoAddName" placeholder="<?php p($l->t('site-name')); ?>" />
-			<button id="picoAddBtn"><?php p($l->t('Serve')); ?></button>
+			<button id="picoAddBtn" disabled><?php p($l->t('Serve')); ?></button>
 		</div>
 	</div>
 
@@ -100,14 +100,14 @@ $servePublic = $_['serve_public'];
 				<label>
 					<input type="radio" name="pico_type" value="blog-profile"
 					       data-folder="/public" data-content="/sample-content/blog/profile.md"
-					       data-destination="index.md" data-theme="deic-blog"
+					       data-destination="index.md" data-theme="blog"
 					       data-copy-themes="no" checked />
 					<?php p($l->t('Single public profile page')); ?>
 				</label>
 				<label>
 					<input type="radio" name="pico_type" value="blog"
 					       data-folder="/blog" data-content="/sample-content/blog"
-					       data-destination="content" data-theme="deic-blog"
+					       data-destination="content" data-theme="blog"
 					       data-copy-themes="yes" />
 					<?php p($l->t('Blog')); ?>
 				</label>
@@ -121,7 +121,7 @@ $servePublic = $_['serve_public'];
 				<label>
 					<input type="radio" name="pico_type" value="doc"
 					       data-folder="/documentation" data-content="/sample-content/doc"
-					       data-destination="content" data-theme="deic-doc"
+					       data-destination="content" data-theme="documentation"
 					       data-copy-themes="yes" />
 					<?php p($l->t('Documentation')); ?>
 				</label>

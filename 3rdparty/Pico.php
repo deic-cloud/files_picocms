@@ -1951,7 +1951,10 @@ class Pico
 		$frontPage = $this->getConfig('content_dir') . 'index' . $this->getConfig('content_ext');
 		$user_id = \OCP\User::getUser();
 
-		// Generate TOC from current page headings, adding id= to heading tags
+		// Generate TOC from current page headings, adding id= to heading tags.
+		// Always generated when content has headings; themes control display:
+		// - documentation sidebar: shows {{ toc }} inside li.current → toc.js reveals via find('li')
+		// - blog post.twig: gates with {% if meta.toc %} in frontmatter
 		$toc = '';
 		if (!empty($this->content) && !$this->notFound) {
 			$tocItems = [];
@@ -1985,14 +1988,14 @@ class Pico
 			}
 		}
 
-		// Special page basenames that should not appear as blog posts
-		$specialPages = ['index', 'search', '403', '404', 'rss', 'profile', 'error'];
-
-		// Pages visible in navigation: readable, not special, not _ prefixed
-		$navPages = array_values(array_filter($this->pages, function($p) use ($specialPages) {
+		// found_pages: readable pages for theme navigation (e.g. documentation sidebar).
+		// Excludes utility pages (search, error pages) and _-prefixed private pages,
+		// but KEEPS folder index.md files — those are section headers in the doc sidebar.
+		$navUtilityPages = ['search', '403', '404', 'rss', 'profile', 'error'];
+		$foundPages = array_values(array_filter($this->pages, function($p) use ($navUtilityPages) {
 			$base = basename(ltrim($p['id'], '/'));
 			return !empty($p['readable'])
-				&& !in_array($base, $specialPages, true)
+				&& !in_array($base, $navUtilityPages, true)
 				&& substr($base, 0, 1) !== '_';
 		}));
 
@@ -2001,20 +2004,29 @@ class Pico
 			return basename(ltrim($p['id'], '/')) === 'search';
 		}));
 
-		// Sort posts by time descending (newest first) before paginating
-		usort($navPages, function($a, $b) {
+		// Blog post pages: readable, not special pages, not _ prefixed
+		$specialPages = ['index', 'search', '403', '404', 'rss', 'profile', 'error'];
+		$blogPages = array_values(array_filter($this->pages, function($p) use ($specialPages) {
+			$base = basename(ltrim($p['id'], '/'));
+			return !empty($p['readable'])
+				&& !in_array($base, $specialPages, true)
+				&& substr($base, 0, 1) !== '_';
+		}));
+
+		// Sort blog posts by time descending (newest first) before paginating
+		usort($blogPages, function($a, $b) {
 			return (int)($b['time'] ?? 0) - (int)($a['time'] ?? 0);
 		});
 
-		// Filter pages for search result views
+		// Filter blog pages for search result views
 		if ($this->searchQuery !== '') {
 			[$searchType, $searchValue] = explode(':', $this->searchQuery, 2) + [0 => '', 1 => ''];
 			if ($searchType === 'author') {
-				$navPages = array_values(array_filter($navPages, fn($p) =>
+				$blogPages = array_values(array_filter($blogPages, fn($p) =>
 					strtolower(trim($p['author'] ?? '')) === strtolower(trim($searchValue))
 				));
 			} elseif ($searchType === 'labels') {
-				$navPages = array_values(array_filter($navPages, function($p) use ($searchValue) {
+				$blogPages = array_values(array_filter($blogPages, function($p) use ($searchValue) {
 					$raw = $p['meta']['labels'] ?? '';
 					$labels = is_array($raw)
 						? array_map('trim', $raw)
@@ -2023,7 +2035,7 @@ class Pico
 				}));
 			} else {
 				// 'q:term' — full-text search on title and description
-				$navPages = array_values(array_filter($navPages, function($p) use ($searchValue) {
+				$blogPages = array_values(array_filter($blogPages, function($p) use ($searchValue) {
 					return stripos($p['title'] ?? '', $searchValue) !== false
 						|| stripos($p['description'] ?? '', $searchValue) !== false;
 				}));
@@ -2031,11 +2043,11 @@ class Pico
 		}
 
 		// Paginate blog posts for index views
-		$totalPosts   = count($navPages);
+		$totalPosts   = count($blogPages);
 		$perPage      = self::POSTS_PER_PAGE;
 		$totalPages   = max(1, (int)ceil($totalPosts / $perPage));
 		$pageNum      = min($this->currentPageNumber, $totalPages);
-		$pagedPages   = array_slice($navPages, ($pageNum - 1) * $perPage, $perPage);
+		$pagedPages   = array_slice($blogPages, ($pageNum - 1) * $perPage, $perPage);
 
 		return array(
 			'config' => $this->getConfig(),
@@ -2086,10 +2098,10 @@ class Pico
 			'readable' => $this->readable,
 			'editable' => $this->editable,
 			// NC themes expect found_pages / found_folders for navigation
-			'found_pages'   => $navPages,
+			'found_pages'   => $foundPages,
 			'found_folders' => array_values(array_unique(array_map(function($p) {
 				return $p['folder'];
-			}, $navPages))),
+			}, $foundPages))),
 			'paged_pages'   => $pagedPages,
 			'page_of_page'  => 1,
 			'has_search_page' => $hasSearchPage,

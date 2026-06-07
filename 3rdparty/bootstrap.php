@@ -5,6 +5,9 @@
  * Called once from appinfo/serve.php.
  */
 
+// NC API compat shims (OCP\App, OCP\User, OCP\Config, OC_Log — removed in NC26+)
+require_once __DIR__ . '/compat.php';
+
 // Twig v1 — use its own autoloader
 require_once __DIR__ . '/Twig/lib/Twig/Autoloader.php';
 Twig_Autoloader::register();

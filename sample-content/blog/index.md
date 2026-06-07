@@ -6,7 +6,7 @@ Social:
   https://www.linkedin.com/company/deic: linkedin
   https://github.com/deic-dk: github
   https://twitter.com/deic1: twitter
-Theme: deic-blog
+Theme: blog
 Access: private
 ---
 

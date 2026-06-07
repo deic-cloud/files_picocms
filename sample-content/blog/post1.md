@@ -5,7 +5,7 @@ Date:
 Author: 
 Template: post
 Access: private
-Theme: deic-blog
+Theme: blog
 Comments: on
 ---
 

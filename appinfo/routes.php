@@ -17,6 +17,8 @@ return [
 		['name' => 'api#setSampleFolder',   'url' => '/api/v1/sample-folder', 'verb' => 'POST'],
 	],
 	'routes' => [
+		// App page
+		['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
 		// Internal inter-server API (authenticated by shared secret, used by files_sharding)
 		['name' => 'internal#listSites',      'url' => '/internal/sites',         'verb' => 'GET'],
 		['name' => 'internal#addSite',        'url' => '/internal/sites',         'verb' => 'POST'],

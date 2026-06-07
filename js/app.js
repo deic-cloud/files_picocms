@@ -3,10 +3,10 @@
 (function () {
 	'use strict';
 
-	const OCS = OC.generateUrl('/ocs/v2.php/apps/files_picocms/api/v1');
+	const OCS = (OC.webroot || '') + '/ocs/v2.php/apps/files_picocms/api/v1';
 
 	async function ocsPost(path, body) {
-		const res = await fetch(OCS + path, {
+		const res = await fetch(OCS + path + '?format=json', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
@@ -19,8 +19,8 @@
 	}
 
 	async function ocsDelete(path, params) {
-		const url = OCS + path + (params ? '?' + new URLSearchParams(params).toString() : '');
-		const res = await fetch(url, {
+		const p = new URLSearchParams({ ...(params || {}), format: 'json' });
+		const res = await fetch(OCS + path + '?' + p.toString(), {
 			method: 'DELETE',
 			headers: { 'OCS-APIREQUEST': 'true', 'requesttoken': OC.requestToken },
 		});
@@ -72,15 +72,22 @@
 			window.location.href = (OC.webroot || '') + '/index.php/apps/files?dir=' + encodeURIComponent(path);
 		});
 
-		tr.querySelector('.picoDeleteBtn')?.addEventListener('click', async function () {
-			if (!confirm(t('files_picocms', 'Stop serving folder: ') + path + '?')) return;
-			const data = await ocsDelete('/sites', { folder: path });
-			if (data?.ocs?.meta?.status === 'ok') {
-				tr.remove();
-				maybeShowEmpty();
-			} else {
-				alert(t('files_picocms', 'Could not remove site.'));
-			}
+		tr.querySelector('.picoDeleteBtn')?.addEventListener('click', function () {
+			OC.dialogs.confirm(
+				t('files_picocms', 'Stop serving folder: ') + path + '?',
+				t('files_picocms', 'Remove site'),
+				async function (confirmed) {
+					if (!confirmed) return;
+					const data = await ocsDelete('/sites', { folder: path });
+					if (data?.ocs?.meta?.status === 'ok') {
+						tr.remove();
+						maybeShowEmpty();
+					} else {
+						alert(t('files_picocms', 'Could not remove site.'));
+					}
+				},
+				true
+			);
 		});
 	}
 
@@ -155,27 +162,38 @@
 	// ── Register existing folder ─────────────────────────────────────────────────
 
 	function initAddManual() {
+		const addBtn  = document.getElementById('picoAddBtn');
+		const addPath = document.getElementById('picoAddPath');
+		const addName = document.getElementById('picoAddName');
+
+		function updateServeBtn() {
+			if (addBtn) addBtn.disabled = !addPath?.value.trim() || !addName?.value.trim();
+		}
+		addPath?.addEventListener('input', updateServeBtn);
+		addName?.addEventListener('input', updateServeBtn);
+
 		document.getElementById('picoAddPathBrowse')?.addEventListener('click', () => {
 			if (!window.OC?.dialogs?.filepicker) return;
 			OC.dialogs.filepicker(
 				t('files_picocms', 'Choose folder'),
-				(path) => { document.getElementById('picoAddPath').value = path || '/'; },
+				(path) => { if (addPath) addPath.value = path || '/'; updateServeBtn(); },
 				false, 'httpd/unix-directory', true,
 				OC.dialogs.FILEPICKER_TYPE_CHOOSE
 			);
 		});
 
-		document.getElementById('picoAddBtn')?.addEventListener('click', async () => {
-			const folder = document.getElementById('picoAddPath')?.value.trim();
-			const name   = document.getElementById('picoAddName')?.value.trim();
+		addBtn?.addEventListener('click', async () => {
+			const folder = addPath?.value.trim();
+			const name   = addName?.value.trim();
 			if (!folder || !name) return;
 
 			const data = await ocsPost('/sites', { folder, name });
 			if (data?.ocs?.meta?.status === 'ok') {
 				const tbody = document.getElementById('picoSiteList');
 				if (tbody) tbody.appendChild(buildSiteRow(folder, name));
-				document.getElementById('picoAddPath').value = '';
-				document.getElementById('picoAddName').value = '';
+				addPath.value = '';
+				addName.value = '';
+				updateServeBtn();
 				maybeShowEmpty();
 			} else {
 				alert(t('files_picocms', 'Name already taken or folder invalid.'));

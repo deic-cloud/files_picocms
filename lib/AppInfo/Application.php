@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\FilesPicoCMS\AppInfo;
 
-use OCA\FilesPicoCMS\Settings\AdminSettings;
-use OCA\FilesPicoCMS\Settings\PersonalSettings;
+use OCA\Files\Event\LoadAdditionalScriptsEvent;
+use OCA\FilesPicoCMS\Listener\LoadSidebarScriptsListener;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
@@ -19,8 +19,7 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function register(IRegistrationContext $context): void {
-		$context->registerSettings(PersonalSettings::class);
-		$context->registerSettings(AdminSettings::class);
+		$context->registerEventListener(LoadAdditionalScriptsEvent::class, LoadSidebarScriptsListener::class);
 	}
 
 	public function boot(IBootContext $context): void {

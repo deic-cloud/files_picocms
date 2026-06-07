@@ -1,7 +1,6 @@
 <?php
 /** @var array $_ */
-$user       = \OCP\USER::getUser();
-$email      = \OCP\Config::getUserValue($user, 'settings', 'email');
+$email      = $_['email'];
 $serverRoot = \OC::$WEBROOT;
 ?>
 <div class="section" id="filesPicoSettings">
@@ -57,13 +56,13 @@ $serverRoot = \OC::$WEBROOT;
 				data-theme="deic-wiki" data-copy-themes="yes" /> <?php p($l->t('Wiki')); ?></label><br />
 			<label><input type="radio" name="pico_type" value="blog-profile"
 				data-folder="/public" data-content="/sample-content/blog/profile.md" data-destination="index.md"
-				data-theme="deic-blog" data-copy-themes="no" checked /> <?php p($l->t('Single public profile page')); ?></label><br />
+				data-theme="blog" data-copy-themes="no" checked /> <?php p($l->t('Single public profile page')); ?></label><br />
 			<label><input type="radio" name="pico_type" value="blog"
 				data-folder="/blog" data-content="/sample-content/blog" data-destination="content"
-				data-theme="deic-blog" data-copy-themes="yes" /> <?php p($l->t('Blog')); ?></label><br />
+				data-theme="blog" data-copy-themes="yes" /> <?php p($l->t('Blog')); ?></label><br />
 			<label><input type="radio" name="pico_type" value="doc"
 				data-folder="/documentation" data-content="/sample-content/doc" data-destination="content"
-				data-theme="deic-doc" data-copy-themes="yes" /> <?php p($l->t('Documentation')); ?></label><br />
+				data-theme="documentation" data-copy-themes="yes" /> <?php p($l->t('Documentation')); ?></label><br />
 			<label><input type="radio" name="pico_type" value="default"
 				data-folder="/website" data-content="/sample-content/doc" data-destination="content"
 				data-theme="default" data-copy-themes="yes" /> <?php p($l->t('Default Pico')); ?></label>

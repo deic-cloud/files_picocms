@@ -4,7 +4,7 @@ Description:
 Author:
 Template: profile
 Access: private
-Theme: deic-blog
+Theme: blog
 Comments: on
 ---
 

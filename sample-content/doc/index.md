@@ -3,7 +3,8 @@ Site: Pico for Nextcloud
 Title: Pico for Nextcloud
 Theme: default
 Description: Pico is a simple, fast, flat file CMS.
-social:
+Author: Joe Bloggs
+Social:
     - title: Visit us on GitHub
       url: https://github.com/picocms/Pico
       icon: octocat
@@ -118,28 +119,34 @@ These values will be contained in the `{{ meta }}` variable in themes
 
 There are also certain variables that you can use in your text files:
 
-* <code>&#37;site_title&#37;</code> - The title of your Pico site
-* <code>&#37;base_url&#37;</code> - The URL to your Pico site; internal links
+* <code>&#37;site_title&#37;</code> - %site_title% - The title of your Pico site
+* <code>&#37;base_url&#37;</code> - %base_url% - The URL to your Pico site; internal links
   can be specified using <code>&#37;base_url&#37;?sub/page</code>
-* <code>&#37;theme_url&#37;</code> - The URL to the currently used theme
+* <code>&#37;theme_url&#37;</code> - %theme_url% - The URL to the currently used theme
 * <code>&#37;meta.&#42;&#37;</code> - Access any meta variable of the current
-  page, e.g. <code>&#37;meta.author&#37;</code> is replaced with `Joe Bloggs`
+  page, e.g. <code>&#37;meta.author&#37;</code> - `%meta.author%`
 
 Pico for Nextcloud adds a few more:
 
-* <code>&#37;user&#37;</code> - On a page marked with meta attribute <code>Access: private</code>,
-the user name of a logged-in visitor with access rights to the page in question
-* <code>&#37;group&#37;</code> - On a page marked with meta attribute <code>Access: private</code>,
-the group of a logged-in visitor that gives him access to the page in question
-* <code>&#37;owner&#37;</code> - The owner of the page in question
-* <code>&#37;master_url&#37;</code> - In a distributed setup, the URL of the master server that
+* <code>&#37;user&#37;</code> - %user% - On a page marked with meta attribute <code>Access: private</code>,
+the user name of a logged-in visitor with access rights to the page in question - notice that a visitor's credentials will time out quickly
+* <code>&#37;group&#37;</code> - %group% - On a page marked with meta attribute <code>Access: private</code>,
+the group of a logged-in visitor that gives him access to the page in question - again, notice that a visitor's credentials will time out quickly
+* <code>&#37;owner&#37;</code> - %owner% - The owner of the page in question
+* <code>&#37;master_url&#37;</code> - %master_url% - In a distributed setup, the URL of the master server that
 redirects to the slave servers holding the data. A site may e.g. have URL
 <code>%master_url%sites/mysite</code>, but be physically hosted at
 <code>https://someslave.somesite/sites/mysite</code>, and the actual file located at
 <code>https://someslave.somesite/shared/mysite/content/index.md</code>
-* <code>&#37;email&#37;</code> - The email of the owner of the page in question
-* <code>&#37;orcid&#37;</code> - The ORCID ID of the owner of the page in question -
-available only if set by the owner
+* <code>&#37;login_url&#37;</code> - The full URL of the login page (on the master server in a distributed
+setup), with a `redirect_url` parameter pointing back to the page the visitor was trying to reach.
+Intended for use in `403.md` pages: `[Log in](%login_url%)`. Note: `%url%` inside a `403.md` page
+resolves to `403` (the error page itself), not the originally-requested path — use `%login_url%` instead,
+which already includes the correct redirect target. `%original_path%` contains the raw path that was
+requested (URL-encoded), in case you need to construct a custom login URL.
+* <code>&#37;email&#37;</code> - %email% - The email of the owner of the page in question
+* <code>&#37;orcid&#37;</code> - %orcid% - The ORCID ID of the owner of the page in question -
+available only if the app `user_orcid` is installed and enabled and the owner has set her ORCID in her preferences
 
 ## Customization
 

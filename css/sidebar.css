@@ -1,0 +1,63 @@
+.picocms-loading {
+	padding: 12px;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}
+
+.picocms-panel {
+	padding: 12px 16px;
+}
+
+.picocms-serve-row {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-bottom: 12px;
+}
+
+.picocms-serve-label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	flex: 1;
+}
+
+.picocms-url {
+	font-size: 0.82em;
+	word-break: break-all;
+	margin-bottom: 12px;
+}
+
+.picocms-url a {
+	color: var(--color-main-text);
+	font-family: monospace;
+}
+
+.picocms-edit-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--color-primary-element);
+	width: 32px;
+	height: 32px;
+	border-radius: var(--border-radius);
+	flex-shrink: 0;
+}
+
+.picocms-edit-icon:hover {
+	background: var(--color-background-hover);
+}
+
+.picocms-edit-icon svg {
+	width: 20px;
+	height: 20px;
+	fill: currentColor;
+}
+
+.picocms-msg {
+	margin: 6px 0 0;
+	font-size: 0.85em;
+	color: var(--color-error);
+	min-height: 1em;
+}

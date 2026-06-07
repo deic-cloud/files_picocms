@@ -3,10 +3,10 @@
 (function () {
 	'use strict';
 
-	const OCS = OC.generateUrl('/ocs/v2.php/apps/files_picocms/api/v1');
+	const OCS = (OC.webroot || '') + '/ocs/v2.php/apps/files_picocms/api/v1';
 
 	async function ocsPost(path, body) {
-		const res = await fetch(OCS + path, {
+		const res = await fetch(OCS + path + '?format=json', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
@@ -19,16 +19,16 @@
 	}
 
 	async function ocsGet(path, params) {
-		const url = OCS + path + (params ? '?' + new URLSearchParams(params).toString() : '');
-		const res = await fetch(url, {
+		const p = new URLSearchParams({ ...(params || {}), format: 'json' });
+		const res = await fetch(OCS + path + '?' + p.toString(), {
 			headers: { 'OCS-APIREQUEST': 'true', 'requesttoken': OC.requestToken },
 		});
 		return res.json();
 	}
 
 	async function ocsDelete(path, params) {
-		const url = OCS + path + (params ? '?' + new URLSearchParams(params).toString() : '');
-		const res = await fetch(url, {
+		const p = new URLSearchParams({ ...(params || {}), format: 'json' });
+		const res = await fetch(OCS + path + '?' + p.toString(), {
 			method: 'DELETE',
 			headers: { 'OCS-APIREQUEST': 'true', 'requesttoken': OC.requestToken },
 		});
@@ -57,15 +57,23 @@
 	}
 
 	function bindRemoveBtn(btn) {
-		btn.addEventListener('click', async function () {
+		btn.addEventListener('click', function () {
 			const path = this.dataset.path;
-			if (!confirm(t('files_picocms', 'Stop serving folder: ') + path + '?')) return;
-			const data = await ocsDelete('/sites', { folder: path });
-			if (data?.ocs?.meta?.status === 'ok') {
-				this.closest('.siteFolder').remove();
-			} else {
-				alert(t('files_picocms', 'Could not remove site folder.'));
-			}
+			const row  = this.closest('.siteFolder');
+			OC.dialogs.confirm(
+				t('files_picocms', 'Stop serving folder: ') + path + '?',
+				t('files_picocms', 'Remove site'),
+				async function (confirmed) {
+					if (!confirmed) return;
+					const data = await ocsDelete('/sites', { folder: path });
+					if (data?.ocs?.meta?.status === 'ok') {
+						row.remove();
+					} else {
+						alert(t('files_picocms', 'Could not remove site folder.'));
+					}
+				},
+				true
+			);
 		});
 	}
 
