@@ -459,6 +459,20 @@ class Pico
 			throw new RuntimeException('Invalid content directory "' . $this->getConfig('content_dir') . '"');
 		}
 
+		// Load site-level config from _config.md (theme, favicon, etc.)
+		$siteConfigFile = $this->getConfig('content_dir') . '_config.md';
+		if (file_exists($siteConfigFile)) {
+			$raw = @file_get_contents($siteConfigFile);
+			if ($raw !== false) {
+				$siteConf = $this->parseFileMeta($raw, []);
+				foreach (['theme', 'favicon', 'title', 'description'] as $key) {
+					if (!empty($siteConf[$key])) {
+						$this->config[$key] = $siteConf[$key];
+					}
+				}
+			}
+		}
+
 		// evaluate request url
 		$this->evaluateRequestUrl();
 		$this->triggerEvent('onRequestUrl', array(&$this->requestUrl));
