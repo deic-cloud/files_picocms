@@ -547,9 +547,9 @@ class Pico
 					$this->getConfig('content_dir'), \OC_Log::WARN);
 		}
 
-		// NC change
-		if(!empty($this->meta['access']) && !$this->notFound){
-			if(!$this->checkReadPermission($this->requestFile, $this->meta['access'],
+		// NC change — always check permissions so editable is populated for owner
+		if(!$this->notFound){
+			if(!$this->checkReadPermission($this->requestFile, $this->meta['access'] ?? '',
 					$this->getConfig('user'), $this->getConfig('group'))){
 				pico_log('files_picocms', 'Not allowed '.$this->requestFile.':'.$this->meta['access'].':'.$this->rawContent, \OC_Log::WARN);
 				//header($_SERVER['SERVER_PROTOCOL'] . ' 403 Forbidden');
@@ -1027,6 +1027,26 @@ class Pico
 			if($setPermissions){
 				$this->shareType = self::$SHARE_TYPE_NONE;
 				$this->readable = true;
+				// Owner editing their own public page
+				if(!empty($this->ocUser) && $this->ocUser === $owner && $file !== null){
+					try{
+						$view = !empty($group)
+							? new \OC\Files\View('/'.$owner.'/user_group_admin/'.$group)
+							: new \OC\Files\View('/'.$owner.'/files');
+						$ownerRoot = $view->getLocalFile('/');
+						if(str_starts_with($file, $ownerRoot)){
+							$ocPath = '/'.ltrim(substr($file, strlen($ownerRoot)), '/');
+							$this->ocPath = ($this->indexInferred && substr($ocPath,-1) !== '/')
+								? (dirname($ocPath).'/')
+								: $ocPath;
+							$this->editable = true;
+							$this->permissions = \OCP\PERMISSION_ALL;
+							$this->shareType = self::$SHARE_TYPE_MINE;
+						}
+					} catch(\Throwable $e){
+						pico_log('files_picocms', 'checkReadPermission public owner: '.$e->getMessage(), \OC_Log::WARN);
+					}
+				}
 			}
 			if(/*Need to set editable for shared...*/empty($access) || trim(strtolower($access))=='public'){
 				return true;

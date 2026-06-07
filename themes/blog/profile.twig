@@ -72,7 +72,7 @@
             </div>
         </div>
 
-   			{% if meta.access != 'public' and editable is not empty %}
+   			{% if editable is not empty %}
 	        <button class="edit-button btn btn-primary btn-flat" path="{{ oc_path }}"
 	        dir_id="{{ oc_parent_id }}" id="{{ oc_id }}" user="{{ oc_user }}" owner="{{ oc_owner }}"
 	        group="{{ oc_group }}" host="{{ oc_user_home_url }}">Edit</button>
