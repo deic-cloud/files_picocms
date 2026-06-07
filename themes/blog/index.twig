@@ -30,6 +30,7 @@
 
     <!-- Custom CSS -->
     <link href="{{ theme_url }}/css/clean-blog.css" rel="stylesheet">
+    <link href="{{ theme_url }}/css/easymde.min.css" rel="stylesheet">
 
     <!-- Custom Fonts -->
     <link href="{{ theme_url }}/css/font-awesome.css" rel="stylesheet" type="text/css">
@@ -38,6 +39,7 @@
 
     <script src="{{ theme_url }}/js/jquery.min.js"></script>
     <script src="{{ theme_url }}/js/bootstrap.min.js"></script>
+    <script src="{{ theme_url }}/js/easymde.min.js"></script>
     <script src="{{ theme_url }}/js/clean-blog.js"></script>
 </head>
 
@@ -96,7 +98,9 @@
         dir_id="{{ oc_parent_id }}" id="{{ oc_id }}"
         style="display:none;"
             owner="{{  oc_owner }}" user="{{ oc_user }}" group="{{ oc_group }}"
-            host="{{ oc_user_home_url }}" readable="{{ readable }} editable="{{ editable }}">Write</a>
+            host="{{ oc_user_home_url }}" readable="{{ readable }}" editable="{{ editable }}">Write</a>
+        <input id="write_post" type="text" placeholder="New post title…"
+            style="display:none;position:absolute;bottom:20px;left:20px;width:300px;padding:6px 10px;font-size:14px;border-radius:4px;border:1px solid #ccc;" />
 
     </header>
 

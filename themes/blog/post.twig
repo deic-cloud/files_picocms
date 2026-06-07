@@ -28,6 +28,7 @@
     <!-- Custom CSS -->
     <link href="{{ theme_url }}/css/clean-blog.css" rel="stylesheet">
     <link href="{{ theme_url }}/css/modal-images.css" rel="stylesheet">
+    <link href="{{ theme_url }}/css/easymde.min.css" rel="stylesheet">
 
     <!-- Custom Fonts -->
     <link href="{{ theme_url }}/css/font-awesome.css" rel="stylesheet" type="text/css">
@@ -36,6 +37,7 @@
 
     <script src="{{ theme_url }}/js/jquery.min.js"></script>
     <script src="{{ theme_url }}/js/bootstrap.min.js"></script>
+    <script src="{{ theme_url }}/js/easymde.min.js"></script>
     <script src="{{ theme_url }}/js/clean-blog.js"></script>
 
 </head>
@@ -97,7 +99,7 @@
 	        <button class="edit-button btn btn-primary btn-flat" path="{{ oc_path }}"
 	        dir_id="{{ oc_parent_id }}" id="{{ oc_id }}"
 	        user="{{ oc_user }}" owner="{{ oc_owner }}" group="{{ oc_group }}"
-	        host="{{ oc_user_home_url }}">Show file</button>
+	        host="{{ oc_user_home_url }}">Edit</button>
         {% endif %}
     </header>
     
@@ -122,7 +124,7 @@
     <div class="container">
 	    <div class="col-lg-offset-2">
 		    <div class="form-group col-xs-5 comment-post"
-		    share="{{  oc_share }}" path="{{  oc_path }}" owner="{{  oc_owner }}" user="{{  oc_user }}"
+		    share="{{  oc_share }}" path="{{  oc_path }}" owner="{{  oc_owner }}" user="{{  oc_user }}" host="{{ oc_user_home_url }}"
 		    group="{{  oc_group }}">
 		     <input placeholder="Your name" type="text" class="form-control" id="name" size="64" value="{{ oc_full_name }}" />
 		     <textarea placeholder="Your comment" class="form-control" rows="3" id="comment"></textarea>

@@ -1033,6 +1033,93 @@ function scrollToEl(el, extraOffset){
     (typeof extraOffset!=='undefined'?extraOffset:0)}, 600);
 }
 
+// ── WebDAV helpers ────────────────────────────────────────────────────────────
+
+function davUrl(host, path) {
+    return host + '/remote.php/webdav' + path;
+}
+
+function davToken() {
+    return $('head').data('requesttoken') || '';
+}
+
+function davGet(url, callback) {
+    $.ajax({
+        url: url, method: 'GET',
+        headers: { 'requesttoken': davToken() },
+        success: callback,
+        error: function(xhr) { alert('Could not read file (' + xhr.status + ')'); }
+    });
+}
+
+function davPut(url, content, callback, errback) {
+    $.ajax({
+        url: url, method: 'PUT',
+        headers: { 'requesttoken': davToken() },
+        data: content, processData: false, contentType: 'text/plain',
+        success: callback,
+        error: function(xhr) {
+            if (errback) errback(xhr);
+            else alert('Could not save file (' + xhr.status + ')');
+        }
+    });
+}
+
+// ── Inline EasyMDE editor ─────────────────────────────────────────────────────
+
+var _mde = null;
+
+function openInlineEditor(url, onSave) {
+    davGet(url, function(content) {
+        if (!$('#mde-modal').length) {
+            $('body').append(
+                '<div id="mde-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;' +
+                'background:rgba(0,0,0,.75);z-index:9999;">' +
+                '<div style="position:absolute;top:3%;left:3%;right:3%;bottom:3%;background:#fff;' +
+                'border-radius:4px;display:flex;flex-direction:column;overflow:hidden;">' +
+                '<div style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center;' +
+                'border-bottom:1px solid #ddd;flex-shrink:0;">' +
+                '<span id="mde-filename" style="font-weight:bold;color:#555;font-size:13px;"></span>' +
+                '<div style="display:flex;gap:8px;">' +
+                '<button id="mde-save" class="btn btn-primary btn-sm">Save</button>' +
+                '<button id="mde-cancel" class="btn btn-default btn-sm">Cancel</button>' +
+                '</div></div>' +
+                '<div id="mde-wrap" style="flex:1;overflow:auto;min-height:0;padding:10px;"></div>' +
+                '</div></div>'
+            );
+        }
+        if (_mde) { _mde.toTextArea(); _mde = null; }
+        var $ta = $('<textarea id="mde-ta"></textarea>');
+        $('#mde-wrap').empty().append($ta);
+        _mde = new EasyMDE({
+            element: document.getElementById('mde-ta'),
+            initialValue: content,
+            spellChecker: false,
+            autofocus: true,
+            minHeight: '400px',
+            toolbar: ['bold','italic','heading','|','quote','unordered-list','ordered-list',
+                      '|','link','image','|','preview','side-by-side','fullscreen','|','guide'],
+        });
+        $('#mde-filename').text(url.split('/').pop());
+        $('#mde-modal').show();
+
+        $('#mde-save').off('click').on('click', function() {
+            var newContent = _mde.value();
+            $('#mde-save').prop('disabled', true).text('Saving…');
+            davPut(url, newContent, function() {
+                $('#mde-modal').hide();
+                $('#mde-save').prop('disabled', false).text('Save');
+                onSave && onSave();
+            }, function() {
+                $('#mde-save').prop('disabled', false).text('Save');
+            });
+        });
+        $('#mde-cancel').off('click').on('click', function() {
+            $('#mde-modal').hide();
+        });
+    });
+}
+
 // Navigation Scripts to Show Header on Scroll-Up
 jQuery(document).ready(function($) {
 	
@@ -1105,25 +1192,12 @@ jQuery(document).ready(function($) {
             });
     }
     
-    //Open file in file/editor view
-  	$('.edit-button').click(function() {
-   		var group = $('.edit-button').attr('group') || '';
-   		var path = $('.edit-button').attr('path');
-   		var id = $('.edit-button').attr('dir_id') || '';
-   		var file_id = $('.edit-button').attr('id') || '';
- 		var owner = $('.edit-button').attr('owner') || '';
-  		var user = $('.edit-button').attr('user') || '';
-   		var userhomeurl = $('.edit-button').attr('host');
-   		var pathArr = path.split('/');
-   		var file = pathArr.pop();
-   		var dir = pathArr.join('/');
-   		// This would require to load the files_texteditor and files_markdown js and css
-   		//window.showFileEditor(dir, file);
-   		// NOTICE: To trigger opening the file, we call the files app with the id of the parent dir and the name of the file
-   		window.location.href = userhomeurl+'/index.php/apps/files/?mime=text/markdown&dir='+
-   		dir+'&group='+group+'&owner='+(owner!=user?owner:'')+'&id='+(owner!=user?id:'')+'&file_id='+file_id+
-   		'&file='+encodeURIComponent(file);
-  	});
+    // Edit button: open inline EasyMDE editor via WebDAV
+    $('.edit-button').click(function() {
+        var host = $(this).attr('host');
+        var path = $(this).attr('path');
+        openInlineEditor(davUrl(host, path), function() { window.location.reload(); });
+    });
   	
   	// Refactor dom to have comments in comments div
   	$('comment').each(function(){
@@ -1147,52 +1221,39 @@ jQuery(document).ready(function($) {
     	$('comments').toggle('slow');
 	});
   	
-  	$('#submit_comment').click(function(ev){
-  		// Add comment
-			var pathArr = $('.comment-post').attr('path').split('/');
-			var filename = pathArr[pathArr.length-1];
-			pathArr.pop();
-			var dir = pathArr.join('/');
-			var sharedDirId = $('.comment-post').attr('share');
-			var user = $('.comment-post').attr('user') || '';
-			var name = $('input#name').val() || '';
-			var owner = $('.comment-post').attr('owner') || '';
-			var group = $('.comment-post').attr('group') || '';
-			var today = getTodayDate(true);
-			var comment = $('textarea#comment').val().replace('\n', '<br />\n');
-			
-			if(!name || !name.length){
-				alert(t('core', 'Please fill out your name'));
-				return false;
-			}
-			if(!comment || !comment.length){
-				return false;
-			}
-			
-			var content = '\n<comment date="'+today+'" author="'+name+'"'+' user="'+user+'">'+comment+'</comment>\n';
-			$.post(
-					OC.webroot+'/themes/deic_theme_oc7/apps/files/ajax/newfile.php',
-					{
-						overwrite: 'append',
-						id: sharedDirId,
-						dir: dir,
-						filename: filename,
-						owner: owner,
-						group: group,
-						content: content
-					},
-					function(result) {
-						if (result.status === 'success') {
-							$.when($(content).prependTo($('#comments'))).done(fixComments($('#comments comment').first()));
-							$('textarea#comment').val('');
-					  	$('comment .comment_avatar.avatardiv').first().avatar($('comment .comment_avatar').first().attr('author'), 48);
-						}
-						else {
-							alert(t('core', 'Could not create file. ')+result.data.message);
-						}
-					}
-				);
-  	});
+  	$('#submit_comment').click(function(ev) {
+        var postEl = $('.comment-post');
+        var host = postEl.attr('host') || '';
+        var path = postEl.attr('path') || '';
+        var user = postEl.attr('user') || '';
+        var name = $('input#name').val() || '';
+        var today = getTodayDate(true);
+        var comment = $('textarea#comment').val().replace(/\n/g, '<br />\n');
+
+        if (!name.length) {
+            alert(t('core', 'Please fill out your name'));
+            return false;
+        }
+        if (!comment.length) return false;
+
+        var newCommentHtml = '\n<comment date="' + today + '" author="' + name + '" user="' + user + '">' + comment + '</comment>\n';
+        var url = davUrl(host, path);
+        $('#submit_comment').prop('disabled', true);
+        davGet(url, function(currentContent) {
+            davPut(url, currentContent + newCommentHtml, function() {
+                $('#submit_comment').prop('disabled', false);
+                $comment = $(newCommentHtml);
+                $comment.prependTo($('#comments'));
+                fixComments($('#comments comment').first());
+                $('textarea#comment').val('');
+                if ($.fn.avatar && user) {
+                    $('comment .comment_avatar.avatardiv').first().avatar(user, 48);
+                }
+            }, function() {
+                $('#submit_comment').prop('disabled', false);
+            });
+        });
+    });
   	
 		$('.post-preview .avatardiv').each(function(){
 			if(!$(this).is('img') && $.fn.avatar) $(this).avatar($(this).attr('author'), 48);
@@ -1222,69 +1283,41 @@ jQuery(document).ready(function($) {
 			$('.popout').show('slow');
 		});
 		
-		$('.write-post').click(function(ev){
+        // Show write button only when user has edit permission
+        if ($('.write-post').attr('editable')) {
+            $('.write-post').show();
+        }
+
+		$('.write-post').click(function(ev) {
 			ev.preventDefault();
 			ev.stopPropagation();
-			$('.write-post').hide('slow');
-			$('input#write_post').show('slow');
-			$('input#write_post').focus();
+			$(this).hide('slow');
+			$('input#write_post').show('slow').focus();
 		});
-		
-		$('input#write_post').focusout(function(ev){
-			ev.preventDefault();
-			ev.stopPropagation();
-			$('input#write_post').hide('slow');
+
+		$('input#write_post').focusout(function() {
+			$(this).hide('slow');
 			$('.write-post').show('slow');
 		});
-		
-    $("input#write_post").keyup(function (e) {
-    if (e.keyCode == 13) {
-			var pathArr = $('.write-post').attr('path').split('/');
+
+		$('input#write_post').keyup(function(e) {
+			if (e.keyCode !== 13) return;
+			var host = $('.write-post').attr('host') || '';
+			var pathArr = ($('.write-post').attr('path') || '').split('/');
 			pathArr.pop();
 			var dir = pathArr.join('/');
-			var sharedDirId = $('.write-post').attr('share');
-			var dirId = $('.write-post').attr('dir_id');
-			var title = $('#write_post').val();
-			var filename = title.replace(/[^\w\s]/gi, '').replace(/\s/g, '_')+'.md';
+			var title = $(this).val().trim();
+			var filename = title.replace(/[^\w\s]/gi, '').replace(/\s/g, '_') + '.md';
 			var user = $('.write-post').attr('user') || '';
-			var owner = $('.write-post').attr('owner') || '';
-			var group = $('.write-post').attr('group') || '';
 			var today = getTodayDate();
-			var content = '---\n'+'Title: '+title+'\n'+'Description: '+'\n'+'Date: '+today+'\n'+
-				'Author: '+user+'\n'+'Template: post\n'+'Access: private\n'+'Theme: blog\n'+'Comments: on\n'+
-				'---\n\n';
-			if(!filename || !filename.length){
-				window.location.href = '/index.php/apps/files/?dir='+dir+'&group='+group+'&owner='+owner;
-			}
-			else{
-				// Create file
-				$.ajax({
-					url: OC.webroot+'/themes/deic_theme_oc7/apps/files/ajax/newfile.php',
-					data: {
-						//id: sharedDirId,
-						id: dirId,
-						dir: dir,
-						filename: filename,
-						owner: owner,
-						group: group,
-						content: content
-					},
-					success: function(result) {
-						if(result.status==='success' && result.data && result.data.id){
-							window.location.href = '/index.php/apps/files/?mime=text/markdown&dir='+dir+'&id='+dirId/*sharedDirId*/+'&group='+group+'&owner='+(sharedDirId?owner:'')+
-								'&file='+encodeURIComponent(filename)+'&file_id='+result.data.id;
-						}
-						else {
-							alert((typeof(result.data)!='undefined'?result.data.message:'Error: ')+t('core', 'Could not create file'));
-						}
-					},
-					error: function(result){
-						alert((typeof(result.data)!='undefined'?result.data.message:'Error. ')+t('core', 'Could not create file. Try logging in.'));
-					}
-				});
-			}
-		}
-	});
+			if (!filename || filename === '.md') return;
+			var newContent = '---\nTitle: ' + title + '\nDescription: \nDate: ' + today +
+				'\nAuthor: ' + user + '\nTemplate: post\nAccess: private\nTheme: blog\nComments: on\n---\n\n';
+			var url = davUrl(host, dir + '/' + filename);
+			davPut(url, newContent, function() {
+				openInlineEditor(url, function() { window.location.reload(); });
+			});
+		});
  
 	$('.modal-image').click(function(ev){
 		var img = $(ev.target);
