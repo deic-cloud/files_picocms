@@ -317,6 +317,25 @@ $pico = new Pico(
 $pico->setConfig($picoConfig);
 $pico->ocOwner = $uid;
 
+// If the logged-in user is the site owner, enable editing.
+// ocPath is the WebDAV path to the current file (relative to the user's files root).
+try {
+	$currentUser = \OC::$server->get(\OCP\IUserSession::class)->getUser();
+	$currentUid  = $currentUser ? $currentUser->getUID() : '';
+	if ($currentUid === $uid) {
+		$filesRoot       = $dataDir . '/' . $uid . ($gid !== '' ? '/user_group_admin/' . $gid : '/files');
+		$contentRelative = ltrim(substr($contentDir, strlen($filesRoot)), '/');
+		if ($sitePath === '') {
+			// Index page: pass the directory so the Write button knows where to create files
+			$ocPath = '/' . $contentRelative . '/';
+		} else {
+			// Specific page: Pico appends .md to resolve the file
+			$ocPath = '/' . $contentRelative . '/' . $sitePath . '.md';
+		}
+		$pico->setOwnerEditMode($ocPath);
+	}
+} catch (\Throwable) {}
+
 try {
 	echo $pico->run();
 } catch (\Throwable $e) {

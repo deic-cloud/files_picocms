@@ -376,7 +376,19 @@ class Pico
 		$this->ocUser = $user_id;
 
 	}
-	
+
+	/**
+	 * Called by serve.php when the authenticated user is the site owner.
+	 * Sets editable=true and ocPath so the blog edit/write buttons appear.
+	 */
+	public function setOwnerEditMode(string $ocPath): void {
+		$this->editable   = true;
+		$this->readable   = true;
+		$this->permissions = \OCP\PERMISSION_ALL;
+		$this->shareType  = self::$SHARE_TYPE_MINE;
+		$this->ocPath     = $ocPath;
+	}
+
 	public static function shutDownFunction() {
 		$error = error_get_last();
 		// fatal error, E_ERROR === 1
@@ -1027,26 +1039,6 @@ class Pico
 			if($setPermissions){
 				$this->shareType = self::$SHARE_TYPE_NONE;
 				$this->readable = true;
-				// Owner editing their own public page
-				if(!empty($this->ocUser) && $this->ocUser === $owner && $file !== null){
-					try{
-						$view = !empty($group)
-							? new \OC\Files\View('/'.$owner.'/user_group_admin/'.$group)
-							: new \OC\Files\View('/'.$owner.'/files');
-						$ownerRoot = $view->getLocalFile('/');
-						if(str_starts_with($file, $ownerRoot)){
-							$ocPath = '/'.ltrim(substr($file, strlen($ownerRoot)), '/');
-							$this->ocPath = ($this->indexInferred && substr($ocPath,-1) !== '/')
-								? (dirname($ocPath).'/')
-								: $ocPath;
-							$this->editable = true;
-							$this->permissions = \OCP\PERMISSION_ALL;
-							$this->shareType = self::$SHARE_TYPE_MINE;
-						}
-					} catch(\Throwable $e){
-						pico_log('files_picocms', 'checkReadPermission public owner: '.$e->getMessage(), \OC_Log::WARN);
-					}
-				}
 			}
 			if(/*Need to set editable for shared...*/empty($access) || trim(strtolower($access))=='public'){
 				return true;
