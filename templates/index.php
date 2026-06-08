@@ -114,7 +114,7 @@ $servePublic = $_['serve_public'];
 				<label>
 					<input type="radio" name="pico_type" value="wiki"
 					       data-folder="/wiki" data-content="/sample-content/wiki"
-					       data-destination="content" data-theme="deic-wiki"
+					       data-destination="content" data-theme="wiki"
 					       data-copy-themes="yes" />
 					<?php p($l->t('Wiki')); ?>
 				</label>

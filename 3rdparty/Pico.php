@@ -286,7 +286,14 @@ class Pico
 	 *
 	 * @var string
 	 */
-	protected $ocUserHomeUrl;
+	public $ocUserHomeUrl;
+
+	/**
+	 * Base URL of the picocms site endpoint (used by JS as the write proxy base).
+	 *
+	 * @var string
+	 */
+	public $ocCmsBase = '';
 	
 	/**
 	 * ORCID if set and user_orcid is enabled.
@@ -307,6 +314,7 @@ class Pico
 	protected $readable;
 	protected $editable;
 	protected $writable = false;
+	public $loginToEditUrl = '';
 	
 	public static $SHARE_TYPE_NONE = 'none';
 	public static $SHARE_TYPE_MINE = 'mine';
@@ -358,22 +366,12 @@ class Pico
 		$this->notFound = false;
 
 		// is a user logged in?
-		$user_id = \OCP\User::getUser();
-		pico_log('files_picocms', 'user_id '.$user_id, \OC_Log::WARN);
-		if(\OCP\App::isEnabled('files_sharding') && (empty($user_id) ||
-				!\OCA\FilesSharding\Lib::onServerForUser($user_id)) &&
-				!\OCA\FilesSharding\Lib::isMaster()){
-					$instanceId = \OC_Config::getValue('instanceid', null);
-			if(!empty($_COOKIE[$instanceId])){
-				pico_log('files_picocms', 'Getting session from master '.$_COOKIE[$instanceId], \OC_Log::WARN);
-				$session = \OCA\FilesSharding\Lib::getUserSession($_COOKIE[$instanceId], false);
-				pico_log('files_picocms', 'got session '.serialize($session), \OC_Log::WARN);
-				if(!empty($session['user_id'])){
-					$user_id = $session['user_id'];
-				}
-			}
+		try {
+			$sessionUser = \OC::$server->get(\OCP\IUserSession::class)->getUser();
+			$user_id = $sessionUser ? $sessionUser->getUID() : '';
+		} catch (\Throwable) {
+			$user_id = '';
 		}
-		
 		$this->ocUser = $user_id;
 
 	}
@@ -1062,6 +1060,15 @@ class Pico
 			return false;
 		}
 		// $access = 'private' or 'shared'
+
+		// serve.php already verified the user's access via NC share/ownership checks.
+		// Skip the old NC API code (unreliable in NC34) and trust that result.
+		if ($this->writable) {
+			if ($setPermissions) {
+				$this->readable = true;
+			}
+			return true;
+		}
 
 		if(!empty($group)){
 			$view = new \OC\Files\View('/'.$owner.'/user_group_admin/'.$group);
@@ -1974,7 +1981,12 @@ class Pico
 	protected function getTwigVariables()
 	{
 		$frontPage = $this->getConfig('content_dir') . 'index' . $this->getConfig('content_ext');
-		$user_id = \OCP\User::getUser();
+		try {
+			$sessionUser = \OC::$server->get(\OCP\IUserSession::class)->getUser();
+			$user_id = $sessionUser ? $sessionUser->getUID() : '';
+		} catch (\Throwable) {
+			$user_id = '';
+		}
 
 		// Generate TOC from current page headings, adding id= to heading tags.
 		// Always generated when content has headings; themes control display:
@@ -2099,7 +2111,7 @@ class Pico
 					(!empty($this->site)?$this->site:$this->getConfig('site_title')),
 			//'oc_user' => $this->getConfig('user'),
 			'oc_user' => $user_id,
-			'oc_full_name' => \OCP\User::getDisplayName((string)$user_id),
+			'oc_full_name' => ($sessionUser ? ($sessionUser->getDisplayName() ?: $user_id) : ''),
 			'oc_path' => $this->ocPath,
 			'oc_share' => $this->ocShare,
 			'oc_id' => $this->ocId,
@@ -2109,6 +2121,7 @@ class Pico
 			'oc_master_url' => $this->ocMasterUrl,
 			'oc_support_email' => $this->ocSupportEmail,
 			'oc_user_home_url' => $this->ocUserHomeUrl,
+			'oc_cms_base' => $this->ocCmsBase,
 			'orcid' => $this->orcid,
 			'oc_email' => $this->ocEmail,
 			//
@@ -2123,6 +2136,7 @@ class Pico
 			'readable' => $this->readable,
 			'editable' => $this->editable,
 			'writable' => $this->writable,
+			'login_to_edit_url' => $this->loginToEditUrl,
 			// NC themes expect found_pages / found_folders for navigation
 			'found_pages'   => $foundPages,
 			'found_folders' => array_values(array_unique(array_map(function($p) {

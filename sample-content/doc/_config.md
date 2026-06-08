@@ -20,7 +20,7 @@ theme: documentation
 # description: site description for the HTML <meta> tag
 # description: Documentation for My Project
 
-# edit_links: yes | no
+# EditLinks: yes | no
 #   show "Edit this page" links when set to yes (requires theme support)
-# edit_links: no
+# EditLinks: no
 ---

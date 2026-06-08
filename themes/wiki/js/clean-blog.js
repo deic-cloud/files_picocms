@@ -1355,7 +1355,7 @@ jQuery(document).ready(function($) {
 			var group = $('.write-post').attr('group') || '';
 			var today = getTodayDate();
 			var content = '---\n\n'+'Title: '+title+'\n'+'Description: '+'\n'+'Date: '+today+'\n'+
-				'Author: '+user+'\n'+'Template: page\n'+'Access: private\n'+'Theme: deic-wiki\n'+'Comments: on\n\n'+
+				'Author: '+user+'\n'+'Template: page\n'+'Access: private\n'+'Theme: wiki\n'+'Comments: on\n\n'+
 				'---\n\n\# \%meta.title\%\n\n';
 			if(!filename || !filename.length){
 				//window.location.href = user_home_url+'/index.php/apps/files/?dir='+dir+'&group='+group+'&owner='+owner;

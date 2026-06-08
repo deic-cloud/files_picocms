@@ -53,7 +53,7 @@ $serverRoot = \OC::$WEBROOT;
 			<label><?php p($l->t('Type:')); ?></label><br />
 			<label><input type="radio" name="pico_type" value="wiki"
 				data-folder="/wiki" data-content="/sample-content/wiki" data-destination="content"
-				data-theme="deic-wiki" data-copy-themes="yes" /> <?php p($l->t('Wiki')); ?></label><br />
+				data-theme="wiki" data-copy-themes="yes" /> <?php p($l->t('Wiki')); ?></label><br />
 			<label><input type="radio" name="pico_type" value="blog-profile"
 				data-folder="/public" data-content="/sample-content/blog/profile.md" data-destination="index.md"
 				data-theme="blog" data-copy-themes="no" checked /> <?php p($l->t('Single public profile page')); ?></label><br />

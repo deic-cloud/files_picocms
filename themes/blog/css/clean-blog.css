@@ -179,6 +179,7 @@ hr {
 	margin-left: 4px;
 	position: absolute;
 	top: 148px;
+	font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 a.navbar-left:hover, a.navbar-left:focus {

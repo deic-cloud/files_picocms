@@ -5,7 +5,7 @@ Description: About me
 Author:
 Template: profile
 Access: public
-Theme: deic-wiki
+Theme: wiki
 Comments: on
 
 ---

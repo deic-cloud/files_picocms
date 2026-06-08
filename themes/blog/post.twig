@@ -56,7 +56,7 @@
             {% set num_pages = paged_pages|length %}
             {% if num_pages>0 %}
             <div class="navbar-header page-scroll">
-                <a class="navbar-brand-post" href="{{ base_url }}">Home</a>
+                <a class="navbar-brand-post" href="{{ base_url }}">&laquo;&nbsp; {{ site_title }}</a>
             </div>
             {% endif %}
 
@@ -100,7 +100,7 @@
 	        <button class="edit-button btn btn-primary btn-flat" path="{{ oc_path }}"
 	        dir_id="{{ oc_parent_id }}" id="{{ oc_id }}"
 	        user="{{ oc_user }}" owner="{{ oc_owner }}" group="{{ oc_group }}"
-	        host="{{ oc_user_home_url }}">Edit</button>
+	        host="{{ oc_cms_base }}">Edit</button>
         {% endif %}
     </header>
     
@@ -125,7 +125,7 @@
     <div class="container">
 	    <div class="col-lg-offset-2">
 		    <div class="form-group col-xs-5 comment-post"
-		    share="{{  oc_share }}" path="{{  oc_path }}" owner="{{  oc_owner }}" user="{{  oc_user }}" host="{{ oc_user_home_url }}"
+		    share="{{  oc_share }}" path="{{  oc_path }}" owner="{{  oc_owner }}" user="{{  oc_user }}" host="{{ oc_cms_base }}"
 		    group="{{  oc_group }}">
 		     <input placeholder="Your name" type="text" class="form-control" id="name" size="64" value="{{ oc_full_name }}" />
 		     <textarea placeholder="Your comment" class="form-control" rows="3" id="comment"></textarea>

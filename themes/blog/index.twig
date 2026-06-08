@@ -99,9 +99,9 @@
         dir_id="{{ oc_parent_id }}" id="{{ oc_id }}"
         style="display:none;"
             owner="{{  oc_owner }}" user="{{ oc_user }}" group="{{ oc_group }}"
-            host="{{ oc_user_home_url }}" readable="{{ readable }}" editable="{{ editable }}" writable="{{ writable }}">Write</a>
+            host="{{ oc_cms_base }}" readable="{{ readable }}" editable="{{ editable }}" writable="{{ writable }}">Write</a>
         <input id="write_post" type="text" placeholder="New post title…"
-            style="display:none;position:absolute;bottom:20px;left:20px;width:300px;padding:6px 10px;font-size:14px;border-radius:4px;border:1px solid #ccc;" />
+            style="display:none;position:absolute;left:20px;width:300px;padding:6px 10px;font-size:14px;border-radius:4px;border:1px solid #ccc;" />
 
     </header>
 
@@ -126,8 +126,7 @@
                         </h3>
                     </a>
                     {% if num_pages>1 %}
-                    <p class="post-meta">Posted by
-                    {% if has_search_page %}<a href="{{ base_url }}/search/author:{{ page.author }}">{{ page.meta.displayname }}</a>{% else %}{{ page.meta.displayname }}{% endif %} on {{ page.date }}</p>
+                    <p class="post-meta">Posted by{% if has_search_page %} <a href="{{ base_url }}/search/author:{{ page.author }}">{{ page.meta.displayname }}</a>{% else %} {{ page.meta.displayname }}{% endif %} on&nbsp;{{ page.date }}</p>
                     {% endif %}
                     {% if page.meta.labels and has_search_page %}
                     <div class="labels">

@@ -12,7 +12,7 @@
  * Frontmatter keys recognised here:
  *   access:     public (default) | private
  *   theme:      theme directory name
- *   edit_links: yes | no
+ *   EditLinks: yes | no
  *   title:      overrides the DB site name
  *   description: site description passed to Pico
  *   favicon:    path to favicon relative to site root (e.g. img/favicon.png)
@@ -119,9 +119,9 @@ try {
 
 // ── Determine master login base URL ──────────────────────────────────────────
 
+$scheme     = \OC::$server->get(\OCP\IRequest::class)->getServerProtocol();
 $masterBase = rtrim((string)$config->getSystemValue('files_sharding_master_url', ''), '/');
 if ($masterBase === '') {
-	$scheme     = \OC::$server->get(\OCP\IRequest::class)->getServerProtocol();
 	$masterBase = $scheme . '://' . $_SERVER['HTTP_HOST'] . $webRoot;
 }
 
@@ -135,8 +135,7 @@ if ($dataDir === '') {
 
 $gid = $siteInfo['gid'] ?? '';
 if ($gid !== '') {
-	// Site lives in a group grant folder
-	$siteFsPath = $dataDir . '/' . $uid . '/user_group_admin/' . $gid . $siteInfo['path'];
+	$siteFsPath = $dataDir . '/' . $uid . '/files/.uga_grants/' . $gid . $siteInfo['path'];
 } else {
 	$siteFsPath = $dataDir . '/' . $uid . '/files' . $siteInfo['path'];
 }
@@ -147,7 +146,10 @@ if (!is_dir($siteFsPath)) {
 }
 
 // ── Override NC's restrictive CSP with one suitable for website serving ───────
-header('Content-Security-Policy: default-src \'self\'; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\'; img-src \'self\' data: blob:; font-src \'self\' data: https://fonts.gstatic.com; connect-src \'self\'; frame-ancestors \'self\'');
+// connect-src must cover all silos (same hostname, different ports) so WebDAV
+// writes from the blog JS can reach the user's home silo.
+$cspHost = parse_url($scheme . '://' . $_SERVER['HTTP_HOST'], PHP_URL_HOST) ?: $_SERVER['HTTP_HOST'];
+header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://{$cspHost}:*; frame-ancestors 'self'");
 
 // ── Determine content directory ───────────────────────────────────────────────
 
@@ -288,8 +290,8 @@ if (!empty($siteConfig['theme'])) {
 if (!empty($siteConfig['description'])) {
 	$picoConfig['description'] = $siteConfig['description'];
 }
-if (isset($siteConfig['edit_links'])) {
-	$picoConfig['edit_links'] = (strtolower((string)$siteConfig['edit_links']) === 'yes');
+if (isset($siteConfig['EditLinks'])) {
+	$picoConfig['edit_links'] = (strtolower((string)$siteConfig['EditLinks']) === 'yes');
 }
 if (!empty($siteConfig['favicon'])) {
 	$picoConfig['favicon'] = $siteConfig['favicon'];
@@ -314,45 +316,209 @@ $pico = new Pico(
 	$uid
 );
 
-$pico->setConfig($picoConfig);
 $pico->ocOwner = $uid;
+// WebDAV writes must go to this silo (where the files live), not to master.
+// Using master's URL would cause cross-origin CORS failures for blogs on silos.
+$pico->ocUserHomeUrl = rtrim($scheme . '://' . $_SERVER['HTTP_HOST'] . $webRoot, '/');
+// picocms base URL — used by JS as the write proxy base (same-origin, no CORS).
+$pico->ocCmsBase = $baseUrl;
 
 // Grant write/edit access based on NC ownership or share permissions.
-// ocPath is the WebDAV path to the current file relative to the user's files root.
+// ocPath is now site-relative (e.g. "my-post.md"), used by the picocms proxy URL.
+$writeGranted = false;
+$currentUid = '';
 try {
 	$currentUser = \OC::$server->get(\OCP\IUserSession::class)->getUser();
 	$currentUid  = $currentUser ? $currentUser->getUID() : '';
 	if ($currentUid !== '') {
-		$filesRoot       = $dataDir . '/' . $uid . ($gid !== '' ? '/user_group_admin/' . $gid : '/files');
+		$filesRoot       = $dataDir . '/' . $uid . '/files';
 		$contentRelative = ltrim(substr($contentDir, strlen($filesRoot)), '/');
+		$ocPath          = ($sitePath === '') ? '' : $sitePath . '.md';
 
 		if ($currentUid === $uid) {
 			// Site owner: full edit access
-			$ocPath = ($sitePath === '')
-				? '/' . $contentRelative . '/'
-				: '/' . $contentRelative . '/' . $sitePath . '.md';
+			$writeGranted = true;
 			$pico->setOwnerEditMode($ocPath);
-		} elseif ($gid === '') {
-			// Non-owner on a user site: check NC share permissions
+		} else {
 			try {
 				$rootFolder  = \OC::$server->get(\OCP\Files\IRootFolder::class);
 				$siteNode    = $rootFolder->getUserFolder($uid)->get($contentRelative);
 				$nodeId      = $siteNode->getId();
+				$found       = false;
+
+				// Strategy 1: local mount lookup (same silo)
 				foreach ($rootFolder->getUserFolder($currentUid)->getById($nodeId) as $node) {
 					if ($node->isUpdateable()) {
-						// Compute path from the shared user's perspective
-						$sharedRel = substr($node->getPath(), strlen('/' . $currentUid . '/files'));
-						$ocPath = ($sitePath === '')
-							? $sharedRel . '/'
-							: $sharedRel . '/' . $sitePath . '.md';
+						$writeGranted = true;
 						$pico->setWriteAccess($ocPath);
+						$found = true;
 						break;
+					}
+				}
+
+				// Strategy 2: outgoing shares from site owner (cross-silo federated shares)
+				if (!$found) {
+					$shareManager = \OC::$server->get(\OCP\Share\IManager::class);
+					$cloudIdMgr   = \OC::$server->get(\OCP\Federation\ICloudIdManager::class);
+					foreach ([\OCP\Share\IShare::TYPE_REMOTE, \OCP\Share\IShare::TYPE_USER] as $type) {
+						foreach ($shareManager->getSharesBy($uid, $type, $siteNode, false, -1) as $share) {
+							if (!($share->getPermissions() & \OCP\Constants::PERMISSION_UPDATE)) {
+								continue;
+							}
+							try {
+								$sharedUser = $cloudIdMgr->resolveCloudId($share->getSharedWith())->getUser();
+							} catch (\Throwable) {
+								$sharedUser = strstr($share->getSharedWith(), '@', true) ?: $share->getSharedWith();
+							}
+							if ($sharedUser === $currentUid) {
+								$writeGranted = true;
+								$pico->setWriteAccess($ocPath);
+								$found = true;
+								break 2;
+							}
+						}
 					}
 				}
 			} catch (\Throwable) {}
 		}
 	}
 } catch (\Throwable) {}
+
+// ── Write proxy (PUT) ─────────────────────────────────────────────────────────
+// Handles file writes for all users (owner and shared). Writes as the site owner
+// via the NC Files API, keeping the file cache current. Same-origin → no CORS.
+if ($_SERVER['REQUEST_METHOD'] === 'PUT' && $sitePath !== '') {
+	if (!$writeGranted
+		|| strpos($sitePath, '..') !== false
+		|| strpos($sitePath, "\0") !== false
+		|| pathinfo($sitePath, PATHINFO_EXTENSION) !== 'md'
+	) {
+		http_response_code(403);
+		exit;
+	}
+	try {
+		$filesRoot  = $dataDir . '/' . $uid . '/files';
+		$relPath    = ltrim(substr($contentDir . '/' . $sitePath, strlen($filesRoot)), '/');
+		$body       = (string)file_get_contents('php://input');
+		$userFolder = \OC::$server->get(\OCP\Files\IRootFolder::class)->getUserFolder($uid);
+		try {
+			$userFolder->get($relPath)->putContent($body);
+			http_response_code(200);
+		} catch (\OCP\Files\NotFoundException) {
+			$dirRel = ltrim(dirname($relPath), '/');
+			try { $dir = $userFolder->get($dirRel); }
+			catch (\OCP\Files\NotFoundException) { $dir = $userFolder->newFolder($dirRel); }
+			$dir->newFile(basename($relPath), $body);
+			http_response_code(201);
+		}
+	} catch (\Throwable $e) {
+		error_log('files_picocms write proxy: ' . $e->getMessage());
+		http_response_code(500);
+	}
+	exit;
+}
+
+// ── Raw file read (GET ?picocms_raw) ─────────────────────────────────────────
+// Returns raw Markdown content for the inline editor.
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['picocms_raw']) && $sitePath !== '') {
+	if (!$writeGranted
+		|| strpos($sitePath, '..') !== false
+		|| strpos($sitePath, "\0") !== false
+		|| pathinfo($sitePath, PATHINFO_EXTENSION) !== 'md'
+	) {
+		http_response_code(403);
+		exit;
+	}
+	try {
+		$filesRoot  = $dataDir . '/' . $uid . '/files';
+		$relPath    = ltrim(substr($contentDir . '/' . $sitePath, strlen($filesRoot)), '/');
+		$file       = \OC::$server->get(\OCP\Files\IRootFolder::class)->getUserFolder($uid)->get($relPath);
+		header('Content-Type: text/plain; charset=utf-8');
+		echo $file->getContent();
+	} catch (\Throwable) {
+		http_response_code(404);
+	}
+	exit;
+}
+
+// ── Delete proxy (DELETE) ────────────────────────────────────────────────────
+// Deletes a Markdown file. Only .md files; path traversal rejected; write access required.
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && $sitePath !== '') {
+	if (!$writeGranted
+		|| strpos($sitePath, '..') !== false
+		|| strpos($sitePath, "\0") !== false
+		|| pathinfo($sitePath, PATHINFO_EXTENSION) !== 'md'
+	) {
+		http_response_code(403);
+		exit;
+	}
+	try {
+		$filesRoot  = $dataDir . '/' . $uid . '/files';
+		$relPath    = ltrim(substr($contentDir . '/' . $sitePath, strlen($filesRoot)), '/');
+		$userFolder = \OC::$server->get(\OCP\Files\IRootFolder::class)->getUserFolder($uid);
+		$userFolder->get($relPath)->delete();
+		http_response_code(204);
+	} catch (\OCP\Files\NotFoundException) {
+		http_response_code(404);
+	} catch (\Throwable $e) {
+		error_log('files_picocms delete proxy: ' . $e->getMessage());
+		http_response_code(500);
+	}
+	exit;
+}
+
+// ── List images (GET ?picocms_list_images) ───────────────────────────────────
+// Returns JSON array of image paths relative to the content dir, for the image picker.
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['picocms_list_images'])) {
+	if (!$writeGranted) {
+		http_response_code(403);
+		exit;
+	}
+	$images = [];
+	$exts   = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'];
+	try {
+		$it = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator($contentDir, FilesystemIterator::SKIP_DOTS)
+		);
+		foreach ($it as $file) {
+			if (!$file->isFile()) {
+				continue;
+			}
+			$ext = strtolower(pathinfo($file->getFilename(), PATHINFO_EXTENSION));
+			if (!in_array($ext, $exts, true)) {
+				continue;
+			}
+			$images[] = ltrim(substr($file->getPathname(), strlen($contentDir)), '/');
+		}
+	} catch (\Throwable) {}
+	sort($images);
+	header('Content-Type: application/json');
+	echo json_encode($images);
+	exit;
+}
+
+// Cross-silo SSO: if the visitor has an NC session on the master (same cookie domain) but no
+// session on this silo, redirect them through the sudoConfirm→exchange flow so they get a
+// local silo session.  After exchange they land back here with $currentUid set.
+// This only fires on silos (not on master itself) to avoid redirect loops.
+$isMaster = (bool)$config->getSystemValue('files_sharding_master', false);
+if ($currentUid === '' && !$isMaster && ($masterBase !== '') &&
+	rtrim($masterBase, '/') !== rtrim($scheme . '://' . $_SERVER['HTTP_HOST'] . $webRoot, '/') &&
+	!empty($_COOKIE['nc_username'])
+) {
+	$siloBase    = rtrim($scheme . '://' . $_SERVER['HTTP_HOST'] . $webRoot, '/');
+	$exchangeUrl = $siloBase . '/index.php/apps/files_sharding/login'
+		. '?return=' . urlencode($_SERVER['REQUEST_URI']);
+	$redirectUrl = rtrim($masterBase, '/') . '/index.php/apps/files_sharding/sudo/confirm'
+		. '?silo='     . urlencode($siloBase)
+		. '&callback=' . urlencode($exchangeUrl);
+	header('Location: ' . $redirectUrl);
+	http_response_code(302);
+	exit;
+}
+
+$pico->loginToEditUrl = ''; // no longer needed; kept for theme compatibility
+$pico->setConfig($picoConfig);
 
 try {
 	echo $pico->run();

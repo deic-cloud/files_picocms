@@ -6,7 +6,7 @@ Date:
 Author: 
 Template: page
 Access: private
-Theme: deic-wiki
+Theme: wiki
 Comments: on
 
 ---

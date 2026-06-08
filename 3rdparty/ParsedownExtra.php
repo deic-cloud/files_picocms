@@ -304,6 +304,10 @@ class ParsedownExtra extends Parsedown
     {
         $Link = parent::inlineLink($Excerpt);
 
+        if ($Link === null) {
+            return null;
+        }
+
         $remainder = substr($Excerpt['text'], $Link['extent']);
 
         if (preg_match('/^[ ]*{('.$this->regexAttribute.'+)}/', $remainder, $matches))

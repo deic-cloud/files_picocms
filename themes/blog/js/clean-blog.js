@@ -1033,10 +1033,13 @@ function scrollToEl(el, extraOffset){
     (typeof extraOffset!=='undefined'?extraOffset:0)}, 600);
 }
 
-// ── WebDAV helpers ────────────────────────────────────────────────────────────
+// ── Picocms proxy helpers ─────────────────────────────────────────────────────
+// host is the picocms site base URL (e.g. https://silo:2005/remote.php/files_picocms/sites/blog)
+// relPath is the site-relative file path (e.g. my-post.md)
+// All file reads/writes go through serve.php so non-owners can write via the proxy.
 
-function davUrl(host, path) {
-    return host + '/remote.php/webdav' + path;
+function davUrl(host, relPath) {
+    return host.replace(/\/$/, '') + '/' + relPath.replace(/^\/+/, '');
 }
 
 function davToken() {
@@ -1044,8 +1047,9 @@ function davToken() {
 }
 
 function davGet(url, callback) {
+    var sep = url.indexOf('?') >= 0 ? '&' : '?';
     $.ajax({
-        url: url, method: 'GET',
+        url: url + sep + 'picocms_raw=1', method: 'GET',
         headers: { 'requesttoken': davToken() },
         success: callback,
         error: function(xhr) { alert('Could not read file (' + xhr.status + ')'); }
@@ -1065,11 +1069,68 @@ function davPut(url, content, callback, errback) {
     });
 }
 
+// ── Image picker ──────────────────────────────────────────────────────────────
+
+function openImagePicker(editor, cmsBase) {
+    $.ajax({
+        url: cmsBase.replace(/\/$/, '') + '?picocms_list_images=1',
+        method: 'GET',
+        headers: { 'requesttoken': davToken() },
+        success: function(images) {
+            if (!$('#img-picker-modal').length) {
+                $('body').append(
+                    '<div id="img-picker-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;' +
+                    'background:rgba(0,0,0,.5);z-index:10000;">' +
+                    '<div style="position:absolute;top:10%;left:10%;right:10%;bottom:10%;background:#fff;' +
+                    'border-radius:4px;display:flex;flex-direction:column;overflow:hidden;">' +
+                    '<div style="padding:8px 12px;border-bottom:1px solid #ddd;flex-shrink:0;display:flex;' +
+                    'justify-content:space-between;align-items:center;">' +
+                    '<strong style="font-family:sans-serif;">Select image</strong>' +
+                    '<button id="img-picker-close" class="btn btn-default btn-sm">Close</button>' +
+                    '</div>' +
+                    '<div id="img-picker-grid" style="flex:1;overflow:auto;padding:12px;' +
+                    'display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start;"></div>' +
+                    '</div></div>'
+                );
+                $('#img-picker-close').on('click', function() { $('#img-picker-modal').hide(); });
+            }
+            var $grid = $('#img-picker-grid').empty();
+            if (!images || !images.length) {
+                $grid.html('<p style="font-family:sans-serif;color:#888;padding:8px;">No images found in content directory.</p>');
+            } else {
+                $.each(images, function(i, rel) {
+                    var imgUrl  = cmsBase.replace(/\/$/, '') + '/' + rel;
+                    var fname   = rel.split('/').pop();
+                    var $item = $(
+                        '<div style="cursor:pointer;text-align:center;width:120px;" title="' + rel + '">' +
+                        '<img src="' + imgUrl + '" style="max-width:112px;max-height:80px;' +
+                        'border:2px solid transparent;border-radius:2px;display:block;margin:0 auto;" />' +
+                        '<div style="font-family:sans-serif;font-size:11px;overflow:hidden;' +
+                        'text-overflow:ellipsis;white-space:nowrap;max-width:112px;margin-top:3px;">' + fname + '</div>' +
+                        '</div>'
+                    );
+                    $item.on('mouseenter', function() { $(this).find('img').css('border-color', '#337ab7'); });
+                    $item.on('mouseleave', function() { $(this).find('img').css('border-color', 'transparent'); });
+                    $item.on('click', function() {
+                        var alt = fname.replace(/\.[^.]+$/, '');
+                        editor.codemirror.replaceSelection('![' + alt + '](' + rel + '){.modal-image .small-image}');
+                        $('#img-picker-modal').hide();
+                        editor.codemirror.focus();
+                    });
+                    $grid.append($item);
+                });
+            }
+            $('#img-picker-modal').show();
+        },
+        error: function(xhr) { alert('Could not load image list (' + xhr.status + ')'); }
+    });
+}
+
 // ── Inline EasyMDE editor ─────────────────────────────────────────────────────
 
 var _mde = null;
 
-function openInlineEditor(url, onSave) {
+function openInlineEditor(url, onSave, cmsBase) {
     davGet(url, function(content) {
         if (!$('#mde-modal').length) {
             $('body').append(
@@ -1079,10 +1140,11 @@ function openInlineEditor(url, onSave) {
                 'border-radius:4px;display:flex;flex-direction:column;overflow:hidden;">' +
                 '<div style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center;' +
                 'border-bottom:1px solid #ddd;flex-shrink:0;">' +
-                '<span id="mde-filename" style="font-weight:bold;color:#555;font-size:13px;"></span>' +
+                '<span id="mde-filename" style="font-weight:bold;color:#555;font-size:15px;font-family:sans-serif;"></span>' +
                 '<div style="display:flex;gap:8px;">' +
                 '<button id="mde-save" class="btn btn-primary btn-sm">Save</button>' +
-                '<button id="mde-cancel" class="btn btn-default btn-sm">Cancel</button>' +
+                '<button id="mde-close" class="btn btn-default btn-sm">Close</button>' +
+                '<button id="mde-delete" class="btn btn-danger btn-sm">Delete</button>' +
                 '</div></div>' +
                 '<div id="mde-wrap" style="flex:1;overflow:auto;min-height:0;padding:10px;"></div>' +
                 '</div></div>'
@@ -1098,7 +1160,10 @@ function openInlineEditor(url, onSave) {
             autofocus: true,
             minHeight: '400px',
             toolbar: ['bold','italic','heading','|','quote','unordered-list','ordered-list',
-                      '|','link','image','|','preview','side-by-side','fullscreen','|','guide'],
+                      '|','link',
+                      { name: 'image', action: function(ed) { openImagePicker(ed, cmsBase); },
+                        className: 'fa fa-picture-o', title: 'Insert Image' },
+                      '|','preview','side-by-side','fullscreen','|','guide'],
         });
         $('#mde-filename').text(url.split('/').pop());
         $('#mde-modal').show();
@@ -1107,15 +1172,27 @@ function openInlineEditor(url, onSave) {
             var newContent = _mde.value();
             $('#mde-save').prop('disabled', true).text('Saving…');
             davPut(url, newContent, function() {
-                $('#mde-modal').hide();
-                $('#mde-save').prop('disabled', false).text('Save');
-                onSave && onSave();
+                $('#mde-save').prop('disabled', false).text('Saved ✓');
+                setTimeout(function() { $('#mde-save').text('Save'); }, 2000);
             }, function() {
                 $('#mde-save').prop('disabled', false).text('Save');
             });
         });
-        $('#mde-cancel').off('click').on('click', function() {
+        $('#mde-close').off('click').on('click', function() {
             $('#mde-modal').hide();
+            onSave && onSave();
+        });
+        $('#mde-delete').off('click').on('click', function() {
+            if (!confirm('Delete this post? This cannot be undone.')) return;
+            $.ajax({
+                url: url, method: 'DELETE',
+                headers: { 'requesttoken': davToken() },
+                success: function() {
+                    $('#mde-modal').hide();
+                    window.location.href = url.replace(/\/[^/]+$/, '/');
+                },
+                error: function(xhr) { alert('Could not delete post (' + xhr.status + ')'); }
+            });
         });
     });
 }
@@ -1196,7 +1273,7 @@ jQuery(document).ready(function($) {
     $('.edit-button').click(function() {
         var host = $(this).attr('host');
         var path = $(this).attr('path');
-        openInlineEditor(davUrl(host, path), function() { window.location.reload(); });
+        openInlineEditor(davUrl(host, path), function() { window.location.reload(); }, host);
     });
   	
   	// Refactor dom to have comments in comments div
@@ -1308,14 +1385,17 @@ jQuery(document).ready(function($) {
 			var dir = pathArr.join('/');
 			var title = $(this).val().trim();
 			var filename = title.replace(/[^\w\s]/gi, '').replace(/\s/g, '_') + '.md';
-			var user = $('.write-post').attr('user') || '';
+			// Strip federated domain suffix (e.g. bob@host → bob)
+			var user = ($('.write-post').attr('user') || '').replace(/@.*$/, '');
 			var today = getTodayDate();
 			if (!filename || filename === '.md') return;
+			// Blank line before closing --- prevents Setext h2 on the last metadata line
 			var newContent = '---\nTitle: ' + title + '\nDescription: \nDate: ' + today +
-				'\nAuthor: ' + user + '\nTemplate: post\nAccess: private\nTheme: blog\nComments: on\n---\n\n';
+				'\nAuthor: ' + user + '\nTemplate: post\nAccess: private\nTheme: blog\nComments: on' +
+				'\nIndexImage: \nLabels: \nExcerptLength: \nEditLinks: yes\n\n---\n\n';
 			var url = davUrl(host, dir + '/' + filename);
 			davPut(url, newContent, function() {
-				openInlineEditor(url, function() { window.location.reload(); });
+				openInlineEditor(url, function() { window.location.reload(); }, host);
 			});
 		});
  
