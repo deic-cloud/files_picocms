@@ -92,8 +92,8 @@ different silos work correctly over WebDAV.  For example, when alice (silo2)
 shares her blog directory with `bob@master`, and bob's home silo is silo1,
 the federation mount appears in bob's file tree on silo1.  Bob can write to
 alice's files on silo2 via silo1's WebDAV at
-`https://silo1/remote.php/webdav/{alice_mount}/`.  The federation mechanism
-itself is sound.
+`https://silo1.example.org/remote.php/webdav/{alice_mount}/`.  The
+federation mechanism itself is sound.
 
 However, the blog page is served from silo2, while bob's federation mount
 lives on silo1 — a different origin (different hostname or port).  A direct
@@ -111,12 +111,12 @@ This is achievable, but has two constraints worth noting:
 - `Access-Control-Allow-Credentials: true` is required (so the browser sends
   the session cookie).  The CORS spec forbids combining this with a wildcard
   origin (`*`), so `Access-Control-Allow-Origin` must name the **exact**
-  origin of each silo page — e.g. `https://kube.sciencedata.dk:2005`.  In a
+  origin of each silo page — e.g. `https://silo2.example.org`.  In a
   multi-silo setup this means a per-origin rule in each node's reverse-proxy
   config (Caddy `header` directive or Apache `Header set` inside a
   `<Location /remote.php/webdav/>`).
-- All nodes must share the same public hostname (same domain / subdomain) so
-  that NC session cookies set on one node are sent by the browser to another.
+- All nodes must share the same parent domain (e.g. `example.org`) so that
+  domain-scoped NC cookies set on one node are sent by the browser to another.
 
 The serve.php
 proxy is self-contained: the JS writes to the **same URL it was loaded from**
@@ -164,8 +164,9 @@ proxy above.
 
 When a visitor lands on a site served from silo2 without a local silo2
 session, but they do have an NC session on the master (detected via the
-`nc_username` cookie, which is shared across ports on the same hostname),
-`serve.php` redirects them through the `files_sharding` SSO flow:
+`nc_username` cookie, which is scoped to the shared parent domain so all
+nodes see it), `serve.php` redirects them through the `files_sharding`
+SSO flow:
 
 ```
 serve.php → master/sudo/confirm?silo=…&callback=…
@@ -215,9 +216,9 @@ users' rows for serving.
 - All of this is guarded with `class_exists` / config checks — without
   files_sharding the app works standalone on its local registry.
 
-So in production, `https://sciencedata.dk/remote.php/files_picocms/sites/myblog`
-always works regardless of which silo hosts the owner — the master 307s to
-e.g. `https://silo1.sciencedata.dk/...`.
+So `https://cloud.example.org/remote.php/files_picocms/sites/myblog` (the
+master) always works regardless of which silo hosts the owner — the master
+307s to e.g. `https://silo1.example.org/...`.
 
 ### Twig URL variables
 
@@ -463,20 +464,17 @@ to its owner before redirecting to the owner's silo.
 
 ## Deployment
 
-No build step.  Edit PHP/Twig/JS/CSS files directly, then copy to all nodes:
+No build step, no composer install.  Copy the app directory into `apps/` on
+every node and reload PHP so OPcache picks up the changes:
 
 ```bash
-for TREE in /home/claude/code/nextcloud \
-            /home/claude/code/silo1/nextcloud \
-            /home/claude/code/silo2/nextcloud; do
-  rsync -a /home/claude/code/nextcloud/apps/files_picocms/ \
-        "$TREE/apps/files_picocms/"
+for HOST in cloud.example.org silo1.example.org silo2.example.org; do
+  rsync -a files_picocms/ "$HOST:/var/www/nextcloud/apps/files_picocms/"
+  ssh "$HOST" 'service php8.3-fpm reload'
 done
-# Reload OPcache on all pods
-sshpass -p secret ssh root@10.2.164.63 'service php8.3-fpm reload'
-sshpass -p secret ssh root@10.2.24.238  'service php8.3-fpm reload'
-sshpass -p secret ssh root@10.2.164.64  'service php8.3-fpm reload'
 ```
+
+In a single-node (non-sharded) installation just the one copy is needed.
 
 ---
 
