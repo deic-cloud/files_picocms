@@ -36,8 +36,10 @@ a:focus {
   color: #808080;
 	text-decoration: none;
 }
-a img:hover,
-a img:focus {
+/* Only images that actually open the zoom modal get the zoom cursor —
+   a blanket "a img" rule also caught avatars and icons. */
+img.modal-image:hover,
+img.modal-image:focus {
   cursor: zoom-in;
 }
 h1 a {
