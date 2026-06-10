@@ -1202,7 +1202,7 @@ function openInlineEditor(url, onClose, cmsBase) {
             toolbar: ['bold','italic','heading','|','quote','unordered-list','ordered-list',
                       '|','link',
                       { name: 'image', action: function(ed) { openImagePicker(ed, cmsBase); },
-                        className: 'fa fa-picture-o', title: 'Insert Image' },
+                        className: 'fa fa-image', title: 'Insert Image' },
                       '|','preview','side-by-side','fullscreen','|','guide'],
         });
         $('#mde-filename').text(url.split('/').pop());
