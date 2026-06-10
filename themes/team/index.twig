@@ -118,7 +118,7 @@
 					{%- if sq_parts[0] == 'labels' -%}
 						Posts labelled <span class="label">{{ sq_parts[1] }}</span>
 					{%- elseif sq_parts[0] == 'author' -%}
-						{{ 'Posts by ' ~ (sq_first ? sq_first.meta.displayname|default(sq_parts[1]) : sq_parts[1]) }}
+						{{ 'Posts and pages by ' ~ (sq_first ? sq_first.meta.displayname|default(sq_parts[1]) : sq_parts[1]) }}
 					{%- else -%}
 						Search results for “{{ sq_parts[1] }}”
 					{%- endif -%}
