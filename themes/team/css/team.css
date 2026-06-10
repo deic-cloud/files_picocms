@@ -843,18 +843,6 @@ nav .labels {
   border-radius: 6px;
 }
 
-.leftbar button#manage_files {
-	background-color: rgba(150, 150, 150, 0.6);
-	margin-right: 6px;
-	display: inline-block;
-	top: 1px;
-	border-style: solid;
-	border-color: #979797;
-	border-radius: 6px;
-	position: relative;
-	margin-bottom: 4px;
-}
-
 button#editor_save:hover {
   opacity: 0.6;
 }

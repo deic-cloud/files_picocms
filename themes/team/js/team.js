@@ -1419,27 +1419,6 @@ jQuery(document).ready(function($) {
 		$(this).val('');
 	});
 
-	$('#manage_files').click(function(ev){
-		// Open the site folder in the NC Files app (owner only — the button is
-		// gated on `editable` and `folder` is the owner's real folder path).
-		var siteFolder = $(this).attr('folder') || '';
-		var user_home_url = $(this).attr('user_home_url') || $('.write-post').attr('user_home_url') || '';
-		var pathArr = ($('.write-post').attr('path') || '').split('/');
-		pathArr.pop();
-		var dir = pathArr.join('/');
-		var link = user_home_url + '/index.php/apps/files?dir=' +
-			encodeURIComponent(siteFolder + (dir ? '/' + dir : ''));
-		 //window.location.href = link;
-		 var win = window.open(link, '_blank');
-		if (win) {
-			//Browser has allowed it to be opened
-			win.focus();
-		}
-		else {
-			//Browser has blocked it
-			alert('Please allow popups for this website');
-		}
-	});
 
 	$('.write-post').click(function(ev){
 		ev.preventDefault();
