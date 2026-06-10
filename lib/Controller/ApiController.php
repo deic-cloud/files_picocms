@@ -87,7 +87,7 @@ class ApiController extends OCSController {
 		// Return the wizard template data; rendered client-side
 		$uid = $this->userSession->getUser()?->getUID() ?? '';
 		return new DataResponse([
-			'wiki_folder'    => '/wiki',
+			'team_folder'    => '/team',
 			'blog_folder'    => '/blog',
 			'doc_folder'     => '/documentation',
 			'public_folder'  => '/public',

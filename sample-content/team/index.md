@@ -2,7 +2,7 @@
 
 Title: Home
 Site: Sample Site
-Theme: wiki
+Theme: team
 Access: public
 Social:
   https://github.com/your-group: github

@@ -116,11 +116,11 @@ $servePublic = $_['serve_public'];
 					<?php p($l->t('Blog')); ?>
 				</label>
 				<label>
-					<input type="radio" name="pico_type" value="wiki"
-					       data-folder="/wiki" data-content="/sample-content/wiki"
-					       data-destination="" data-theme="wiki"
+					<input type="radio" name="pico_type" value="team"
+					       data-folder="/team" data-content="/sample-content/team"
+					       data-destination="" data-theme="team"
 					       data-copy-themes="no" />
-					<?php p($l->t('Wiki')); ?>
+					<?php p($l->t('Team site')); ?>
 				</label>
 				<label>
 					<input type="radio" name="pico_type" value="doc"

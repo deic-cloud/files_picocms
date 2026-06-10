@@ -155,7 +155,7 @@ The blog theme bundles [EasyMDE](https://github.com/Ionaru/easy-markdown-editor)
 Clicking **Edit** on a post opens a full-page modal with a Markdown editor;
 clicking **Write** on the index creates a new post file and opens the editor.
 The editor uses `davGet` / `davPut` helpers in `themes/blog/js/blog.js`
-(and `themes/wiki/js/wiki.js` for the wiki theme) which talk to the write
+(and `themes/team/js/team.js` for the team theme) which talk to the write
 proxy above.
 
 ---
@@ -225,7 +225,7 @@ The `ocUserHomeUrl` Twig variable is set to the **current silo's base URL**
 (not master) so that internal links and asset URLs remain correct on silos.
 The `oc_cms_base` Twig variable holds the full picocms site URL and is used
 by the JS as the write proxy base. `config.site_folder` holds the site's
-folder path relative to the owner's files root (used by the wiki theme's
+folder path relative to the owner's files root (used by the team theme's
 Manage button to link into the NC Files app).
 
 ---
@@ -234,16 +234,16 @@ Manage button to link into the NC Files app).
 
 Themes live under `themes/` (either in the site directory or in the app's
 `themes/` directory).  Bundled themes: `blog` (Bootstrap 3, CSS derived from
-Clean Blog, EasyMDE), `wiki` (sidebar navigation, EasyMDE inline editing),
+Clean Blog, EasyMDE), `team` (sidebar navigation, EasyMDE inline editing),
 `documentation`, and `default`.  Theme CSS/JS files are named after the theme
-(`css/blog.css`, `js/wiki.js`, …).
+(`css/blog.css`, `js/team.js`, …).
 
 Theme files (`themes/…`) are served directly without running Pico, so CSS/JS
 assets load even before the page is rendered.
 
 ### Sample sites
 
-The wiki theme's sample content (`sample-content/wiki/`) is a complete
+The team theme's sample content (`sample-content/team/`) is a complete
 example **research-group site** aimed at group leaders: a public front page
 with placeholder text in [brackets] and a self-explanatory "this is an
 example site" banner, Research/People/Publications/Contact pages, a public
@@ -280,7 +280,7 @@ external hosts:
   level in `3rdparty/mathjax/` and served at `{site}/mathjax/…` by a dedicated
   serve.php branch — deliberately NOT under `themes/` so the site wizard's
   copy-themes option does not duplicate ~1.5 MB into every site folder. The
-  blog, wiki and default templates load it with `$…$` and `\(…\)` inline-math
+  blog, team and default templates load it with `$…$` and `\(…\)` inline-math
   delimiters; the documentation theme carries its own copy
   (`js/tex-chtml.js`).
 
@@ -410,7 +410,7 @@ No parameters. Returns the default folder suggestions used by the
 personal-settings wizard:
 
 ```json
-{ "wiki_folder": "/wiki", "blog_folder": "/blog", "doc_folder": "/documentation",
+{ "team_folder": "/team", "blog_folder": "/blog", "doc_folder": "/documentation",
   "public_folder": "/public", "default_folder": "/website" }
 ```
 

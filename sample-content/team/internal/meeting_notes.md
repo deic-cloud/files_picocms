@@ -6,7 +6,7 @@ Date:
 Author: 
 Template: page
 Access: private
-Theme: wiki
+Theme: team
 Comments: on
 
 ---

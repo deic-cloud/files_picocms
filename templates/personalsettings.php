@@ -51,21 +51,21 @@ $serverRoot = \OC::$WEBROOT;
 		<p><?php p($l->t('Click "Create" to populate a folder with sample content and create a new site.')); ?></p>
 		<div>
 			<label><?php p($l->t('Type:')); ?></label><br />
-			<label><input type="radio" name="pico_type" value="wiki"
-				data-folder="/wiki" data-content="/sample-content/wiki" data-destination="content"
-				data-theme="wiki" data-copy-themes="yes" /> <?php p($l->t('Wiki')); ?></label><br />
 			<label><input type="radio" name="pico_type" value="blog-profile"
 				data-folder="/public" data-content="/sample-content/blog/profile.md" data-destination="index.md"
-				data-theme="blog" data-copy-themes="no" checked /> <?php p($l->t('Single public profile page')); ?></label><br />
+				data-theme="blog" data-copy-themes="no" checked /> <?php p($l->t('Public profile page')); ?></label><br />
 			<label><input type="radio" name="pico_type" value="blog"
-				data-folder="/blog" data-content="/sample-content/blog" data-destination="content"
-				data-theme="blog" data-copy-themes="yes" /> <?php p($l->t('Blog')); ?></label><br />
+				data-folder="/blog" data-content="/sample-content/blog" data-destination=""
+				data-theme="blog" data-copy-themes="no" /> <?php p($l->t('Blog')); ?></label><br />
+			<label><input type="radio" name="pico_type" value="team"
+				data-folder="/team" data-content="/sample-content/team" data-destination=""
+				data-theme="team" data-copy-themes="no" /> <?php p($l->t('Team site')); ?></label><br />
 			<label><input type="radio" name="pico_type" value="doc"
-				data-folder="/documentation" data-content="/sample-content/doc" data-destination="content"
-				data-theme="documentation" data-copy-themes="yes" /> <?php p($l->t('Documentation')); ?></label><br />
+				data-folder="/documentation" data-content="/sample-content/doc" data-destination=""
+				data-theme="documentation" data-copy-themes="no" /> <?php p($l->t('Documentation')); ?></label><br />
 			<label><input type="radio" name="pico_type" value="default"
-				data-folder="/website" data-content="/sample-content/doc" data-destination="content"
-				data-theme="default" data-copy-themes="yes" /> <?php p($l->t('Default Pico')); ?></label>
+				data-folder="/website" data-content="/sample-content/doc" data-destination=""
+				data-theme="default" data-copy-themes="no" /> <?php p($l->t('Default Pico')); ?></label>
 		</div>
 		<br />
 		<p>

@@ -348,7 +348,7 @@ if (!empty($siteConfig['favicon'])) {
 $picoConfig['login_url']      = $masterBase . '/index.php/login?redirect_url=' . urlencode($_SERVER['REQUEST_URI']);
 $picoConfig['original_path']  = $sitePath;
 // Site folder relative to the owner's files root — used by themes to link
-// into the NC Files app (e.g. the wiki Manage button).
+// into the NC Files app (e.g. the team-site Manage button).
 $picoConfig['site_folder']    = $siteInfo['path'];
 
 // Provide request token for authenticated calls within the site (e.g. avatars)

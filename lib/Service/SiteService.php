@@ -287,10 +287,10 @@ class SiteService {
 				}
 			}
 
-			// Otherwise copy data_icon.png from the theme (or wiki as fallback)
+			// Otherwise copy data_icon.png from the theme (or team as fallback)
 			if ($iconRelPath === null) {
 				$srcIcon = null;
-				foreach ([$theme, 'wiki', 'blog'] as $t) {
+				foreach ([$theme, 'team', 'blog'] as $t) {
 					$p = $appDir . '/themes/' . $t . '/img/data_icon.png';
 					if (file_exists($p)) { $srcIcon = $p; break; }
 				}

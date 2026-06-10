@@ -5,7 +5,7 @@ Description: Announcements and updates
 Date: 
 Author: 
 Access: public
-Theme: wiki
+Theme: team
 Index: true
 
 ---

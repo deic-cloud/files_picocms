@@ -6,7 +6,7 @@ Date:
 Author: 
 Template: post
 Access: public
-Theme: wiki
+Theme: team
 Comments: on
 
 ---

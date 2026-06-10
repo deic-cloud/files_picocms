@@ -1062,7 +1062,7 @@ if (!$.fn.avatar) {
 }
 
 // ── Picocms proxy helpers ─────────────────────────────────────────────────────
-// host is the picocms site base URL (e.g. https://silo:2005/remote.php/files_picocms/sites/wiki)
+// host is the picocms site base URL (e.g. https://silo:2005/remote.php/files_picocms/sites/team)
 // relPath is the site-relative file path (e.g. my-page.md)
 // All file reads/writes go through serve.php so non-owners can write via the proxy.
 
@@ -1517,7 +1517,7 @@ jQuery(document).ready(function($) {
 		if (!filename || filename === '.md') return;
 		// Blank line before closing --- prevents Setext h2 on the last metadata line
 		var content = '---\nTitle: ' + title + '\nDescription: \nDate: ' + today +
-			'\nAuthor: ' + user + '\nTemplate: page\nAccess: private\nTheme: wiki\nComments: on\n\n---\n\n';
+			'\nAuthor: ' + user + '\nTemplate: page\nAccess: private\nTheme: team\nComments: on\n\n---\n\n';
 		var relPath = (dir ? dir + '/' : '') + filename;
 		var url = davUrl(host, relPath);
 		davPut(url, content, function() {
