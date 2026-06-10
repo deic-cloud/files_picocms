@@ -1194,6 +1194,7 @@ function openInlineEditor(url, onClose, cmsBase) {
         $('#mde-wrap').empty().append($ta);
         _mde = new EasyMDE({
             element: document.getElementById('mde-ta'),
+            autoDownloadFontAwesome: false,  // bundled in the theme — never load from CDN
             initialValue: content,
             spellChecker: false,
             autofocus: true,

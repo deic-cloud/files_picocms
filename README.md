@@ -241,6 +241,24 @@ Clean Blog, EasyMDE), `wiki` (sidebar navigation, EasyMDE inline editing),
 Theme files (`themes/…`) are served directly without running Pico, so CSS/JS
 assets load even before the page is rendered.
 
+### Self-contained assets — no CDNs
+
+All JS, CSS and fonts are bundled inside each theme; pages load nothing from
+external hosts:
+
+- Google Fonts (Lora + Open Sans, latin/latin-ext woff2) are bundled as
+  `css/fonts.css` + `fonts/google/` per theme (`fonts.css` at the theme root
+  for the `default` theme).
+- Font Awesome is bundled (`css/font-awesome.css` + `fonts/fa-*`); EasyMDE is
+  initialised with `autoDownloadFontAwesome: false` so it never injects its
+  CDN stylesheet.
+- jQuery, Bootstrap and EasyMDE are theme-local files.
+
+The serve.php CSP is correspondingly strict — `'self'` only for styles,
+scripts, fonts and images (plus `unsafe-inline`/`unsafe-eval` for the themes'
+inline JS). Keep it that way: when adding theme features, copy the asset into
+the theme instead of referencing a CDN, or the CSP will block it.
+
 ---
 
 ## 3rdparty libraries

@@ -172,8 +172,9 @@ if (!is_dir($siteFsPath)) {
 // ── Override NC's restrictive CSP with one suitable for website serving ───────
 // connect-src must cover all silos (same hostname, different ports) so WebDAV
 // writes from the blog JS can reach the user's home silo.
+// All theme assets (CSS, JS, fonts) are bundled locally — no CDN allowances.
 $cspHost = parse_url($scheme . '://' . $_SERVER['HTTP_HOST'], PHP_URL_HOST) ?: $_SERVER['HTTP_HOST'];
-header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://{$cspHost}:*; frame-ancestors 'self'");
+header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://{$cspHost}:*; frame-ancestors 'self'");
 
 // ── Determine content directory ───────────────────────────────────────────────
 
