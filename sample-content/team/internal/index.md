@@ -15,8 +15,8 @@ Comments: on
 this section** — everyone else gets a login prompt. It is the team's private
 workspace.
 
-> **Setup (one time):** share the site's folder with your team — in
-> ScienceData, open the folder, choose *Share* and add your group or each
+> **Setup (one time):** share the site's folder with your team — in the
+> file manager, open the folder, choose *Share* and add your group or each
 > member with **can edit**. Members can then read this section, edit pages
 > with the pencil button, add pages and comment. Without the share, only you
 > can see and edit it.

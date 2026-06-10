@@ -26,5 +26,5 @@ Comments: off
 - [Dataset or code name] — [one line on what it is].
   [doi:10.0000/example](https://doi.org/10.0000/example)
 
-*Tip: if you publish data through ScienceData's Zenodo integration, link the
-DOIs here so visitors can find your datasets.*
+*Tip: if you publish datasets or software with DOIs (e.g. via Zenodo), link
+them here so visitors can find them.*

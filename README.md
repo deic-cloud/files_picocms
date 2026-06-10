@@ -3,7 +3,7 @@
 Serve static Markdown-based websites from a user's Nextcloud files, with
 in-browser editing for owners and collaborators.
 
-**Author:** Frederik Orellana, Technical University of Denmark (fror@dtu.dk) — developed for the ScienceData cloud platform.  
+**Author:** Frederik Orellana, Technical University of Denmark (fror@dtu.dk)  
 **License:** AGPL-3.0
 
 ---
