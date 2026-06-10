@@ -384,10 +384,14 @@ try {
 						}
 					}
 				}
-			} catch (\Throwable) {}
+			} catch (\Throwable $e) {
+				error_log('files_picocms share detection: ' . $e->getMessage());
+			}
 		}
 	}
-} catch (\Throwable) {}
+} catch (\Throwable $e) {
+	error_log('files_picocms permission setup: ' . $e->getMessage());
+}
 
 // ── Write proxy (PUT) ─────────────────────────────────────────────────────────
 // Handles file writes for all users (owner and shared). Writes as the site owner
@@ -469,6 +473,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && $sitePath !== '') {
 		error_log('files_picocms delete proxy: ' . $e->getMessage());
 		http_response_code(500);
 	}
+	exit;
+}
+
+// ── Reject unhandled write methods ───────────────────────────────────────────
+// A PUT/DELETE that was not handled above (e.g. empty site path because the
+// page carried no file path) must never fall through to Pico — that would
+// return a rendered page with HTTP 200 and silently discard the write.
+if (in_array($_SERVER['REQUEST_METHOD'], ['PUT', 'DELETE', 'POST'], true)) {
+	http_response_code(405);
+	header('Allow: GET, HEAD');
 	exit;
 }
 

@@ -409,3 +409,15 @@ sshpass -p secret ssh root@10.2.164.64  'service php8.3-fpm reload'
   `Access-Control-Allow-Origin` / `Access-Control-Allow-Credentials` headers
   to the `/remote.php/webdav/` path.  See *Switching to native WebDAV* above.
 - Search page integration (`has_search_page`) assumes the blog theme.
+- Sites are only registered in the DB of the owner's node. The master has no
+  copy and returns 404 for `/sites/{name}` URLs of silo-hosted sites — the
+  `internal/*` endpoints exist for registry forwarding but nothing calls them
+  yet. Needs a source-of-truth decision (register on master + forward, or
+  lookup-through on miss).
+- Comments require write access to the post file (they go through the
+  serve.php write proxy). The comment form is hidden for everyone else; if
+  visitor/reader comments are wanted, a dedicated sanitising
+  comment-append endpoint is needed.
+- The wiki theme's comment and editor JS (`themes/wiki/js/wiki.js`) still
+  contains unported OC7 code (`newfile.php` ajax, `deic_theme_oc7` paths) —
+  only the blog theme's inline editing has been fully ported.

@@ -1051,7 +1051,16 @@ function davGet(url, callback) {
     $.ajax({
         url: url + sep + 'picocms_raw=1', method: 'GET',
         headers: { 'requesttoken': davToken() },
-        success: callback,
+        success: function(content) {
+            // A rendered HTML page instead of raw Markdown means the request
+            // missed the raw-file handler (e.g. lost session) — never feed it
+            // to the editor or append comments to it.
+            if (/^\s*(<!DOCTYPE|<html)/i.test(content)) {
+                alert('Unexpected response from server — please reload the page and try again.');
+                return;
+            }
+            callback(content);
+        },
         error: function(xhr) { alert('Could not read file (' + xhr.status + ')'); }
     });
 }
@@ -1273,6 +1282,10 @@ jQuery(document).ready(function($) {
     $('.edit-button').click(function() {
         var host = $(this).attr('host');
         var path = $(this).attr('path');
+        if (!path) {
+            alert('No file path for this page — please reload and try again.');
+            return;
+        }
         openInlineEditor(davUrl(host, path), function() { window.location.reload(); }, host);
     });
   	
@@ -1307,6 +1320,10 @@ jQuery(document).ready(function($) {
         var today = getTodayDate(true);
         var comment = $('textarea#comment').val().replace(/\n/g, '<br />\n');
 
+        if (!path) {
+            alert('Commenting is not available — no file path for this page.');
+            return false;
+        }
         if (!name.length) {
             alert(t('core', 'Please fill out your name'));
             return false;

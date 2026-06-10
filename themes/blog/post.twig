@@ -124,6 +124,9 @@
     <comments>
     <div class="container">
 	    <div class="col-lg-offset-2">
+		    {# Comments are written through the serve.php proxy, which requires
+		       write access to the post file — only show the form to such users. #}
+		    {% if writable is not empty %}
 		    <div class="form-group col-xs-5 comment-post"
 		    share="{{  oc_share }}" path="{{  oc_path }}" owner="{{  oc_owner }}" user="{{  oc_user }}" host="{{ oc_cms_base }}"
 		    group="{{  oc_group }}">
@@ -131,6 +134,7 @@
 		     <textarea placeholder="Your comment" class="form-control" rows="3" id="comment"></textarea>
 		     <button id="submit_comment" class="btn btn-default btn-small">Submit</button>
 		    </div>
+		    {% endif %}
 		
 		    <!-- Comments -->
 		    <div id="comments" class="col-md-10">

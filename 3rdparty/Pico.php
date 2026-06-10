@@ -384,7 +384,7 @@ class Pico
 		$this->editable    = true;
 		$this->writable    = true;
 		$this->readable    = true;
-		$this->permissions = \OCP\PERMISSION_ALL;
+		$this->permissions = \OCP\Constants::PERMISSION_ALL;
 		$this->shareType   = self::$SHARE_TYPE_MINE;
 		$this->ocPath      = $ocPath;
 	}
@@ -1100,7 +1100,7 @@ class Pico
 					$share_permissions = (int)\OCA\FilesSharding\Lib::checkPubliclyShared($ocPath, $owner, $group);
 					pico_log('files_picocms', 'Public share permissions: '.$share_permissions, \OC_Log::INFO);
 					$this->permissions = $share_permissions;
-					if($share_permissions & \OCP\PERMISSION_DELETE){
+					if($share_permissions & \OCP\Constants::PERMISSION_DELETE){
 						$this->shareType = self::$SHARE_TYPE_SHARED_PUBLIC_RW;
 						// We don't support public editing / empty($user_id)
 						//$this->editable = true;
@@ -1127,7 +1127,7 @@ class Pico
 		// First check if I own the file
 		if($this->ocUser===$owner){
 			if($setPermissions){
-				$this->permissions = \OCP\PERMISSION_ALL;
+				$this->permissions = \OCP\Constants::PERMISSION_ALL;
 				$this->editable = true;
 				$this->readable = true;
 				$this->ocShare = '';
@@ -1220,12 +1220,12 @@ class Pico
 				\OC_Util::setupFS('/'.$this->ocUser.'/files');
 			}
 			if(!empty($ocPath) && $ocPath!=='.'){
-				if($setPermissions && !empty($this->permissions) && ($this->permissions & \OCP\PERMISSION_DELETE)){
+				if($setPermissions && !empty($this->permissions) && ($this->permissions & \OCP\Constants::PERMISSION_DELETE)){
 					$this->shareType = self::$SHARE_TYPE_SHARED_WITH_ME_RW;
 					$this->editable = true;
 					$this->readable = true;
 				}
-				elseif($setPermissions && !empty($this->permissions) && ($this->permissions & \OCP\PERMISSION_READ)){
+				elseif($setPermissions && !empty($this->permissions) && ($this->permissions & \OCP\Constants::PERMISSION_READ)){
 					$this->shareType = self::$SHARE_TYPE_SHARED_WITH_ME;
 					$this->readable = true;
 				}
