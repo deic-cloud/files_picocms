@@ -110,6 +110,22 @@
 		<div class="row">
 			<div class="col-lg-10 col-lg-offset-1 col-md-10 col-md-offset-1">
 
+			{% if search_query is not empty %}
+				{# Search results view — show a heading instead of the page content #}
+				{% set sq_parts = search_query|split(':', 2) %}
+				{% set sq_first = paged_pages|first %}
+				<h2 class="search-results-heading">
+					{%- if sq_parts[0] == 'labels' -%}
+						Posts labelled <span class="label">{{ sq_parts[1] }}</span>
+					{%- elseif sq_parts[0] == 'author' -%}
+						{{ 'Posts by ' ~ (sq_first ? sq_first.meta.displayname|default(sq_parts[1]) : sq_parts[1]) }}
+					{%- else -%}
+						Search results for “{{ sq_parts[1] }}”
+					{%- endif -%}
+				</h2>
+				{% if not sq_first %}<p>No matching posts.</p>{% endif %}
+			{% else %}
+
 			{% if meta.labels and has_search_page %}
 				<div class="labels">
 					{% set mylabels = meta.labels|split(',') %}
@@ -124,6 +140,8 @@
 
 			<!-- File editor -->
 			<div id="content"><div id="controls"><div id="notification"></div></div></div>
+
+			{% endif %}
 
 			<!-- If no page requested, generate index. Search results (the
 			     search/author:… and search/labels:… URLs rewrite to this
