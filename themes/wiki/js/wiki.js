@@ -1343,7 +1343,9 @@ jQuery(document).ready(function($) {
 		var url = davUrl(host, path);
 		$('#submit_comment').prop('disabled', true);
 		davGet(url, function(currentContent) {
-			davPut(url, currentContent + newCommentHtml, function() {
+			// Blank line before the comment separates it from the content and
+			// makes Markdown treat the <comment> element as its own HTML block.
+			davPut(url, currentContent.replace(/\s*$/, '\n') + newCommentHtml, function() {
 				$('#submit_comment').prop('disabled', false);
 				var $comment = $(newCommentHtml);
 				$comment.prependTo($('#comments'));
