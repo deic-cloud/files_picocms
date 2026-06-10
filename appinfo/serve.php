@@ -205,6 +205,21 @@ if (str_starts_with($sitePath, 'themes/')) {
 	exit;
 }
 
+// ── Serve the bundled MathJax (shared app-level copy, never in site folders) ──
+
+if (str_starts_with($sitePath, 'mathjax/')) {
+	$mjFile = $appDir . '/3rdparty/' . $sitePath;
+	$ext    = strtolower(pathinfo($sitePath, PATHINFO_EXTENSION));
+	if (strpos($sitePath, '..') === false && file_exists($mjFile) && is_file($mjFile)) {
+		header('Content-Type: ' . _pico_mime($ext));
+		_pico_cache_headers($mjFile, 604800);
+		readfile($mjFile);
+	} else {
+		http_response_code(404);
+	}
+	exit;
+}
+
 // ── Read _config.md and enforce access ───────────────────────────────────────
 
 $siteConfig = _pico_site_config($contentDir, $sitePath);

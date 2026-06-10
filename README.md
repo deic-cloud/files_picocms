@@ -253,6 +253,13 @@ external hosts:
   initialised with `autoDownloadFontAwesome: false` so it never injects its
   CDN stylesheet.
 - jQuery, Bootstrap and EasyMDE are theme-local files.
+- MathJax 3.2.2 (`tex-mml-chtml` + woff-v2 fonts) is bundled once at the app
+  level in `3rdparty/mathjax/` and served at `{site}/mathjax/…` by a dedicated
+  serve.php branch — deliberately NOT under `themes/` so the site wizard's
+  copy-themes option does not duplicate ~1.5 MB into every site folder. The
+  blog, wiki and default templates load it with `$…$` and `\(…\)` inline-math
+  delimiters; the documentation theme carries its own copy
+  (`js/tex-chtml.js`).
 
 The serve.php CSP is correspondingly strict — `'self'` only for styles,
 scripts, fonts and images (plus `unsafe-inline`/`unsafe-eval` for the themes'
