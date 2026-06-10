@@ -2048,6 +2048,24 @@ class Pico
 			return basename(ltrim($p['id'], '/')) === 'search';
 		}));
 
+		// All labels used across readable pages — feeds the themes' labels menu.
+		// Labels: meta is either a comma-separated string or a YAML list.
+		$allLabels = array();
+		foreach ($this->pages as $p) {
+			if (empty($p['readable'])) {
+				continue;
+			}
+			$raw  = $p['meta']['labels'] ?? '';
+			$vals = is_array($raw) ? $raw : explode(',', (string)$raw);
+			foreach ($vals as $label) {
+				$label = trim((string)$label);
+				if ($label !== '') {
+					$allLabels[$label] = true;
+				}
+			}
+		}
+		$allLabels = array_keys($allLabels);
+
 		// Blog post pages: readable, not special pages, not _ prefixed
 		$specialPages = ['index', 'search', '403', '404', 'rss', 'profile', 'error'];
 		$blogPages = array_values(array_filter($this->pages, function($p) use ($specialPages) {
@@ -2152,6 +2170,8 @@ class Pico
 			'paged_pages'   => $pagedPages,
 			'page_of_page'  => 1,
 			'has_search_page' => $hasSearchPage,
+			// All labels across readable pages — the themes' labels menu
+			'labels'        => $allLabels,
 			'search_query'  => $this->searchQuery,
 			'page_number'   => $pageNum,
 			'total_pages'   => $totalPages,

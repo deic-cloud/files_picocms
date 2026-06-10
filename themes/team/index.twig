@@ -125,20 +125,24 @@
 			<!-- File editor -->
 			<div id="content"><div id="controls"><div id="notification"></div></div></div>
 
-			<!-- If no page requested, generate index. -->
+			<!-- If no page requested, generate index. Search results (the
+			     search/author:… and search/labels:… URLs rewrite to this
+			     template) always render, using the query-filtered list. -->
 			{% set i = 0 %}
 			{# Index: true parses as a YAML boolean — compare strictly: the loose
 			   `true != "false"` is false in PHP/Twig and hid the listing. #}
-			{% if (meta.redable and not current_page.id)
+			{% if search_query is not empty
+				or (meta.redable and not current_page.id)
 				or current_page.meta.index is same as(true)
 				or (current_page.meta.index is not empty
 					and current_page.meta.index is not same as(false)
 					and current_page.meta.index != "false"
 					and current_page.meta.index != "no") %}
 			<div id="dir_index">
-				{% for page in pages|sort_by("time")|reverse if page.title and
+				{% set listing = search_query is not empty ? paged_pages : pages|sort_by("time")|reverse %}
+				{% for page in listing if page.title and
 				( page.template == "post" or page.template == "page" ) and
-				( page.folder == folder or folder == "/" ) %}
+				( search_query is not empty or page.folder == folder or folder == "/" ) %}
 					{% set i = i + 1 %}
 					<div class="post-preview">
 						{% if has_search_page and page.template == "post" %}
