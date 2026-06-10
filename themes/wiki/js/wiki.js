@@ -1033,6 +1033,209 @@ function scrollToEl(el, extraOffset){
     (typeof extraOffset!=='undefined'?extraOffset:0)}, 600);
 }
 
+// ── Standalone-page shims ─────────────────────────────────────────────────────
+// Pico pages load a bundled jQuery, not NC core JS — define the bits of the NC
+// JS API the theme uses.
+
+if (typeof window.t !== 'function') {
+    window.t = function (app, text) { return text; };
+}
+
+// NC's jquery.avatar plugin replacement: renders the user's avatar from the
+// NC avatar endpoint, falling back to the first letter on error.
+if (!$.fn.avatar) {
+    $.fn.avatar = function (user, size) {
+        return this.each(function () {
+            if (!user) { return; }
+            var sz  = size || 64;
+            var src = window.location.origin + '/index.php/avatar/'
+                + encodeURIComponent(String(user).toLowerCase().trim()) + '/' + sz;
+            var img = $('<img>').attr('src', src).attr('alt', user)
+                .css({ width: sz + 'px', height: sz + 'px', 'border-radius': '50%' });
+            var el = $(this);
+            img.on('error', function () {
+                el.text(String(user).charAt(0).toUpperCase());
+            });
+            el.empty().append(img);
+        });
+    };
+}
+
+// ── Picocms proxy helpers ─────────────────────────────────────────────────────
+// host is the picocms site base URL (e.g. https://silo:2005/remote.php/files_picocms/sites/wiki)
+// relPath is the site-relative file path (e.g. my-page.md)
+// All file reads/writes go through serve.php so non-owners can write via the proxy.
+
+function davUrl(host, relPath) {
+    var encoded = relPath.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
+    return host.replace(/\/$/, '') + '/' + encoded;
+}
+
+function davToken() {
+    return $('head').data('requesttoken') || $('head').attr('data-requesttoken') || '';
+}
+
+function davGet(url, callback) {
+    var sep = url.indexOf('?') >= 0 ? '&' : '?';
+    $.ajax({
+        url: url + sep + 'picocms_raw=1', method: 'GET',
+        headers: { 'requesttoken': davToken() },
+        success: function(content) {
+            // A rendered HTML page instead of raw Markdown means the request
+            // missed the raw-file handler (e.g. lost session) — never feed it
+            // to the editor or append comments to it.
+            if (/^\s*(<!DOCTYPE|<html)/i.test(content)) {
+                alert('Unexpected response from server — please reload the page and try again.');
+                return;
+            }
+            callback(content);
+        },
+        error: function(xhr) { alert('Could not read file (' + xhr.status + ')'); }
+    });
+}
+
+function davPut(url, content, callback, errback) {
+    $.ajax({
+        url: url, method: 'PUT',
+        headers: { 'requesttoken': davToken() },
+        data: content, processData: false,
+        contentType: (content instanceof Blob) ? (content.type || 'application/octet-stream') : 'text/plain',
+        success: callback,
+        error: function(xhr) {
+            if (errback) errback(xhr);
+            else alert('Could not save file (' + xhr.status + ')');
+        }
+    });
+}
+
+// ── Image picker ──────────────────────────────────────────────────────────────
+
+function openImagePicker(editor, cmsBase) {
+    $.ajax({
+        url: cmsBase.replace(/\/$/, '') + '?picocms_list_images=1',
+        method: 'GET',
+        headers: { 'requesttoken': davToken() },
+        success: function(images) {
+            if (!$('#img-picker-modal').length) {
+                $('body').append(
+                    '<div id="img-picker-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;' +
+                    'background:rgba(0,0,0,.5);z-index:10000;">' +
+                    '<div style="position:absolute;top:10%;left:10%;right:10%;bottom:10%;background:#fff;' +
+                    'border-radius:4px;display:flex;flex-direction:column;overflow:hidden;">' +
+                    '<div style="padding:8px 12px;border-bottom:1px solid #ddd;flex-shrink:0;display:flex;' +
+                    'justify-content:space-between;align-items:center;">' +
+                    '<strong style="font-family:sans-serif;">Select image</strong>' +
+                    '<button id="img-picker-close" class="btn btn-default btn-sm">Close</button>' +
+                    '</div>' +
+                    '<div id="img-picker-grid" style="flex:1;overflow:auto;padding:12px;' +
+                    'display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start;"></div>' +
+                    '</div></div>'
+                );
+                $('#img-picker-close').on('click', function() { $('#img-picker-modal').hide(); });
+            }
+            var $grid = $('#img-picker-grid').empty();
+            if (!images || !images.length) {
+                $grid.html('<p style="font-family:sans-serif;color:#888;padding:8px;">No images found in content directory.</p>');
+            } else {
+                $.each(images, function(i, rel) {
+                    var imgUrl  = cmsBase.replace(/\/$/, '') + '/' + rel;
+                    var fname   = rel.split('/').pop();
+                    var $item = $(
+                        '<div style="cursor:pointer;text-align:center;width:120px;" title="' + rel + '">' +
+                        '<img src="' + imgUrl + '" style="max-width:112px;max-height:80px;' +
+                        'border:2px solid transparent;border-radius:2px;display:block;margin:0 auto;" />' +
+                        '<div style="font-family:sans-serif;font-size:11px;overflow:hidden;' +
+                        'text-overflow:ellipsis;white-space:nowrap;max-width:112px;margin-top:3px;">' + fname + '</div>' +
+                        '</div>'
+                    );
+                    $item.on('mouseenter', function() { $(this).find('img').css('border-color', '#337ab7'); });
+                    $item.on('mouseleave', function() { $(this).find('img').css('border-color', 'transparent'); });
+                    $item.on('click', function() {
+                        var alt = fname.replace(/\.[^.]+$/, '');
+                        editor.codemirror.replaceSelection('![' + alt + '](' + rel + '){.modal-image .small-image}');
+                        $('#img-picker-modal').hide();
+                        editor.codemirror.focus();
+                    });
+                    $grid.append($item);
+                });
+            }
+            $('#img-picker-modal').show();
+        },
+        error: function(xhr) { alert('Could not load image list (' + xhr.status + ')'); }
+    });
+}
+
+// ── Inline EasyMDE editor ─────────────────────────────────────────────────────
+
+var _mde = null;
+
+function openInlineEditor(url, onClose, cmsBase) {
+    davGet(url, function(content) {
+        if (!$('#mde-modal').length) {
+            $('body').append(
+                '<div id="mde-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;' +
+                'background:rgba(0,0,0,.75);z-index:9999;">' +
+                '<div style="position:absolute;top:3%;left:3%;right:3%;bottom:3%;background:#fff;' +
+                'border-radius:4px;display:flex;flex-direction:column;overflow:hidden;">' +
+                '<div style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center;' +
+                'border-bottom:1px solid #ddd;flex-shrink:0;">' +
+                '<span id="mde-filename" style="font-weight:bold;color:#555;font-size:15px;font-family:sans-serif;"></span>' +
+                '<div style="display:flex;gap:8px;">' +
+                '<button id="mde-save" class="btn btn-primary btn-sm">Save</button>' +
+                '<button id="mde-close" class="btn btn-default btn-sm">Close</button>' +
+                '<button id="mde-delete" class="btn btn-danger btn-sm">Delete</button>' +
+                '</div></div>' +
+                '<div id="mde-wrap" style="flex:1;overflow:auto;min-height:0;padding:10px;"></div>' +
+                '</div></div>'
+            );
+        }
+        if (_mde) { _mde.toTextArea(); _mde = null; }
+        var $ta = $('<textarea id="mde-ta"></textarea>');
+        $('#mde-wrap').empty().append($ta);
+        _mde = new EasyMDE({
+            element: document.getElementById('mde-ta'),
+            initialValue: content,
+            spellChecker: false,
+            autofocus: true,
+            minHeight: '400px',
+            toolbar: ['bold','italic','heading','|','quote','unordered-list','ordered-list',
+                      '|','link',
+                      { name: 'image', action: function(ed) { openImagePicker(ed, cmsBase); },
+                        className: 'fa fa-picture-o', title: 'Insert Image' },
+                      '|','preview','side-by-side','fullscreen','|','guide'],
+        });
+        $('#mde-filename').text(url.split('/').pop());
+        $('#mde-modal').show();
+
+        $('#mde-save').off('click').on('click', function() {
+            var newContent = _mde.value();
+            $('#mde-save').prop('disabled', true).text('Saving…');
+            davPut(url, newContent, function() {
+                $('#mde-save').prop('disabled', false).text('Saved ✓');
+                setTimeout(function() { $('#mde-save').text('Save'); }, 2000);
+            }, function() {
+                $('#mde-save').prop('disabled', false).text('Save');
+            });
+        });
+        $('#mde-close').off('click').on('click', function() {
+            $('#mde-modal').hide();
+            onClose && onClose();
+        });
+        $('#mde-delete').off('click').on('click', function() {
+            if (!confirm('Delete this page? This cannot be undone.')) return;
+            $.ajax({
+                url: url, method: 'DELETE',
+                headers: { 'requesttoken': davToken() },
+                success: function() {
+                    $('#mde-modal').hide();
+                    window.location.href = url.replace(/\/[^/]+$/, '/');
+                },
+                error: function(xhr) { alert('Could not delete page (' + xhr.status + ')'); }
+            });
+        });
+    });
+}
+
 // Navigation Scripts to Show Header on Scroll-Up
 jQuery(document).ready(function($) {
 	
@@ -1075,40 +1278,15 @@ jQuery(document).ready(function($) {
 						});
 		}
 		
-		//Open file in file/editor view
+		// Edit button: open inline EasyMDE editor via the serve.php write proxy
 		$('.edit-button').click(function() {
-			var group = $('.edit-button').attr('group') || '';
-			var path = $('.edit-button').attr('path');
-			var dir_id = $('.edit-button').attr('dir_id') || '';
-	    var id = '';
-	    var owner = '';
-	    if($('.edit-button').attr('owner')!=$('.edit-button').attr('owner')){
-	      id = $('.edit-button').attr('id') || '';
-	      owner = $('.edit-button').attr('owner') || '';
-	    }
-			var pathArr = path.split('/');
-			var file = pathArr.pop();
-			var dir = pathArr.join('/');
-			$.when(window.showFileEditor(dir, file, id, owner)).then(function (){
-				var user_home_url = $('.write-post').attr('user_home_url');
-				$('.edit-button, .write-post, .upload').hide();
-				enableEditorUnsavedWarning(false);
-				if(typeof id!=='undefined' && id){
-					$('#editor').attr('data-id', id);
-				}
-				if(typeof owner!=='undefined' && owner){
-					$('#editor').attr('data-owner', owner);
-				}
-				$([document.documentElement, document.body]).animate({
-					scrollTop: $("#editor_container").first().parent().offset().top-80
-				}, 1000);
-				$('#editor_close').click(function(){
-					$('.edit-button, .write-post, .upload').show();
-					if($('#editor').attr('data-saved')){
-						window.location.reload(false); 
-					}
-				});
-			});
+			var host = $(this).attr('host');
+			var path = $(this).attr('path');
+			if (!path) {
+				alert('No file path for this page — please reload and try again.');
+				return;
+			}
+			openInlineEditor(davUrl(host, path), function() { window.location.reload(); }, host);
 		});
 		
 		// TOC scrolling
@@ -1140,50 +1318,43 @@ jQuery(document).ready(function($) {
 			$('comments').toggle('slow');
 	});
 		
-	$('#submit_comment').click(function(ev){
-		// Add comment
-		var pathArr = $('.comment-post').attr('path').split('/');
-		var filename = pathArr[pathArr.length-1];
-		pathArr.pop();
-		var dir = pathArr.join('/');
-		var sharedDirId = $('.comment-post').attr('share');
-		var user = $('.comment-post').attr('user') || '';
+	$('#submit_comment').click(function(ev) {
+		// Append the comment to the page's Markdown file via the write proxy
+		var postEl = $('.comment-post');
+		var host = postEl.attr('host') || '';
+		var path = postEl.attr('path') || '';
+		var user = postEl.attr('user') || '';
 		var name = $('input#name').val() || '';
-		var owner = $('.comment-post').attr('owner') || '';
-		var group = $('.comment-post').attr('group') || '';
 		var today = getTodayDate(true);
-		var comment = $('textarea#comment').val().replace('\n', '<br />\n');
-		
-		if(!name || !name.length){
-			OC.dialogs.alert(t('core', 'Please fill out your name'), t('core', 'Error'));
+		var comment = $('textarea#comment').val().replace(/\n/g, '<br />\n');
+
+		if (!path) {
+			alert('Commenting is not available — no file path for this page.');
 			return false;
 		}
-		if(!comment || !comment.length){
+		if (!name.length) {
+			alert(t('core', 'Please fill out your name'));
 			return false;
 		}
-		
-		var content = '\n<comment date="'+today+'" author="'+name+'"'+' user="'+user+'">'+comment+'</comment>\n';
-		$.post(
-				OC.webroot+'/themes/deic_theme_oc7/apps/files/ajax/newfile.php',
-				{
-					overwrite: 'append',
-					id: sharedDirId,
-					dir: dir,
-					filename: filename,
-					owner: owner,
-					group: group,
-					content: content
-				},
-				function(result) {
-					if (result.status === 'success') {
-						$.when($(content).prependTo($('#comments'))).done(fixComments($('#comments comment').first()));
-						$('textarea#comment').val('');
-						$('comment .comment_avatar.avatardiv').first().avatar($('comment .comment_avatar').first().attr('author'), 48);
-					} else {
-						OC.dialogs.alert(result.data.message, t('core', 'Could not create file'));
-					}
+		if (!comment.length) return false;
+
+		var newCommentHtml = '\n<comment date="' + today + '" author="' + name + '" user="' + user + '">' + comment + '</comment>\n';
+		var url = davUrl(host, path);
+		$('#submit_comment').prop('disabled', true);
+		davGet(url, function(currentContent) {
+			davPut(url, currentContent + newCommentHtml, function() {
+				$('#submit_comment').prop('disabled', false);
+				var $comment = $(newCommentHtml);
+				$comment.prependTo($('#comments'));
+				fixComments($('#comments comment').first());
+				$('textarea#comment').val('');
+				if ($.fn.avatar && user) {
+					$('comment .comment_avatar.avatardiv').first().avatar(user, 48);
 				}
-			);
+			}, function() {
+				$('#submit_comment').prop('disabled', false);
+			});
+		});
 	});
 
 	$('.post-preview .avatardiv').each(function(){
@@ -1217,46 +1388,34 @@ jQuery(document).ready(function($) {
 	});
 
 	$('input#upload_file').change(function(ev) {
-		var requesttoken = $('head').attr('data-requesttoken');
-		var pathArr = $('.write-post').attr('path').split('/');
+		// Upload into the current page's directory via the serve.php write proxy
+		var host = $('.upload').attr('host') || $('.write-post').attr('host') || '';
+		var pathArr = ($('.upload').attr('path') || '').split('/');
 		pathArr.pop();
 		var dir = pathArr.join('/');
-		var dir_id = $('.edit-button').attr('dir_id') || '';
-		var owner = $('.write-post').attr('owner') || '';
-		var user_home_url = $('.write-post').attr('user_home_url');
-		var group = $('.write-post').attr('group') || '';
-		var form_data = new FormData();
-		form_data.append('requesttoken', requesttoken);
-		form_data.append('dir', dir);
-		form_data.append('id', dir_id);
-		form_data.append('owner', owner);
-		form_data.append('requesttoken', requesttoken);
-		var file_data = $(this).prop('files')[0];
-		form_data.append('files[]', file_data);
-		$.ajax({
-			processData: false,
-			contentType: false,
-			url: user_home_url+'/themes/deic_theme_oc7/apps/files/ajax/upload.php',
-			data: form_data,
-			type: 'post',
-			success: function(dat){
-				$("#notification").text("File uploaded").fadeOut(3000);
-			},
-			error: function(dat){
-				alert("ERROR");
-			}
+		var file = $(this).prop('files')[0];
+		if (!file) return;
+		var url = davUrl(host, (dir ? dir + '/' : '') + file.name);
+		davPut(url, file, function() {
+			$('#notification').text('File uploaded').show().fadeOut(3000);
+		}, function(xhr) {
+			alert(xhr.status === 403
+				? 'Upload rejected — this file type is not allowed.'
+				: 'Upload failed (' + xhr.status + ')');
 		});
+		$(this).val('');
 	});
 
 	$('#manage_files').click(function(ev){
-		var pathArr = $('.write-post').attr('path').split('/');
+		// Open the site folder in the NC Files app (owner only — the button is
+		// gated on `editable` and `folder` is the owner's real folder path).
+		var siteFolder = $(this).attr('folder') || '';
+		var user_home_url = $(this).attr('user_home_url') || $('.write-post').attr('user_home_url') || '';
+		var pathArr = ($('.write-post').attr('path') || '').split('/');
 		pathArr.pop();
 		var dir = pathArr.join('/');
-		var sharedDirId = $('.write-post').attr('share');
-		var owner = $('.write-post').attr('owner') || '';
-		var user_home_url = $('.write-post').attr('user_home_url');
-		var group = $('.write-post').attr('group') || '';
-		var link = user_home_url+'/index.php/apps/files/?dir='+dir+'&group='+group+'&owner='+(sharedDirId?owner:'')+'&id='+sharedDirId;
+		var link = user_home_url + '/index.php/apps/files?dir=' +
+			encodeURIComponent(siteFolder + (dir ? '/' + dir : ''));
 		 //window.location.href = link;
 		 var win = window.open(link, '_blank');
 		if (win) {
@@ -1342,50 +1501,27 @@ jQuery(document).ready(function($) {
 	});
 		
 	$("input#write_post").keyup(function (e) {
-		if (e.keyCode == 13) {
-			var pathArr = $('.write-post').attr('path').split('/');
-			pathArr.pop();
-			var dir = pathArr.join('/');
-			var sharedDirId = $('.write-post').attr('share');
-			var title = $('#write_post').val();
-			var filename = title.replace(/[^\w\s]/gi, '').replace(/\s/g, '_')+'.md';
-			var user = $('.write-post').attr('user') || '';
-			var owner = $('.write-post').attr('owner') || '';
-			var user_home_url = $('.write-post').attr('user_home_url');
-			var group = $('.write-post').attr('group') || '';
-			var today = getTodayDate();
-			var content = '---\n\n'+'Title: '+title+'\n'+'Description: '+'\n'+'Date: '+today+'\n'+
-				'Author: '+user+'\n'+'Template: page\n'+'Access: private\n'+'Theme: wiki\n'+'Comments: on\n\n'+
-				'---\n\n\# \%meta.title\%\n\n';
-			if(!filename || !filename.length){
-				//window.location.href = user_home_url+'/index.php/apps/files/?dir='+dir+'&group='+group+'&owner='+owner;
-			}
-			else{
-				// Create file
-				$.post(
-					//OC.filePath('files', 'ajax', 'newfile.php'),
-					OC.webroot+'/themes/deic_theme_oc7/apps/files/ajax/newfile.php',
-					{
-						id: sharedDirId,
-						dir: dir,
-						filename: filename,
-						owner: owner,
-						group: group,
-						content: content
-					},
-					function(result) {
-						if (result.status === 'success') {
-							//window.location.href = user_home_url+'/index.php/apps/files/?dir='+dir+'&id='+sharedDirId+'&group='+group+'&owner='+owner+
-							//	'&file='+encodeURIComponent(filename);
-							var folder = window.location.href.replace(/\/[^\/]*$/, '');
-							window.location.href = folder+'/'+filename.replace(/\.md$/, '');
-						} else {
-							OC.dialogs.alert(result.data.message, t('core', 'Could not create file. Try logging in.'));
-						}
-					}
-				).fail(function(){OC.dialogs.alert('Could not create file. try logging in.', t('core', 'ERROR'));});
-			}
-		}
+		if (e.keyCode !== 13) return;
+		var host = $('.write-post').attr('host') || '';
+		var pathArr = ($('.write-post').attr('path') || '').split('/');
+		pathArr.pop();
+		var dir = pathArr.join('/');
+		var title = $('#write_post').val().trim();
+		var filename = title.replace(/[^\w\s]/gi, '').replace(/\s/g, '_') + '.md';
+		// Strip federated domain suffix (e.g. bob@host → bob)
+		var user = ($('.write-post').attr('user') || '').replace(/@.*$/, '');
+		var today = getTodayDate();
+		if (!filename || filename === '.md') return;
+		// Blank line before closing --- prevents Setext h2 on the last metadata line
+		var content = '---\nTitle: ' + title + '\nDescription: \nDate: ' + today +
+			'\nAuthor: ' + user + '\nTemplate: page\nAccess: private\nTheme: wiki\nComments: on\n\n---\n\n';
+		var relPath = (dir ? dir + '/' : '') + filename;
+		var url = davUrl(host, relPath);
+		davPut(url, content, function() {
+			// Open the editor right away; navigating to the new page on close
+			var pageUrl = davUrl(host, relPath.replace(/\.md$/, ''));
+			openInlineEditor(url, function() { window.location.href = pageUrl; }, host);
+		});
 	});
 
 	$('.modal-image').click(function(ev){

@@ -136,11 +136,18 @@ set `$pico->ocUserHomeUrl` to the collaborator's home silo URL (via
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `PUT` | `/remote.php/files_picocms/sites/{name}/{file}.md` | Write or create a Markdown file |
-| `GET?picocms_raw=1` | same path | Return raw Markdown for the inline editor |
+| `PUT` | `/remote.php/files_picocms/sites/{name}/{file}.{ext}` | Write or create a file (pages and theme uploads) |
+| `DELETE` | same path | Delete a file |
+| `GET?picocms_raw=1` | `…/{file}.md` | Return raw Markdown for the inline editor |
+| `GET?picocms_list_images=1` | site base | JSON list of images for the image picker |
 
-Security constraints: only `.md` extension allowed; path traversal (`..`) is
-rejected; write permission (`$writeGranted`) must be true.
+Security constraints: extension whitelist (`md` plus media/document types:
+`png jpg jpeg gif svg webp pdf mp4 webm`; raw read is `.md` only); path
+traversal (`..`) rejected; write permission (`$writeGranted`) required.
+Unhandled `PUT`/`DELETE`/`POST` requests get HTTP 405 — they never fall
+through to page rendering. Asset serving is GET/HEAD-only so writes always
+reach the proxies. `$sitePath` is `rawurldecode`d, so filenames with spaces
+and non-ASCII characters work both for serving and through the proxies.
 
 ### Inline editor
 
@@ -185,19 +192,41 @@ Set `access: private` in `_config.md`.  Unauthenticated visitors receive HTTP
 
 ## files_sharding integration
 
-The app detects `files_sharding` and, if the site owner is not on the current
-node, redirects to the correct silo:
+### Site registry: master is the source of truth
 
-```php
-if (!\OCA\FilesSharding\Lib::onServerForUser($uid)) {
-    header('Location: ' . getServerForUser($uid) . $_SERVER['REQUEST_URI']);
-}
-```
+The master holds the authoritative copy of the site registry
+(`oc_files_picocms`) so that any node can resolve `/sites/{name}` and
+redirect to the node hosting the site. Silos keep a local copy of their own
+users' rows for serving.
+
+- **Mutations** (`SiteService::addSite` / `removeSite`, including renames)
+  are written locally and forwarded to the master via files_sharding's
+  `InterServerClient` (`internal/sites`, `internal/sites/delete`). Forward
+  failures are logged (`master registry is now stale`), not fatal.
+- **Name uniqueness is global**: before registering, a silo checks the name
+  against the master registry (`internal/lookup`) and rejects names taken by
+  users on other silos.
+- **Serving** (`serve.php`): a local lookup miss on a silo triggers a master
+  lookup; the response includes the owner's silo (`server_url`) and the
+  visitor is redirected there with HTTP 307. On the master itself, a found
+  site is redirected to the owner's silo via
+  `ShardingService::getUserServer()` (owners without a silo assignment are
+  homed on the master and served locally).
+- All of this is guarded with `class_exists` / config checks — without
+  files_sharding the app works standalone on its local registry.
+
+So in production, `https://sciencedata.dk/remote.php/files_picocms/sites/myblog`
+always works regardless of which silo hosts the owner — the master 307s to
+e.g. `https://silo1.sciencedata.dk/...`.
+
+### Twig URL variables
 
 The `ocUserHomeUrl` Twig variable is set to the **current silo's base URL**
 (not master) so that internal links and asset URLs remain correct on silos.
 The `oc_cms_base` Twig variable holds the full picocms site URL and is used
-by the JS as the write proxy base.
+by the JS as the write proxy base. `config.site_folder` holds the site's
+folder path relative to the owner's files root (used by the wiki theme's
+Manage button to link into the NC Files app).
 
 ---
 
@@ -371,7 +400,8 @@ instead of using the session:
 | GET | `/internal/sites` | `uid` | array of site rows (as OCS `GET /sites`) |
 | POST | `/internal/sites` | `uid`, `folder`, `name`, `group=''`, `rename='no'` | `{"msg": "Added"}` / 400 |
 | DELETE | `/internal/sites` | `uid`, `folder` | `{"msg": "Removed"}` / 404 |
-| GET | `/internal/lookup` | `site` (slug) | `{"uid", "site", "path", "gid"}` or `{}` if unknown |
+| POST | `/internal/sites/delete` | `uid`, `folder` | alias for DELETE (InterServerClient cannot send DELETE) |
+| GET | `/internal/lookup` | `site` (slug) | `{"uid", "site", "path", "gid", "server_id", "server_url"}` or `{}` if unknown — `server_url` is the owner's silo (empty = master-homed) |
 | GET | `/internal/serve-public` | `uid` | `{"serve": "yes"\|"no"}` |
 | POST | `/internal/serve-public` | `uid`, `serve` | `{"serve": "…"}` |
 | GET | `/internal/sample-folder` | — | `{"owner", "path"}` |
@@ -409,15 +439,12 @@ sshpass -p secret ssh root@10.2.164.64  'service php8.3-fpm reload'
   `Access-Control-Allow-Origin` / `Access-Control-Allow-Credentials` headers
   to the `/remote.php/webdav/` path.  See *Switching to native WebDAV* above.
 - Search page integration (`has_search_page`) assumes the blog theme.
-- Sites are only registered in the DB of the owner's node. The master has no
-  copy and returns 404 for `/sites/{name}` URLs of silo-hosted sites — the
-  `internal/*` endpoints exist for registry forwarding but nothing calls them
-  yet. Needs a source-of-truth decision (register on master + forward, or
-  lookup-through on miss).
-- Comments require write access to the post file (they go through the
+- Comments require write access to the post/page file (they go through the
   serve.php write proxy). The comment form is hidden for everyone else; if
   visitor/reader comments are wanted, a dedicated sanitising
   comment-append endpoint is needed.
-- The wiki theme's comment and editor JS (`themes/wiki/js/wiki.js`) still
-  contains unported OC7 code (`newfile.php` ajax, `deic_theme_oc7` paths) —
-  only the blog theme's inline editing has been fully ported.
+- When a user is **moved between silos**, the move tooling must delete the
+  user's `oc_files_picocms` rows on the old silo. The master row plus the
+  lookup-through fallback keep the site URLs working on the new silo without
+  any local rows, but a stale row on the old silo would make direct URLs to
+  that silo serve a 404 instead of redirecting.

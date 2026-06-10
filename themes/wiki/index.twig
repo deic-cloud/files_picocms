@@ -54,15 +54,15 @@
 					<!--<input type="submit" id="search_submit" value="Search" />-->
 				</form>
 			{% endif %}
-			{% if editable is not empty %}
-				<div class="write-post" share="{{ oc_share }}" path="{{ oc_path }}"
+			{% if editable is not empty or writable is not empty %}
+				<div class="write-post" share="{{ oc_share }}" path="{{ oc_path }}" host="{{ oc_cms_base }}"
 					dir_id="{{ oc_parent_id }}" id="{{ oc_id }}" owner="{{  oc_owner }}" user="{{ oc_user }}"
 					user_home_url="{{ oc_user_home_url }}"  group="{{  oc_group }}" title="Create new page">
 					<img class="icon" src="{{ theme_url }}/img/new-document.png" />
 				</div>
 				<input type="search" id="write_post" name="q" placeholder="Title" />
 				<input id="upload_file" type="file">
-				<div class="upload" share="{{ oc_share }}" path="{{ oc_path }}"
+				<div class="upload" share="{{ oc_share }}" path="{{ oc_path }}" host="{{ oc_cms_base }}"
 					dir_id="{{ oc_parent_id }}" id="{{ oc_id }}" owner="{{  oc_owner }}" user="{{ oc_user }}"
 					user_home_url="{{ oc_user_home_url }}"  group="{{  oc_group }}" title="Upload file">
 					<img class="icon" src="{{ theme_url }}/img/upload.png" />
@@ -92,8 +92,8 @@
 		{% endfor %}
 	</ul>
 
-	{% if editable is not empty and not current_page.id is empty %}
-		<button title="Edit page" class="edit-button float-button"
+	{% if (editable is not empty or writable is not empty) and not current_page.id is empty %}
+		<button title="Edit page" class="edit-button float-button" host="{{ oc_cms_base }}"
 		path="{{ oc_path }}{% if current_page.id ends with 'index' and oc_path ends with '/' %}index.md{% endif %}"
 		dir_id="{{ oc_parent_id }}" id="{{ oc_id }}"
 		user="{{ oc_user }}" user_home_url="{{ oc_user_home_url }}" owner="{{ oc_owner }}"

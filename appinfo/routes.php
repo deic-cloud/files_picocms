@@ -25,6 +25,8 @@ return [
 		['name' => 'internal#listSites',      'url' => '/internal/sites',         'verb' => 'GET'],
 		['name' => 'internal#addSite',        'url' => '/internal/sites',         'verb' => 'POST'],
 		['name' => 'internal#removeSite',     'url' => '/internal/sites',         'verb' => 'DELETE'],
+		// POST alias: files_sharding's InterServerClient has no DELETE support
+		['name' => 'internal#removeSitePost', 'url' => '/internal/sites/delete',  'verb' => 'POST'],
 		['name' => 'internal#lookupSite',     'url' => '/internal/lookup',        'verb' => 'GET'],
 		['name' => 'internal#getSampleFolder','url' => '/internal/sample-folder', 'verb' => 'GET'],
 		['name' => 'internal#setSampleFolder','url' => '/internal/sample-folder', 'verb' => 'POST'],

@@ -1033,13 +1033,42 @@ function scrollToEl(el, extraOffset){
     (typeof extraOffset!=='undefined'?extraOffset:0)}, 600);
 }
 
+// ── Standalone-page shims ─────────────────────────────────────────────────────
+// Pico pages load a bundled jQuery, not NC core JS — define the bits of the NC
+// JS API the theme uses.
+
+if (typeof window.t !== 'function') {
+    window.t = function (app, text) { return text; };
+}
+
+// NC's jquery.avatar plugin replacement: renders the user's avatar from the
+// NC avatar endpoint, falling back to the first letter on error.
+if (!$.fn.avatar) {
+    $.fn.avatar = function (user, size) {
+        return this.each(function () {
+            if (!user) { return; }
+            var sz  = size || 64;
+            var src = window.location.origin + '/index.php/avatar/'
+                + encodeURIComponent(String(user).toLowerCase().trim()) + '/' + sz;
+            var img = $('<img>').attr('src', src).attr('alt', user)
+                .css({ width: sz + 'px', height: sz + 'px', 'border-radius': '50%' });
+            var el = $(this);
+            img.on('error', function () {
+                el.text(String(user).charAt(0).toUpperCase());
+            });
+            el.empty().append(img);
+        });
+    };
+}
+
 // ── Picocms proxy helpers ─────────────────────────────────────────────────────
 // host is the picocms site base URL (e.g. https://silo:2005/remote.php/files_picocms/sites/blog)
 // relPath is the site-relative file path (e.g. my-post.md)
 // All file reads/writes go through serve.php so non-owners can write via the proxy.
 
 function davUrl(host, relPath) {
-    return host.replace(/\/$/, '') + '/' + relPath.replace(/^\/+/, '');
+    var encoded = relPath.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
+    return host.replace(/\/$/, '') + '/' + encoded;
 }
 
 function davToken() {

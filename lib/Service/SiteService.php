@@ -60,6 +60,12 @@ class SiteService {
 		if (!$rename && $this->siteExists($name)) {
 			return false;
 		}
+		// Master is the source of truth for site names — a name taken by a
+		// user on another silo must be rejected here too.
+		$remote = $this->masterLookup($name);
+		if ($remote !== null && !($remote['uid'] === $uid && $remote['path'] === $path)) {
+			return false;
+		}
 		if ($rename) {
 			$existing = $this->mapper->findByUidAndPath($uid, $path);
 			if ($existing === null) {
@@ -67,6 +73,9 @@ class SiteService {
 			}
 			$existing->setSite($name);
 			$this->mapper->update($existing);
+			$this->syncToMaster('internal/sites', [
+				'uid' => $uid, 'folder' => $path, 'name' => $name, 'group' => $gid, 'rename' => 'yes',
+			]);
 			return true;
 		}
 		$site = new Site();
@@ -75,11 +84,75 @@ class SiteService {
 		$site->setPath($path);
 		$site->setGid($gid);
 		$this->mapper->insert($site);
+		$this->syncToMaster('internal/sites', [
+			'uid' => $uid, 'folder' => $path, 'name' => $name, 'group' => $gid,
+		]);
 		return true;
 	}
 
 	public function removeSite(string $uid, string $path): bool {
-		return $this->mapper->deleteByUidAndPath($uid, $path) > 0;
+		$removed = $this->mapper->deleteByUidAndPath($uid, $path) > 0;
+		if ($removed) {
+			$this->syncToMaster('internal/sites/delete', ['uid' => $uid, 'folder' => $path]);
+		}
+		return $removed;
+	}
+
+	// ── Master registry sync ──────────────────────────────────────────────────
+	// The master holds the authoritative copy of the site registry so it can
+	// redirect /sites/{name} URLs to the hosting silo. Silos keep a local copy
+	// for serving and forward every mutation to the master. All calls are
+	// guarded: without files_sharding (or on the master itself) they no-op,
+	// keeping the app independently installable.
+
+	/** @return array{0: object, 1: string}|null  [InterServerClient, master base URL] */
+	private function masterClient(): ?array {
+		$isMaster = $this->config->getSystemValue('files_sharding_master', false);
+		if ($isMaster === true || $isMaster === 1 || $isMaster === '1' || $isMaster === 'true') {
+			return null;
+		}
+		if (!class_exists(\OCA\FilesSharding\Service\InterServerClient::class)) {
+			return null;
+		}
+		$url = rtrim((string)$this->config->getSystemValue('files_sharding_master_internal_url', ''), '/');
+		if ($url === '') {
+			$url = rtrim((string)$this->config->getSystemValue('files_sharding_master_url', ''), '/');
+		}
+		if ($url === '') {
+			return null;
+		}
+		try {
+			return [\OCP\Server::get(\OCA\FilesSharding\Service\InterServerClient::class), $url];
+		} catch (\Throwable) {
+			return null;
+		}
+	}
+
+	/** Look up a site name in the master registry. Null = not found / not applicable. */
+	private function masterLookup(string $name): ?array {
+		$mc = $this->masterClient();
+		if ($mc === null) {
+			return null;
+		}
+		[$client, $url] = $mc;
+		$data = $client->getDirect($url, 'internal/lookup', ['site' => $name], 'files_picocms');
+		return (is_array($data) && !empty($data['site'])) ? $data : null;
+	}
+
+	/** Forward a registry mutation to the master. Failures are logged, not fatal. */
+	private function syncToMaster(string $action, array $params): void {
+		$mc = $this->masterClient();
+		if ($mc === null) {
+			return;
+		}
+		[$client, $url] = $mc;
+		$result = $client->postDirect($url, $action, $params, 'files_picocms');
+		if ($result === null) {
+			$this->logger->error(
+				'files_picocms: failed to sync site registry to master (' . $action . ' '
+				. json_encode($params) . ') — master registry is now stale'
+			);
+		}
 	}
 
 	public function getSampleFolder(): array {

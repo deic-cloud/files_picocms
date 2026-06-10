@@ -72,6 +72,14 @@ class InternalController extends Controller {
 		return new JSONResponse($ok ? ['msg' => 'Removed'] : ['error' => 'Not found'], $ok ? 200 : 404);
 	}
 
+	/** POST alias for removeSite — InterServerClient cannot send DELETE. */
+	#[PublicPage]
+	#[NoCSRFRequired]
+	#[NoAdminRequired]
+	public function removeSitePost(string $uid, string $folder): JSONResponse {
+		return $this->removeSite($uid, $folder);
+	}
+
 	#[PublicPage]
 	#[NoCSRFRequired]
 	#[NoAdminRequired]
@@ -80,6 +88,19 @@ class InternalController extends Controller {
 			return new JSONResponse(['error' => 'Unauthorized'], 401);
 		}
 		$info = $this->siteService->lookupSite($site);
+		// Enrich with the owner's silo so the calling node can redirect there
+		// (empty server_url = owner is homed on the master).
+		if ($info !== null && class_exists(\OCA\FilesSharding\Service\ShardingService::class)) {
+			try {
+				$server = \OCP\Server::get(\OCA\FilesSharding\Service\ShardingService::class)
+					->getUserServer($info['uid']);
+				$info['server_id']  = $server?->getId() ?? 0;
+				$info['server_url'] = $server?->getUrl() ?? '';
+			} catch (\Throwable $e) {
+				$info['server_id']  = 0;
+				$info['server_url'] = '';
+			}
+		}
 		return new JSONResponse($info ?? []);
 	}
 

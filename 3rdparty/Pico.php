@@ -405,8 +405,7 @@ class Pico
 		// fatal error, E_ERROR === 1
 		if ($error !== null && $error['type'] === E_ERROR) {
 			pico_log('files_picocms', 'FATAL ERROR. Shutting down.', \OC_Log::ERROR);
-			header('Location: ' . \OCA\FilesSharding\Lib::getMasterURL()."index.php?logout=true&requesttoken=".
-					\OC_Util::callRegister());
+			error_log('files_picocms Pico fatal: ' . $error['message'] . ' in ' . $error['file'] . ':' . $error['line']);
 		}
 	}
 
@@ -1097,7 +1096,10 @@ class Pico
 			if(trim(strtolower($access))=='shared'){
 				// Check if current folder is publicly shared.
 				if(\OCP\App::isEnabled('files_sharding') && $setPermissions){
-					$share_permissions = (int)\OCA\FilesSharding\Lib::checkPubliclyShared($ocPath, $owner, $group);
+					// NC34: \OCA\FilesSharding\Lib no longer exists — fail safe (no public share).
+					$share_permissions = class_exists(\OCA\FilesSharding\Lib::class)
+						? (int)\OCA\FilesSharding\Lib::checkPubliclyShared($ocPath, $owner, $group)
+						: 0;
 					pico_log('files_picocms', 'Public share permissions: '.$share_permissions, \OC_Log::INFO);
 					$this->permissions = $share_permissions;
 					if($share_permissions & \OCP\Constants::PERMISSION_DELETE){
@@ -1189,7 +1191,12 @@ class Pico
 					}
 					else{
 						$fileType = $fileInfo->getType()===\OCP\Files\FileInfo::TYPE_FOLDER?'folder':'file';
-						$itemSharedPermissions = \OCA\FilesSharding\Lib::checkAccess($this->ocUser, $fileInfo->getId(), $fileType);
+						// NC34: \OCA\FilesSharding\Lib no longer exists — fail safe (no access).
+						// serve.php grants the real permissions before Pico runs; this legacy
+						// walk only matters for non-writers on private/shared pages.
+						$itemSharedPermissions = class_exists(\OCA\FilesSharding\Lib::class)
+							? \OCA\FilesSharding\Lib::checkAccess($this->ocUser, $fileInfo->getId(), $fileType)
+							: 0;
 					}
 					pico_log('files_picocms', 'Checking sharing of: '.$ocPath.':'.$fileInfo->getId().':'.
 							$fileInfo->getType().':'.$this->ocId.':'.$this->ocParentId.':'.serialize($itemShared).':'.
@@ -1211,8 +1218,8 @@ class Pico
 					$this->ocParentId = $view->getFileInfo($ocRootPath)->getId();
 				}
 			}
-			catch(\Exception $e){
-				pico_log('files_picocms', 'ERROR: exception thrown '.$e.getMessage(), \OC_Log::ERROR);
+			catch(\Throwable $e){
+				pico_log('files_picocms', 'ERROR: exception thrown '.$e->getMessage(), \OC_Log::ERROR);
 			}
 			finally {
 				\OC_Util::teardownFS();

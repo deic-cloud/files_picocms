@@ -54,13 +54,13 @@
 				<!--<input type="submit" id="search_submit" value="Search" />-->
 			</form>
 		{% endif %}
-		{% if editable is not empty %}
-			<div class="write-post" share="{{ oc_share }}" path="{{ oc_path }}"
+		{% if editable is not empty or writable is not empty %}
+			<div class="write-post" share="{{ oc_share }}" path="{{ oc_path }}" host="{{ oc_cms_base }}"
 				dir_id="{{ oc_parent_id }}" id="{{ oc_id }}" owner="{{  oc_owner }}" user="{{ oc_user }}"
 				user_home_url="{{ oc_user_home_url }}"  group="{{  oc_group }}" title="Create new page"><img class="icon" src="{{ theme_url }}/img/new-document.png" /></div>
 			<input type="search" id="write_post" name="q" placeholder="Title" />
 			<input id="upload_file" type="file">
-			<div class="upload" share="{{ oc_share }}" path="{{ oc_path }}"
+			<div class="upload" share="{{ oc_share }}" path="{{ oc_path }}" host="{{ oc_cms_base }}"
 				dir_id="{{ oc_parent_id }}" id="{{ oc_id }}" owner="{{  oc_owner }}" user="{{ oc_user }}"
 				user_home_url="{{ oc_user_home_url }}"  group="{{  oc_group }}" title="Upload file">
 				<img class="icon" src="{{ theme_url }}/img/upload.png" />
@@ -70,7 +70,7 @@
 
 	<ul class="leftbar">
 		{% if editable is not empty %}
-			<button id="manage_files">Manage</button>
+			<button id="manage_files" folder="{{ config.site_folder }}" user_home_url="{{ oc_user_home_url }}">Manage</button>
 		{% endif %}
 		{% for fol in found_folders|default([])|sort %}
 		{% if fol != "/" %}
@@ -92,8 +92,8 @@
 		{% endfor %}
 	</ul>
 
-	{% if editable is not empty and not current_page.id is empty %}
-		<button title="Edit page" class="edit-button float-button" path="{{ oc_path }}" dir_id="{{ oc_parent_id }}"
+	{% if (editable is not empty or writable is not empty) and not current_page.id is empty %}
+		<button title="Edit page" class="edit-button float-button" path="{{ oc_path }}" host="{{ oc_cms_base }}" dir_id="{{ oc_parent_id }}"
 		user="{{ oc_user }}" user_home_url="{{ oc_user_home_url }}" owner="{{ oc_owner }}"
 		group="{{ oc_group }}"><i class="fa fa-pencil-alt"></i></button>
 	{% endif %}
@@ -142,13 +142,17 @@
 	<comments>
 	<div class="container">
 		<div class="col-lg-offset-1">
+			{# Comments are written through the serve.php proxy, which requires
+			   write access to the page file — only show the form to such users. #}
+			{% if writable is not empty %}
 			<div class="form-group col-xs-5 comment-post"
-			share="{{  oc_share }}" path="{{  oc_path }}" owner="{{  oc_owner }}" user="{{  oc_user }}"
+			share="{{  oc_share }}" path="{{  oc_path }}" host="{{ oc_cms_base }}" owner="{{  oc_owner }}" user="{{  oc_user }}"
 			group="{{  oc_group }}">
 			 <input placeholder="Your name" type="text" class="form-control" id="name" size="64" value="{{ oc_full_name }}" />
 			 <textarea placeholder="Your comment" class="form-control" rows="3" id="comment"></textarea>
 			 <button id="submit_comment" class="btn btn-default btn-small">Submit</button>
 			</div>
+			{% endif %}
 		
 			<!-- Comments -->
 			<div id="comments" class="col-md-10">

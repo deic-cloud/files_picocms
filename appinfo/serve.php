@@ -62,6 +62,10 @@ if (preg_match('|^/sites/([^/]+)(/.*)?$|', $localPath, $m)) {
 	exit;
 }
 
+// REQUEST_URI is percent-encoded — decode so filesystem lookups (assets and
+// the write/raw proxies) work for names with spaces or non-ASCII characters.
+$sitePath = rawurldecode($sitePath);
+
 // ── Resolve site info ─────────────────────────────────────────────────────────
 
 /** @var SiteService $siteService */
@@ -91,30 +95,50 @@ if ($userEmail !== null) {
 } else {
 	$siteInfo = $siteService->lookupSite($siteName);
 	if ($siteInfo === null) {
-		http_response_code(404);
-		exit;
+		// Not in the local registry — the master holds the authoritative copy.
+		// Ask it where the site lives and redirect the browser there.
+		$remote = _pico_master_lookup($config, $siteName);
+		if ($remote === null) {
+			http_response_code(404);
+			exit;
+		}
+		$thisBase = 'https://' . $_SERVER['HTTP_HOST'] . $webRoot;
+		$target   = !empty($remote['server_url'])
+			? rtrim($remote['server_url'], '/')
+			: rtrim((string)$config->getSystemValue('files_sharding_master_url', ''), '/');
+		if ($target !== '' && $target !== $thisBase) {
+			header('Location: ' . $target . $_SERVER['REQUEST_URI']);
+			http_response_code(307);
+			exit;
+		}
+		// Stale local registry (master says the site is here) — serve with the master's row.
+		$siteInfo = $remote;
 	}
 	$baseUrl = 'https://' . $_SERVER['HTTP_HOST'] . $webRoot . '/remote.php/files_picocms/sites/' . urlencode($siteName);
 }
 
 $uid = $siteInfo['uid'];
 
-// ── files_sharding: redirect to correct silo if needed ───────────────────────
+// ── files_sharding: master redirects to the silo hosting the site ────────────
+// Only the master holds the user→silo assignment table; silos resolve foreign
+// sites through _pico_master_lookup above. A site owner without an assignment
+// is homed on the master itself — serve locally.
 
-try {
-	if (
-		\OCP\Server::get(\OCP\IAppManager::class)->isInstalled('files_sharding') &&
-		!\OCA\FilesSharding\Lib::onServerForUser($uid)
-	) {
-		$userServerUrl = \OCA\FilesSharding\Lib::getServerForUser($uid);
-		if (!empty($userServerUrl)) {
-			header('Location: ' . $userServerUrl . $_SERVER['REQUEST_URI']);
-			http_response_code(307);
-			exit;
+if (class_exists(\OCA\FilesSharding\Service\ShardingService::class)) {
+	try {
+		$shardingService = \OCP\Server::get(\OCA\FilesSharding\Service\ShardingService::class);
+		if ($shardingService->isMaster()) {
+			$ownerServer = $shardingService->getUserServer($uid);
+			$ownerUrl    = $ownerServer ? rtrim($ownerServer->getUrl(), '/') : '';
+			if ($ownerUrl !== '' && $ownerUrl !== 'https://' . $_SERVER['HTTP_HOST'] . $webRoot) {
+				header('Location: ' . $ownerUrl . $_SERVER['REQUEST_URI']);
+				http_response_code(307);
+				exit;
+			}
 		}
+	} catch (\Throwable $e) {
+		error_log('files_picocms silo redirect: ' . $e->getMessage());
 	}
-} catch (\Throwable) {
-	// files_sharding not available or error — serve locally
 }
 
 // ── Determine master login base URL ──────────────────────────────────────────
@@ -218,9 +242,11 @@ $themesDir = $hasThemes ? $siteFsPath . '/themes/' : $appDir . '/themes/';
 
 $extension = $sitePath !== '' ? strtolower(pathinfo($sitePath, PATHINFO_EXTENSION)) : '';
 
-// Serve image/binary/font files directly
-$rawExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'eot', 'pdf', 'nb'];
-if ($sitePath !== '' && in_array($extension, $rawExtensions, true)) {
+// Serve image/binary/font files directly (reads only — PUT/DELETE on these
+// paths must fall through to the write/delete proxies below)
+$isReadRequest = in_array($_SERVER['REQUEST_METHOD'], ['GET', 'HEAD'], true);
+$rawExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'eot', 'pdf', 'nb', 'mp4', 'webm'];
+if ($isReadRequest && $sitePath !== '' && in_array($extension, $rawExtensions, true)) {
 	$filePath = $siteFsPath . '/' . $sitePath;
 	if (!file_exists($filePath)) {
 		$filePath = $contentDir . '/' . $sitePath;
@@ -241,7 +267,7 @@ if ($sitePath === '' && !file_exists($contentDir . '/index.md') && file_exists($
 	$_SERVER['QUERY_STRING'] = 'index.html';
 }
 
-if (in_array($extension, ['html', 'css', 'js'], true) && $extension !== 'md') {
+if ($isReadRequest && in_array($extension, ['html', 'css', 'js'], true)) {
 	$filePath = $siteFsPath . '/' . $sitePath;
 	if (!file_exists($filePath)) {
 		$filePath = $contentDir . '/' . $sitePath;
@@ -305,6 +331,9 @@ if (!empty($siteConfig['favicon'])) {
 // Login URL for themes (e.g. "log in" link on 403 pages)
 $picoConfig['login_url']      = $masterBase . '/index.php/login?redirect_url=' . urlencode($_SERVER['REQUEST_URI']);
 $picoConfig['original_path']  = $sitePath;
+// Site folder relative to the owner's files root — used by themes to link
+// into the NC Files app (e.g. the wiki Manage button).
+$picoConfig['site_folder']    = $siteInfo['path'];
 
 // Provide request token for authenticated calls within the site (e.g. avatars)
 try {
@@ -338,7 +367,20 @@ try {
 	if ($currentUid !== '') {
 		$filesRoot       = $dataDir . '/' . $uid . '/files';
 		$contentRelative = ltrim(substr($contentDir, strlen($filesRoot)), '/');
-		$ocPath          = ($sitePath === '') ? '' : $sitePath . '.md';
+		// Editable file behind the current page: site root and directory URLs
+		// map to their index.md (if one exists); page URLs map to {page}.md.
+		// A directory without index.md keeps a trailing slash so themes can
+		// offer "create the index page here".
+		if ($sitePath === '') {
+			$ocPath = file_exists($contentDir . '/index.md') ? 'index.md' : '';
+		} elseif (is_dir($contentDir . '/' . $sitePath)) {
+			$dirPath = rtrim($sitePath, '/');
+			$ocPath  = file_exists($contentDir . '/' . $dirPath . '/index.md')
+				? $dirPath . '/index.md'
+				: $dirPath . '/';
+		} else {
+			$ocPath = $sitePath . '.md';
+		}
 
 		if ($currentUid === $uid) {
 			// Site owner: full edit access
@@ -396,11 +438,13 @@ try {
 // ── Write proxy (PUT) ─────────────────────────────────────────────────────────
 // Handles file writes for all users (owner and shared). Writes as the site owner
 // via the NC Files API, keeping the file cache current. Same-origin → no CORS.
+// Markdown for page edits, plus media/document types for the theme upload button.
+$putExtensions = ['md', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'pdf', 'mp4', 'webm'];
 if ($_SERVER['REQUEST_METHOD'] === 'PUT' && $sitePath !== '') {
 	if (!$writeGranted
 		|| strpos($sitePath, '..') !== false
 		|| strpos($sitePath, "\0") !== false
-		|| pathinfo($sitePath, PATHINFO_EXTENSION) !== 'md'
+		|| !in_array(strtolower(pathinfo($sitePath, PATHINFO_EXTENSION)), $putExtensions, true)
 	) {
 		http_response_code(403);
 		exit;
@@ -451,12 +495,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['picocms_raw']) && $site
 }
 
 // ── Delete proxy (DELETE) ────────────────────────────────────────────────────
-// Deletes a Markdown file. Only .md files; path traversal rejected; write access required.
+// Deletes a page or uploaded media file (same whitelist as the write proxy);
+// path traversal rejected; write access required.
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && $sitePath !== '') {
 	if (!$writeGranted
 		|| strpos($sitePath, '..') !== false
 		|| strpos($sitePath, "\0") !== false
-		|| pathinfo($sitePath, PATHINFO_EXTENSION) !== 'md'
+		|| !in_array(strtolower(pathinfo($sitePath, PATHINFO_EXTENSION)), $putExtensions, true)
 	) {
 		http_response_code(403);
 		exit;
@@ -557,6 +602,34 @@ try {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Resolve a site name via the master's authoritative registry.
+ * Only applicable on silos with files_sharding; returns null otherwise.
+ */
+function _pico_master_lookup(IConfig $config, string $siteName): ?array {
+	$isMaster = $config->getSystemValue('files_sharding_master', false);
+	if ($isMaster === true || $isMaster === 1 || $isMaster === '1' || $isMaster === 'true') {
+		return null;
+	}
+	if (!class_exists(\OCA\FilesSharding\Service\InterServerClient::class)) {
+		return null;
+	}
+	$url = rtrim((string)$config->getSystemValue('files_sharding_master_internal_url', ''), '/');
+	if ($url === '') {
+		$url = rtrim((string)$config->getSystemValue('files_sharding_master_url', ''), '/');
+	}
+	if ($url === '') {
+		return null;
+	}
+	try {
+		$client = \OCP\Server::get(\OCA\FilesSharding\Service\InterServerClient::class);
+		$data   = $client->getDirect($url, 'internal/lookup', ['site' => $siteName], 'files_picocms');
+		return (is_array($data) && !empty($data['site'])) ? $data : null;
+	} catch (\Throwable) {
+		return null;
+	}
+}
 
 /**
  * Find the effective _config.md for a given request path by walking upward
