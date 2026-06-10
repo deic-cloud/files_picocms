@@ -41,8 +41,14 @@ Recognised front-matter keys:
 | `theme` | `blog` | Theme directory name under `themes/` |
 | `title` | site name | Overrides the DB-registered site name |
 | `description` | — | Passed to Pico; used by the theme |
+| `author` | — | Author name, available to themes |
 | `EditLinks` | — | `yes` to show per-post Edit buttons |
+| `icon` | — | Nav-bar icon, path relative to site root; also used as favicon if no `favicon` is set |
 | `favicon` | — | Path to favicon relative to site root |
+
+When a site is created through the wizard (`POST /create`), a commented
+default `_config.md` is written to the site root, pre-populated with the
+site name, chosen theme, and a detected or copied `img/data_icon.png`.
 
 ---
 
@@ -119,7 +125,7 @@ writes through `IRootFolder` as the site owner.  No per-deployment CORS
 config needed.
 
 **Switching to native WebDAV** (if CORS is already configured):  
-Revert `davUrl()` in `clean-blog.js` to `host + '/remote.php/webdav' + path`,
+Revert `davUrl()` in `blog.js` to `host + '/remote.php/webdav' + path`,
 restore `$ocPath` to the full WebDAV path (prepend `$contentRelative`),
 set `$pico->ocUserHomeUrl` to the collaborator's home silo URL (via
 `FilesSharding\Lib::getServerForUser($currentUid)`), and add
@@ -141,8 +147,9 @@ rejected; write permission (`$writeGranted`) must be true.
 The blog theme bundles [EasyMDE](https://github.com/Ionaru/easy-markdown-editor).
 Clicking **Edit** on a post opens a full-page modal with a Markdown editor;
 clicking **Write** on the index creates a new post file and opens the editor.
-The editor uses `davGet` / `davPut` helpers in `themes/blog/js/clean-blog.js`
-which talk to the write proxy above.
+The editor uses `davGet` / `davPut` helpers in `themes/blog/js/blog.js`
+(and `themes/wiki/js/wiki.js` for the wiki theme) which talk to the write
+proxy above.
 
 ---
 
@@ -197,8 +204,10 @@ by the JS as the write proxy base.
 ## Theming
 
 Themes live under `themes/` (either in the site directory or in the app's
-`themes/` directory).  The bundled `blog` theme uses Bootstrap 3,
-Clean Blog CSS, and EasyMDE.
+`themes/` directory).  Bundled themes: `blog` (Bootstrap 3, CSS derived from
+Clean Blog, EasyMDE), `wiki` (sidebar navigation, EasyMDE inline editing),
+`documentation`, and `default`.  Theme CSS/JS files are named after the theme
+(`css/blog.css`, `js/wiki.js`, …).
 
 Theme files (`themes/…`) are served directly without running Pico, so CSS/JS
 assets load even before the page is rendered.
@@ -216,6 +225,161 @@ All third-party code is bundled directly; no composer install is required.
 | Parsedown Extra | 0.7 | `3rdparty/ParsedownExtra.php` |
 | Twig | 1.x | `3rdparty/Twig/` |
 | Symfony/Yaml | — | `3rdparty/Yaml/` |
+
+---
+
+## HTTP API
+
+The app exposes three families of endpoints: the user-facing **OCS API**, the
+shared-secret **internal inter-server API**, and the **write-proxy endpoints**
+handled directly by `serve.php` (documented under *Write proxy* above).
+
+### OCS API
+
+Base URL:
+
+```
+/ocs/v2.php/apps/files_picocms/api/v1
+```
+
+Authentication: a logged-in Nextcloud session (with CSRF `requesttoken`) or
+Basic auth with an app password. All requests need the header
+`OCS-APIREQUEST: true`. Append `?format=json` for JSON instead of XML.
+Responses below describe the `ocs.data` payload. All endpoints operate on the
+**current user's** sites; `folder` parameters are paths relative to the
+user's home, e.g. `/blog`.
+
+Implementation: routes in `appinfo/routes.php`, logic in
+`lib/Controller/ApiController.php` → `lib/Service/SiteService.php`.
+
+#### `GET /sites` — list the current user's sites
+
+No parameters. Returns an array of rows:
+
+```json
+[ { "uid": "alice", "site": "myblog", "path": "/blog", "gid": "" } ]
+```
+
+`site` is the URL slug (`/remote.php/files_picocms/sites/{site}`), `path` the
+folder in the user's files, `gid` an optional group owning the site.
+
+#### `POST /sites` — register an existing folder as a site
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `folder` | yes | Folder path to serve |
+| `name` | yes | URL slug |
+| `group` | no | Group ID for group-owned sites (default `''`) |
+| `rename` | no | `yes` = rename the existing registration for `folder` to `name` instead of creating a new one (default `no`) |
+
+Returns `{"msg": "Added"}`, or HTTP 400 `{"error": "Name taken: …"}` if the
+slug is already registered (or, with `rename=yes`, if no registration exists
+for `folder`).
+
+#### `DELETE /sites` — unregister a site
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `folder` | yes | Folder path of the registered site |
+
+Returns `{"msg": "Removed"}` or HTTP 404 `{"error": "Not found"}`. The folder
+and its files are not touched — the site just stops being served.
+
+#### `POST /create` — create a site from sample content (wizard backend)
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `folder` | yes | Destination folder (created if missing) |
+| `name` | no | URL slug; defaults to the folder's basename |
+| `content` | no | Sample-content source, path relative to the app dir (e.g. `/sample-content/blog`) or a file for single-page sites |
+| `destination` | no | Subfolder of `folder` to copy content into; empty = site root |
+| `theme` | no | Theme to set in the generated `_config.md` |
+| `copyThemes` | no | `yes` = copy the app's `themes/` into the site folder (default `no`) |
+
+Copies the sample content (or the admin-configured sample folder, see
+`/sample-folder`), registers the site, and writes a commented default
+`_config.md` including a nav icon/favicon. Returns `{"site": "{name}"}`,
+HTTP 400 `{"error": "Site name taken: …"}`, or HTTP 500
+`{"error": "Failed to copy content"}`.
+
+#### `GET /config` / `POST /config` — read & write a site's `_config.md`
+
+Backs the **Manage** button in personal settings.
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `folder` | yes | Folder path of the site |
+| `content` | POST only | Full new `_config.md` content |
+
+The config file is looked up first at `{folder}/content/_config.md`, then at
+`{folder}/_config.md`; if neither exists, GET returns empty `content` and the
+path where POST will create it (`content/_config.md` if a `content/`
+subfolder exists, else the site root).
+
+- GET returns `{"content": "---\ntitle: …", "file": "/blog/_config.md"}`
+- POST returns `{"msg": "Saved"}` or HTTP 500 `{"error": "Save failed"}`
+
+#### `GET /serve-public` / `POST /serve-public` — toggle the user public page
+
+Controls whether `/remote.php/files_picocms/users/{email}` is served for the
+current user.
+
+- GET: no parameters, returns `{"serve": "yes"|"no"}`
+- POST: parameter `serve` = `yes` or `no`, echoes `{"serve": "…"}`
+
+#### `GET /help` — wizard defaults
+
+No parameters. Returns the default folder suggestions used by the
+personal-settings wizard:
+
+```json
+{ "wiki_folder": "/wiki", "blog_folder": "/blog", "doc_folder": "/documentation",
+  "public_folder": "/public", "default_folder": "/website" }
+```
+
+#### `GET /sample-folder` / `POST /sample-folder` — admin only
+
+Configure a Nextcloud folder whose contents override the bundled
+`sample-content/` as the wizard source. Requires an admin session.
+
+- GET: no parameters, returns `{"owner": "…", "path": "…"}`
+- POST: parameters `owner` (NC uid) and `path`, returns `{"msg": "Saved"}`
+
+### Internal inter-server API
+
+Used by `files_sharding` silos to perform site operations against the master
+(silos do not write the `oc_files_picocms` table locally). Called via
+`InterServerClient::postDirect/getDirect`.
+
+Base URL (plain JSON, not OCS):
+
+```
+/index.php/apps/files_picocms/internal
+```
+
+Authentication: `Authorization: Bearer {files_sharding_shared_secret}` — the
+shared secret from `config.php`. All endpoints return HTTP 401
+`{"error": "Unauthorized"}` on a missing/wrong token, and 401 always if the
+secret is not configured. Implementation:
+`lib/Controller/InternalController.php`.
+
+These mirror the OCS endpoints but take an explicit `uid` (the acting user)
+instead of using the session:
+
+| Method | Path | Params | Returns |
+|--------|------|--------|---------|
+| GET | `/internal/sites` | `uid` | array of site rows (as OCS `GET /sites`) |
+| POST | `/internal/sites` | `uid`, `folder`, `name`, `group=''`, `rename='no'` | `{"msg": "Added"}` / 400 |
+| DELETE | `/internal/sites` | `uid`, `folder` | `{"msg": "Removed"}` / 404 |
+| GET | `/internal/lookup` | `site` (slug) | `{"uid", "site", "path", "gid"}` or `{}` if unknown |
+| GET | `/internal/serve-public` | `uid` | `{"serve": "yes"\|"no"}` |
+| POST | `/internal/serve-public` | `uid`, `serve` | `{"serve": "…"}` |
+| GET | `/internal/sample-folder` | — | `{"owner", "path"}` |
+| POST | `/internal/sample-folder` | `owner`, `path` | `{"msg": "Saved"}` |
+| GET | `/internal/userid` | `email` | `{"uid": "…"\|null}` — resolves an email to a NC uid |
+
+`/internal/lookup` is what `serve.php` on a silo uses to resolve a site slug
+to its owner before redirecting to the owner's silo.
 
 ---
 
@@ -244,5 +408,4 @@ sshpass -p secret ssh root@10.2.164.64  'service php8.3-fpm reload'
   reverse proxy (Caddy in test, Apache in production) adds
   `Access-Control-Allow-Origin` / `Access-Control-Allow-Credentials` headers
   to the `/remote.php/webdav/` path.  See *Switching to native WebDAV* above.
-- The wiki theme does not yet have an inline editor.
 - Search page integration (`has_search_page`) assumes the blog theme.
