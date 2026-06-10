@@ -127,8 +127,14 @@
 
 			<!-- If no page requested, generate index. -->
 			{% set i = 0 %}
-			{% if meta.redable and not current_page.id or
-				current_page.meta.index and current_page.meta.index != "false" and current_page.meta.index != "no" %}
+			{# Index: true parses as a YAML boolean — compare strictly: the loose
+			   `true != "false"` is false in PHP/Twig and hid the listing. #}
+			{% if (meta.redable and not current_page.id)
+				or current_page.meta.index is same as(true)
+				or (current_page.meta.index is not empty
+					and current_page.meta.index is not same as(false)
+					and current_page.meta.index != "false"
+					and current_page.meta.index != "no") %}
 			<div id="dir_index">
 				{% for page in pages|sort_by("time")|reverse if page.title and
 				( page.template == "post" or page.template == "page" ) and

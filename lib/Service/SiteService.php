@@ -247,7 +247,7 @@ class SiteService {
 					'/^Theme:.*$/m'  => 'Theme: ' . $theme,
 					'/^Date:.*$/m'   => 'Date: ' . date('j M Y'),
 					'/^Author:.*$/m' => 'Author: ' . $uid,
-					'/^Site:.*$/m'   => 'Site: ' . ($theme === 'blog' ? $displayName : 'Sample Site'),
+					'/^Site:.*$/m'   => 'Site: ' . ($theme === 'blog' ? $displayName : $name),
 				];
 			}
 			try {

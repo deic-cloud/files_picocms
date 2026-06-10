@@ -241,6 +241,29 @@ Clean Blog, EasyMDE), `wiki` (sidebar navigation, EasyMDE inline editing),
 Theme files (`themes/…`) are served directly without running Pico, so CSS/JS
 assets load even before the page is rendered.
 
+### Sample sites
+
+The wiki theme's sample content (`sample-content/wiki/`) is a complete
+example **research-group site** aimed at group leaders: a public front page
+with placeholder text in [brackets] and a self-explanatory "this is an
+example site" banner, Research/People/Publications/Contact pages, a public
+News section (posts with comments, auto-listed via `Index: true` in
+`news/index.md`), and a private `internal/` section (member-only pages —
+demonstrates `Access: private` with a friendly "Members only" login prompt).
+The wizard fills in Date/Author/Site automatically.
+
+Note: a folder **without** an `index.md` gets a Pico-generated listing that
+defaults to private; public sections must carry their own `index.md` with
+`Access: public`. Also note `Index: true` parses as a YAML boolean — the
+index.twig listing condition compares strictly (`same as(true)`) because a
+loose `true != "false"` comparison is false in PHP/Twig.
+
+New sites no longer copy the app's `themes/` directory into the site folder
+(`data-copy-themes="no"` in the wizard): sites track the app's themes, so
+theme fixes reach all sites immediately, and site folders stay small. Users
+who want to customise a theme can copy `themes/{name}` into their site folder
+manually — site-local themes still take precedence.
+
 ### Self-contained assets — no CDNs
 
 All JS, CSS and fonts are bundled inside each theme; pages load nothing from

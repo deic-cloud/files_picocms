@@ -112,28 +112,28 @@ $servePublic = $_['serve_public'];
 					<input type="radio" name="pico_type" value="blog"
 					       data-folder="/blog" data-content="/sample-content/blog"
 					       data-destination="" data-theme="blog"
-					       data-copy-themes="yes" />
+					       data-copy-themes="no" />
 					<?php p($l->t('Blog')); ?>
 				</label>
 				<label>
 					<input type="radio" name="pico_type" value="wiki"
 					       data-folder="/wiki" data-content="/sample-content/wiki"
 					       data-destination="" data-theme="wiki"
-					       data-copy-themes="yes" />
+					       data-copy-themes="no" />
 					<?php p($l->t('Wiki')); ?>
 				</label>
 				<label>
 					<input type="radio" name="pico_type" value="doc"
 					       data-folder="/documentation" data-content="/sample-content/doc"
 					       data-destination="" data-theme="documentation"
-					       data-copy-themes="yes" />
+					       data-copy-themes="no" />
 					<?php p($l->t('Documentation')); ?>
 				</label>
 				<label>
 					<input type="radio" name="pico_type" value="default"
 					       data-folder="/website" data-content="/sample-content/doc"
 					       data-destination="" data-theme="default"
-					       data-copy-themes="yes" />
+					       data-copy-themes="no" />
 					<?php p($l->t('Default Pico')); ?>
 				</label>
 			</div>
