@@ -18,6 +18,14 @@
 		return res.json();
 	}
 
+	async function ocsGet(path, params) {
+		const p = new URLSearchParams({ ...(params || {}), format: 'json' });
+		const res = await fetch(OCS + path + '?' + p.toString(), {
+			headers: { 'OCS-APIREQUEST': 'true', 'requesttoken': OC.requestToken },
+		});
+		return res.json();
+	}
+
 	async function ocsDelete(path, params) {
 		const p = new URLSearchParams({ ...(params || {}), format: 'json' });
 		const res = await fetch(OCS + path + '?' + p.toString(), {
@@ -35,12 +43,12 @@
 		tr.className = 'picoSiteRow';
 		tr.dataset.path = path;
 		tr.innerHTML = `
-			<td><a href="${root}/index.php/apps/files?dir=${encodeURIComponent(path)}">${path}</a></td>
-			<td><input class="picoSiteName" type="text" value="${name}" title="${t('files_picocms', 'Edit to rename')}" /></td>
-			<td><a href="${root}/remote.php/files_picocms/sites/${encodeURIComponent(name)}" target="_blank" rel="noopener">/remote.php/files_picocms/sites/${name}</a></td>
+			<td><a href="${root}/index.php/apps/files?dir=${encodeURIComponent(path)}" title="${t('files_picocms', 'Browse site files in Nextcloud')}">${path}</a></td>
+			<td><input class="picoSiteName" type="text" value="${name}" title="${t('files_picocms', 'URL slug — edit to rename')}" /></td>
+			<td><a href="${root}/remote.php/files_picocms/sites/${encodeURIComponent(name)}" target="_blank" rel="noopener" title="${t('files_picocms', 'Open the website in a new tab')}">/remote.php/files_picocms/sites/${name}</a></td>
 			<td class="picoActions">
-				<button class="picoManageBtn" data-path="${path}">${t('files_picocms', 'Manage')}</button>
-				<button class="picoDeleteBtn" data-path="${path}">${t('files_picocms', 'Remove')}</button>
+				<button class="picoManageBtn" data-path="${path}" title="${t('files_picocms', 'Edit site configuration (_config.md)')}">${t('files_picocms', 'Manage')}</button>
+				<button class="picoDeleteBtn" data-path="${path}" title="${t('files_picocms', 'Stop serving this folder as a website')}">${t('files_picocms', 'Remove')}</button>
 			</td>`;
 		bindRow(tr);
 		return tr;
@@ -68,8 +76,7 @@
 		});
 
 		tr.querySelector('.picoManageBtn')?.addEventListener('click', function () {
-			// Open NC Files at the site folder for now; future: open manage popup
-			window.location.href = (OC.webroot || '') + '/index.php/apps/files?dir=' + encodeURIComponent(path);
+			openConfigEditor(path);
 		});
 
 		tr.querySelector('.picoDeleteBtn')?.addEventListener('click', function () {
@@ -127,6 +134,16 @@
 			radio.addEventListener('change', function () {
 				if (folderInput) folderInput.value = this.dataset.folder || '';
 			});
+		});
+
+		document.getElementById('picoWizardFolderBrowse')?.addEventListener('click', () => {
+			if (!window.OC?.dialogs?.filepicker) return;
+			OC.dialogs.filepicker(
+				t('files_picocms', 'Choose folder'),
+				(path) => { if (folderInput) folderInput.value = path || '/'; },
+				false, 'httpd/unix-directory', true,
+				OC.dialogs.FILEPICKER_TYPE_CHOOSE
+			);
 		});
 
 		document.getElementById('picoWizardCreate')?.addEventListener('click', async () => {
@@ -212,6 +229,60 @@
 		});
 	}
 
+	// ── Config editor ────────────────────────────────────────────────────────────
+
+	async function openConfigEditor(path) {
+		const dialog   = document.getElementById('picoConfigDialog');
+		const textarea = document.getElementById('picoConfigContent');
+		const msg      = document.getElementById('picoConfigMsg');
+		const titleEl  = document.getElementById('picoConfigTitle');
+
+		if (!dialog || !textarea) return;
+		if (titleEl) titleEl.textContent = '…';
+		if (msg) msg.textContent = '';
+		textarea.value = '';
+		dialog.dataset.path = path;
+		dialog.style.display = '';
+
+		const data = await ocsGet('/config', { folder: path });
+		if (data?.ocs?.meta?.status === 'ok') {
+			textarea.value = data.ocs.data.content || '';
+			if (titleEl) titleEl.textContent = data.ocs.data.file || path;
+		} else {
+			if (msg) msg.textContent = t('files_picocms', 'Could not load config.');
+		}
+	}
+
+	function initConfigEditor() {
+		const dialog   = document.getElementById('picoConfigDialog');
+		const textarea = document.getElementById('picoConfigContent');
+		const msg      = document.getElementById('picoConfigMsg');
+
+		document.getElementById('picoConfigSave')?.addEventListener('click', async () => {
+			if (msg) msg.textContent = t('files_picocms', 'Saving…');
+			const path    = dialog.dataset.path;
+			const content = textarea?.value || '';
+			const data    = await ocsPost('/config', { folder: path, content });
+			if (data?.ocs?.meta?.status === 'ok') {
+				if (msg) msg.textContent = t('files_picocms', 'Saved.');
+			} else {
+				if (msg) msg.textContent = t('files_picocms', 'Could not save config.');
+			}
+		});
+
+		document.getElementById('picoConfigCancel')?.addEventListener('click', () => {
+			dialog.style.display = 'none';
+			if (msg) msg.textContent = '';
+		});
+
+		dialog?.addEventListener('click', (e) => {
+			if (e.target === dialog) {
+				dialog.style.display = 'none';
+				if (msg) msg.textContent = '';
+			}
+		});
+	}
+
 	// ── Init ─────────────────────────────────────────────────────────────────────
 
 	document.addEventListener('DOMContentLoaded', function () {
@@ -221,6 +292,7 @@
 		initWizard();
 		initAddManual();
 		initPublicToggle();
+		initConfigEditor();
 	});
 
 })();

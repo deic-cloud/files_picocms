@@ -24,7 +24,7 @@
 	<link href="{{ theme_url }}/css/bootstrap.css" rel="stylesheet">
 
 	<!-- Custom CSS -->
-	<link href="{{ theme_url }}/css/clean-blog.css" rel="stylesheet">
+	<link href="{{ theme_url }}/css/wiki.css" rel="stylesheet">
 	<link href="{{ theme_url }}/css/modal-images.css" rel="stylesheet">
 
 	<!-- Custom Fonts -->
@@ -56,7 +56,7 @@
 	<script src="/core/js/placeholder.js?v=cf866614b6b18cda13fe699a3a65661b" type="text/javascript"></script>
 	<script src="/3rdparty/js/md5/md5.min.js?v=cf866614b6b18cda13fe699a3a65661b" type="text/javascript"></script>
 	<script src="{{ theme_url }}/js/bootstrap.min.js"></script>
-	<script src="{{ theme_url }}/js/clean-blog.js"></script>
+	<script src="{{ theme_url }}/js/wiki.js"></script>
 
 	<script src="/apps/files/js/app.js?v=760f6203226000b157d07898793651e4"></script>
 	<script src="/themes/deic_theme_oc7/apps/files/js/navigation.js?v=760f6203226000b157d07898793651e4"></script>
@@ -68,7 +68,7 @@
 	<script type="text/javascript" src="/themes/deic_theme_oc7/apps/files/js/navigation.js?v=760f6203226000b157d07898793651e4"></script>
 	<script src="/apps/files_markdown/js/mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
-	<link id="favicon" rel="shortcut icon" type="image/png" href="{{ base_url }}/img/favicon.png" />
+	{% if config.favicon %}<link id="favicon" rel="shortcut icon" type="image/png" href="{{ base_url }}/{{ config.favicon }}" />{% elseif config.icon %}<link id="favicon" rel="shortcut icon" type="image/png" href="{{ base_url }}/{{ config.icon }}" />{% else %}<link id="favicon" rel="shortcut icon" type="image/png" href="{{ theme_url }}/img/data_icon.png" />{% endif %}
 
 </head>
 
@@ -78,7 +78,7 @@
 	<nav class="navbar navbar-default navbar-custom navbar-fixed-top">
 		<div class="container-fluid page-nav">
 			<span class="nav">
-				<a id="home" title="Home" href="{{ base_url }}"><img alt="Home" src="{% if current_page.meta.icon %}{{ meta.icon }}{% else %}{{ base_url }}/img/icon.png{% endif %}" class="icon" /></a>
+				<a id="home" title="Home" href="{{ base_url }}"><img alt="Home" src="{% if config.icon %}{{ base_url }}/{{ config.icon }}{% else %}{{ theme_url }}/img/data_icon.png{% endif %}" class="icon" /></a>
 			</span>
 		</div>
 		<div class="icon nav menu" title="Folders"><i class="fa fa-bars"></i></div>
@@ -108,7 +108,7 @@
 		{% if editable is not empty %}
 			<button id="manage_files">Manage</button>
 		{% endif %}
-		{% for fol in found_folders|sort %}
+		{% for fol in found_folders|default([])|sort %}
 		{% if fol != "/" %}
 			{% set depth = fol | split('/') | length -1 %}
 			{% set name = (fol | split('/'))[ depth - 1 ] %}
@@ -120,7 +120,7 @@
 	</ul>
 
 	<ul class="labelsbar">
-		{% for label in labels|sort %}
+		{% for label in labels|default([])|sort %}
 			{% set label = label|trim %}
 			<li class="nav">
 				<a href="{{ base_url }}/search/labels:{{ label }}">{{ label }}</a>
@@ -212,7 +212,7 @@
 						</li>
 					{% endfor %}
 					</ul>
-					<p class="copyright text-muted">Copyright &copy; {{ site_title }} {{ "now"|date("Y") }}</p>
+					<p class="copyright text-muted">Copyright &copy; {{ site_title }}&nbsp;{{ "now"|date("Y") }}</p>
 				</div>
 			</div>
 		</div>

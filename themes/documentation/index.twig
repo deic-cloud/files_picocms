@@ -18,14 +18,15 @@
     <link type="text/css" rel="stylesheet" href="{{ theme_url }}/css/pilcrow.css"/>
     <link type="text/css" rel="stylesheet" href="{{ theme_url }}/css/hljs-github.min.css"/>
     <link type="text/css" rel="stylesheet" href="{{ theme_url }}/css/style.css"/>
-    <link type="text/css" rel="stylesheet" href="{{ theme_url }}/css/default_style.css"/>
     <link type="text/css" rel="stylesheet" href="{{ theme_url }}/css/ekko-lightbox.css"/>
     <script type="text/javascript" src="{{ theme_url }}/js/jquery.min.js"></script>
     <script type="text/javascript" src="{{ theme_url }}/js/tether.min.js"></script>
     <script type="text/javascript" src="{{ theme_url }}/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="{{ theme_url }}/js/ekko-lightbox.js"></script>
     <script type="text/javascript" src="{{ theme_url }}/js/toc.js"></script>
-    {% if config.favicon %}
+    {% if config.icon %}
+      <link id="favicon" rel="shortcut icon" type="image/png" href="{{ base_url }}/{{ config.icon }}" />
+    {% elseif config.favicon %}
       <link id="favicon" rel="shortcut icon" type="image/png" href="{{ base_url }}/{{ config.favicon }}" />
     {% elseif meta.favicon %}
       <link id="favicon" rel="shortcut icon" type="image/png" href="{{ base_url }}/{{ meta.favicon }}" />
@@ -70,16 +71,8 @@
 									{% endif %}
 									{% if meta.title == page.title %}
 										<li class="current toc{{ len }}">
-											{% if len == 2 and not toc %}
-												<a href="{{ page.url }}">{{ page.title }}</a>
-											{% endif %}
-											{% if toc %}
-												{{ toc }}
-											{% else %}
-												{% if len != 2 %}
-													<a href="{{ page.url }}">{{ page.title }}</a>
-												{% endif %}
-											{% endif %}
+											<a href="{{ page.url }}">{{ page.title }}</a>
+											{% if toc %}{{ toc }}{% endif %}
 										</li>
 									{% else %}
 										<li class="toc{{ len }}">

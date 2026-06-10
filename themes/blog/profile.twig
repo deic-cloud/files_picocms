@@ -29,7 +29,7 @@
     <link href="{{ theme_url }}/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom CSS -->
-    <link href="{{ theme_url }}/css/clean-blog.css" rel="stylesheet">
+    <link href="{{ theme_url }}/css/blog.css" rel="stylesheet">
     <link href="{{ theme_url }}/css/easymde.min.css" rel="stylesheet">
 
     <!-- Custom Fonts -->
@@ -40,9 +40,9 @@
     <script src="{{ theme_url }}/js/jquery.min.js"></script>
     <script src="{{ theme_url }}/js/bootstrap.min.js"></script>
     <script src="{{ theme_url }}/js/easymde.min.js"></script>
-    <script src="{{ theme_url }}/js/clean-blog.js"></script>
+    <script src="{{ theme_url }}/js/blog.js"></script>
 
-    {% if config.favicon %}<link rel="shortcut icon" href="{{ base_url }}/{{ config.favicon }}" />{% endif %}
+    {% if config.icon %}<link rel="shortcut icon" href="{{ base_url }}/{{ config.icon }}" />{% elseif config.favicon %}<link rel="shortcut icon" href="{{ base_url }}/{{ config.favicon }}" />{% else %}<link rel="shortcut icon" href="{{ theme_url }}/img/data_icon.png" />{% endif %}
 </head>
 
 <body>

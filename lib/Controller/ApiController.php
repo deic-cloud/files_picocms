@@ -108,6 +108,23 @@ class ApiController extends OCSController {
 		return new DataResponse(['serve' => $serve]);
 	}
 
+	#[NoAdminRequired]
+	public function getConfig(string $folder): DataResponse {
+		$uid    = $this->userSession->getUser()?->getUID() ?? '';
+		$result = $this->siteService->getSiteConfig($uid, $folder);
+		return new DataResponse(['content' => $result['content'], 'file' => $result['file']]);
+	}
+
+	#[NoAdminRequired]
+	public function putConfig(string $folder, string $content): DataResponse {
+		$uid = $this->userSession->getUser()?->getUID() ?? '';
+		$ok  = $this->siteService->putSiteConfig($uid, $folder, $content);
+		if (!$ok) {
+			return new DataResponse(['error' => 'Save failed'], 500);
+		}
+		return new DataResponse(['msg' => 'Saved']);
+	}
+
 	// Admin-only endpoints (no #[NoAdminRequired])
 
 	public function getSampleFolder(): DataResponse {

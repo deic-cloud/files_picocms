@@ -27,26 +27,30 @@ $servePublic = $_['serve_public'];
 			<?php foreach ($sites as $site): ?>
 			<tr class="picoSiteRow" data-path="<?php p($site['path']); ?>">
 				<td>
-					<a href="<?php p($serverRoot); ?>/index.php/apps/files?dir=<?php p($site['path']); ?>">
+					<a href="<?php p($serverRoot); ?>/index.php/apps/files?dir=<?php p($site['path']); ?>"
+					   title="<?php p($l->t('Browse site files in Nextcloud')); ?>">
 						<?php p($site['path']); ?>
 					</a>
 				</td>
 				<td>
 					<input class="picoSiteName" type="text"
 					       value="<?php p($site['site']); ?>"
-					       title="<?php p($l->t('Edit to rename')); ?>" />
+					       title="<?php p($l->t('URL slug — edit to rename')); ?>" />
 				</td>
 				<td>
 					<a href="<?php p($serverRoot); ?>/remote.php/files_picocms/sites/<?php p(urlencode($site['site'])); ?>"
-					   target="_blank" rel="noopener">
+					   target="_blank" rel="noopener"
+					   title="<?php p($l->t('Open the website in a new tab')); ?>">
 						<?php p('/remote.php/files_picocms/sites/' . $site['site']); ?>
 					</a>
 				</td>
 				<td class="picoActions">
-					<button class="picoManageBtn" data-path="<?php p($site['path']); ?>">
+					<button class="picoManageBtn" data-path="<?php p($site['path']); ?>"
+					        title="<?php p($l->t('Edit site configuration (_config.md)')); ?>">
 						<?php p($l->t('Manage')); ?>
 					</button>
-					<button class="picoDeleteBtn" data-path="<?php p($site['path']); ?>">
+					<button class="picoDeleteBtn" data-path="<?php p($site['path']); ?>"
+					        title="<?php p($l->t('Stop serving this folder as a website')); ?>">
 						<?php p($l->t('Remove')); ?>
 					</button>
 				</td>
@@ -102,33 +106,33 @@ $servePublic = $_['serve_public'];
 					       data-folder="/public" data-content="/sample-content/blog/profile.md"
 					       data-destination="index.md" data-theme="blog"
 					       data-copy-themes="no" checked />
-					<?php p($l->t('Single public profile page')); ?>
+					<?php p($l->t('Public profile page')); ?>
 				</label>
 				<label>
 					<input type="radio" name="pico_type" value="blog"
 					       data-folder="/blog" data-content="/sample-content/blog"
-					       data-destination="content" data-theme="blog"
+					       data-destination="" data-theme="blog"
 					       data-copy-themes="yes" />
 					<?php p($l->t('Blog')); ?>
 				</label>
 				<label>
 					<input type="radio" name="pico_type" value="wiki"
 					       data-folder="/wiki" data-content="/sample-content/wiki"
-					       data-destination="content" data-theme="wiki"
+					       data-destination="" data-theme="wiki"
 					       data-copy-themes="yes" />
 					<?php p($l->t('Wiki')); ?>
 				</label>
 				<label>
 					<input type="radio" name="pico_type" value="doc"
 					       data-folder="/documentation" data-content="/sample-content/doc"
-					       data-destination="content" data-theme="documentation"
+					       data-destination="" data-theme="documentation"
 					       data-copy-themes="yes" />
 					<?php p($l->t('Documentation')); ?>
 				</label>
 				<label>
 					<input type="radio" name="pico_type" value="default"
 					       data-folder="/website" data-content="/sample-content/doc"
-					       data-destination="content" data-theme="default"
+					       data-destination="" data-theme="default"
 					       data-copy-themes="yes" />
 					<?php p($l->t('Default Pico')); ?>
 				</label>
@@ -137,12 +141,27 @@ $servePublic = $_['serve_public'];
 			<div class="picoRow">
 				<label><?php p($l->t('Destination folder:')); ?></label>
 				<input type="text" id="picoWizardFolder" value="/public" />
+				<button id="picoWizardFolderBrowse" class="button"><?php p($l->t('Browse')); ?></button>
 			</div>
 
 			<div class="picoWizardActions">
 				<button id="picoWizardCreate" class="primary"><?php p($l->t('Create')); ?></button>
 				<button id="picoWizardCancel"><?php p($l->t('Cancel')); ?></button>
 				<span id="picoWizardMsg"></span>
+			</div>
+		</div>
+	</div>
+
+	<!-- Config editor dialog -->
+	<div id="picoConfigDialog" style="display:none;">
+		<div class="picoWizardInner">
+			<h3><?php p($l->t('Site config')); ?></h3>
+			<p id="picoConfigTitle" style="font-family:monospace;font-size:13px;color:#666;margin:0 0 8px;"></p>
+			<textarea id="picoConfigContent" rows="22" style="width:100%;font-family:monospace;font-size:13px;box-sizing:border-box;"></textarea>
+			<div class="picoWizardActions">
+				<button id="picoConfigSave" class="primary"><?php p($l->t('Save')); ?></button>
+				<button id="picoConfigCancel"><?php p($l->t('Cancel')); ?></button>
+				<span id="picoConfigMsg"></span>
 			</div>
 		</div>
 	</div>

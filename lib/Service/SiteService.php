@@ -192,7 +192,103 @@ class SiteService {
 			}
 		}
 
+		$this->writeDefaultConfig($uid, $folder, $name, $theme ?? 'default');
+
 		return self::OK;
+	}
+
+	private function writeDefaultConfig(string $uid, string $folder, string $name, string $theme): void {
+		$appDir      = dirname(__DIR__, 2);
+		$displayName = $this->userManager->get($uid)?->getDisplayName() ?? $uid;
+		$userFolder  = null;
+		$iconRelPath = null;
+
+		try {
+			$userFolder = $this->rootFolder->getUserFolder($uid);
+
+			// Use an icon already copied from sample content if present
+			foreach (['img/icon.png', 'img/data_icon.png', 'img/favicon.png'] as $candidate) {
+				if ($userFolder->nodeExists($folder . '/' . $candidate)) {
+					$iconRelPath = $candidate;
+					break;
+				}
+			}
+
+			// Otherwise copy data_icon.png from the theme (or wiki as fallback)
+			if ($iconRelPath === null) {
+				$srcIcon = null;
+				foreach ([$theme, 'wiki', 'blog'] as $t) {
+					$p = $appDir . '/themes/' . $t . '/img/data_icon.png';
+					if (file_exists($p)) { $srcIcon = $p; break; }
+				}
+				if ($srcIcon !== null) {
+					$iconContent = file_get_contents($srcIcon);
+					if ($iconContent !== false) {
+						$imgDir = $folder . '/img';
+						if (!$userFolder->nodeExists($imgDir)) {
+							$userFolder->newFolder($imgDir);
+						}
+						$destIcon = $folder . '/img/data_icon.png';
+						if ($userFolder->nodeExists($destIcon)) {
+							$userFolder->get($destIcon)->putContent($iconContent);
+						} else {
+							$userFolder->newFile($destIcon, $iconContent);
+						}
+						$iconRelPath = 'img/data_icon.png';
+					}
+				}
+			}
+		} catch (\Throwable $e) {
+			$this->logger->error('files_picocms writeDefaultConfig icon: ' . $e->getMessage());
+		}
+
+		// Detect whether the site has separate icon and favicon files
+		$userFolder2   = $userFolder ?? null;
+		$hasFaviconPng = $userFolder2 && $userFolder2->nodeExists($folder . '/img/favicon.png');
+		$faviconPath   = $hasFaviconPng ? 'img/favicon.png' : ($iconRelPath ?? 'img/data_icon.png');
+		$navIconPath   = $iconRelPath ?? 'img/data_icon.png';
+
+		$iconSet    = $iconRelPath !== null;
+		$iconLine   = $iconSet    ? "icon: {$navIconPath}\n"    : "#icon: {$navIconPath}\n";
+		$faviconLine= $iconSet    ? "favicon: {$faviconPath}\n" : "#favicon: {$faviconPath}\n";
+
+		$content = "---\n"
+			. "# Site title shown in the browser tab and page header\n"
+			. "title: {$name}\n"
+			. "\n"
+			. "# Pico theme\n"
+			. "theme: {$theme}\n"
+			. "\n"
+			. "# Short description (used in HTML meta tags)\n"
+			. "#description: \n"
+			. "\n"
+			. "# Author name\n"
+			. "#author: {$displayName}\n"
+			. "\n"
+			. "# Access: public (anyone) or private (requires Nextcloud login)\n"
+			. "#access: public\n"
+			. "\n"
+			. "# Icon shown in the theme nav bar — path relative to the site root folder\n"
+			. $iconLine
+			. "\n"
+			. "# Browser tab icon (favicon) — can be a smaller/simpler version of the nav icon\n"
+			. $faviconLine
+			. "\n"
+			. "# Show inline edit links when viewing pages while logged in to Nextcloud\n"
+			. "#EditLinks: yes\n"
+			. "---\n";
+
+		try {
+			$userFolder  = $userFolder ?? $this->rootFolder->getUserFolder($uid);
+			$configPath  = $folder . '/_config.md';
+			if ($userFolder->nodeExists($configPath)) {
+				$userFolder->get($configPath)->putContent($content);
+			} else {
+				$userFolder->newFile($configPath, $content);
+			}
+		} catch (\Throwable $e) {
+			$this->logger->error('files_picocms writeDefaultConfig: ' . $e->getMessage());
+		}
 	}
 
 	private function copyDirToUserFolder(string $srcDir, string $destPath, $userFolder, ?array $replacements = null): void {
@@ -213,6 +309,44 @@ class SiteService {
 			}
 		}
 		closedir($dh);
+	}
+
+	/** @return array{content: string, file: string} */
+	public function getSiteConfig(string $uid, string $folder): array {
+		try {
+			$userFolder = $this->rootFolder->getUserFolder($uid);
+			foreach ([$folder . '/content/_config.md', $folder . '/_config.md'] as $candidate) {
+				if ($userFolder->nodeExists($candidate)) {
+					return ['content' => $userFolder->get($candidate)->getContent(), 'file' => $candidate];
+				}
+			}
+			// File doesn't exist yet — report where it will be created
+			$file = $userFolder->nodeExists($folder . '/content')
+				? $folder . '/content/_config.md'
+				: $folder . '/_config.md';
+			return ['content' => '', 'file' => $file];
+		} catch (\Throwable $e) {
+			$this->logger->error('files_picocms getSiteConfig: ' . $e->getMessage());
+		}
+		return ['content' => '', 'file' => $folder . '/_config.md'];
+	}
+
+	public function putSiteConfig(string $uid, string $folder, string $content): bool {
+		try {
+			$userFolder = $this->rootFolder->getUserFolder($uid);
+			$path = $userFolder->nodeExists($folder . '/content')
+				? $folder . '/content/_config.md'
+				: $folder . '/_config.md';
+			if ($userFolder->nodeExists($path)) {
+				$userFolder->get($path)->putContent($content);
+			} else {
+				$userFolder->newFile($path, $content);
+			}
+			return true;
+		} catch (\Throwable $e) {
+			$this->logger->error('files_picocms putSiteConfig: ' . $e->getMessage());
+			return false;
+		}
 	}
 
 	private function copyFileToUserFolder(string $srcFile, string $destPath, $userFolder, ?array $replacements = null): void {

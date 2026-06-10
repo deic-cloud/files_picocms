@@ -12,6 +12,8 @@ return [
 		['name' => 'api#getHelp',           'url' => '/api/v1/help',          'verb' => 'GET'],
 		['name' => 'api#getServePublic',    'url' => '/api/v1/serve-public',  'verb' => 'GET'],
 		['name' => 'api#setServePublic',    'url' => '/api/v1/serve-public',  'verb' => 'POST'],
+		['name' => 'api#getConfig',         'url' => '/api/v1/config',        'verb' => 'GET'],
+		['name' => 'api#putConfig',         'url' => '/api/v1/config',        'verb' => 'POST'],
 		// Admin API
 		['name' => 'api#getSampleFolder',   'url' => '/api/v1/sample-folder', 'verb' => 'GET'],
 		['name' => 'api#setSampleFolder',   'url' => '/api/v1/sample-folder', 'verb' => 'POST'],

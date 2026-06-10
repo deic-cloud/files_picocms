@@ -293,6 +293,11 @@ if (!empty($siteConfig['description'])) {
 if (isset($siteConfig['EditLinks'])) {
 	$picoConfig['edit_links'] = (strtolower((string)$siteConfig['EditLinks']) === 'yes');
 }
+$iconVal = $siteConfig['icon'] ?? $siteConfig['Icon'] ?? null;
+if (!empty($iconVal)) {
+	$picoConfig['icon']    = $iconVal;
+	$picoConfig['favicon'] = $picoConfig['favicon'] ?? $iconVal;
+}
 if (!empty($siteConfig['favicon'])) {
 	$picoConfig['favicon'] = $siteConfig['favicon'];
 }

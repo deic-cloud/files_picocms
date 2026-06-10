@@ -29,7 +29,7 @@
 	<link href="{{ theme_url }}/css/bootstrap.css" rel="stylesheet">
 
 	<!-- Custom CSS -->
-	<link href="{{ theme_url }}/css/clean-blog.css" rel="stylesheet">
+	<link href="{{ theme_url }}/css/wiki.css" rel="stylesheet">
 
 	<!-- Custom Fonts -->
 	<link href="{{ theme_url }}/css/font-awesome.css" rel="stylesheet" type="text/css">
@@ -59,10 +59,10 @@
 	<script src="/core/js/placeholder.js?v=cf866614b6b18cda13fe699a3a65661b" type="text/javascript"></script>
 	<script src="/3rdparty/js/md5/md5.min.js?v=cf866614b6b18cda13fe699a3a65661b" type="text/javascript"></script>
 	<script src="{{ theme_url }}/js/bootstrap.min.js"></script>
-	<script src="{{ theme_url }}/js/clean-blog.js"></script>
+	<script src="{{ theme_url }}/js/wiki.js"></script>
 	<script src="/apps/files_markdown/js/mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
-	<link id="favicon" rel="shortcut icon" type="image/png" href="{{ base_url }}/img/favicon.png" />
+	{% if config.favicon %}<link id="favicon" rel="shortcut icon" type="image/png" href="{{ base_url }}/{{ config.favicon }}" />{% elseif config.icon %}<link id="favicon" rel="shortcut icon" type="image/png" href="{{ base_url }}/{{ config.icon }}" />{% else %}<link id="favicon" rel="shortcut icon" type="image/png" href="{{ theme_url }}/img/data_icon.png" />{% endif %}
 
 </head>
 
