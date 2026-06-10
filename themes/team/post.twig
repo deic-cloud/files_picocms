@@ -113,7 +113,7 @@
 						<h1>{{ meta.title }}</h1>
 						<h2 class="subheading">{{ meta.description }}</h2>
 												{% if has_search_page %}
-						<span class="meta">Posted by <a href="{{ base_url }}/search/author:{{ meta.author }}">{{ meta.displayname }}</a> on {{ meta.date }}</span>
+						<span class="meta">Posted by <a href="{{ base_url }}/search/author:{{ meta.author }}">{{ meta.displayname|default(meta.author) }}</a> on {{ meta.date }}</span>
 												{% endif %}
 					</div>
 				</div>

@@ -127,7 +127,7 @@
                         </h3>
                     </a>
                     {% if num_pages>1 %}
-                    <p class="post-meta">Posted by{% if has_search_page %} <a href="{{ base_url }}/search/author:{{ page.author }}">{{ page.meta.displayname }}</a>{% else %} {{ page.meta.displayname }}{% endif %} on&nbsp;{{ page.date }}</p>
+                    <p class="post-meta">Posted by{% if has_search_page %} <a href="{{ base_url }}/search/author:{{ page.author }}">{{ page.meta.displayname|default(page.author) }}</a>{% else %} {{ page.meta.displayname|default(page.author) }}{% endif %} on&nbsp;{{ page.date }}</p>
                     {% endif %}
                     {% if page.meta.labels and has_search_page %}
                     <div class="labels">

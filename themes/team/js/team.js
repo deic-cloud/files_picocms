@@ -1050,13 +1050,23 @@ if (!$.fn.avatar) {
             var sz  = size || 64;
             var src = window.location.origin + '/index.php/avatar/'
                 + encodeURIComponent(String(user).toLowerCase().trim()) + '/' + sz;
-            var img = $('<img>').attr('src', src).attr('alt', user)
-                .css({ width: sz + 'px', height: sz + 'px', 'border-radius': '50%' });
-            var el = $(this);
+            var el  = $(this).css({
+                width: sz + 'px', height: sz + 'px',
+                'border-radius': '50%', overflow: 'hidden'
+            });
+            var img = $('<img>').attr('alt', user).css({
+                width: '100%', height: '100%', display: 'block', 'object-fit': 'cover'
+            });
+            img.on('load', function () {
+                // The image fills the circle — the theme's coloured letter-
+                // fallback background must not peek out behind it.
+                el.css('background-color', 'transparent');
+            });
             img.on('error', function () {
-                el.text(String(user).charAt(0).toUpperCase());
+                el.css('text-align', 'center').text(String(user).charAt(0).toUpperCase());
             });
             el.empty().append(img);
+            img.attr('src', src);  // after handlers — cached images fire load immediately
         });
     };
 }
@@ -1517,7 +1527,7 @@ jQuery(document).ready(function($) {
 		if (!filename || filename === '.md') return;
 		// Blank line before closing --- prevents Setext h2 on the last metadata line
 		var content = '---\nTitle: ' + title + '\nDescription: \nDate: ' + today +
-			'\nAuthor: ' + user + '\nTemplate: page\nAccess: private\nTheme: team\nComments: on\n\n---\n\n';
+			'\nAuthor: ' + user + '\nTemplate: page\nAccess: private\nTheme: team\nComments: on\nLabels: \n\n---\n\n';
 		var relPath = (dir ? dir + '/' : '') + filename;
 		var url = davUrl(host, relPath);
 		davPut(url, content, function() {

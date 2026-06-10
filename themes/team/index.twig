@@ -152,11 +152,9 @@
 								{{ page.description }}
 							</h4>
 						</a>
-						<p class="post-meta">{% if page.date %}{{ page.date }}, {% endif %}
-						{% if has_search_page and page.template != "post" %}
-						<a href="{{ base_url }}/search/author:{{ page.author }}">{{ page.meta.displayname }}</a>
-						{% else %}{{ page.meta.displayname }}
-						{% endif %}</p>
+						{# Whitespace before tags is trimmed by this Twig setup — keep
+						   the separating space inside the expression. #}
+						<p class="post-meta">{{ page.date ? page.date ~ ', ' : '' }}{% if has_search_page and page.template != "post" %}<a href="{{ base_url }}/search/author:{{ page.author }}">{{ page.meta.displayname|default(page.author) }}</a>{% else %}{{ page.meta.displayname|default(page.author) }}{% endif %}</p>
 						{% if page.meta.labels and has_search_page %}
 							<div class="labels">
 								{% set mylabels = page.meta.labels|split(',') %}
