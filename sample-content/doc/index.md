@@ -18,8 +18,9 @@ dataset — who it is for, and what they can do with it.]
 > **This is an example site.** Everything in [brackets] is a placeholder.
 > Pages are Markdown files in this site's folder — edit them in the Files
 > app or over WebDAV (this theme deliberately has no in-browser editor).
-> The sidebar lists pages per folder; headings inside a page become its
-> table of contents. Delete this box when you no longer need it.
+> The sidebar lists pages per folder, **ordered by the `date:` line** in
+> each page's header — adjust the dates to reorder. Headings inside a page
+> become its table of contents. Delete this box when you no longer need it.
 
 New here? Start with [Getting started](%base_url%/getting-started). The
 [User guide](%base_url%/guide) covers day-to-day use, the
