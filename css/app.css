@@ -7,6 +7,15 @@
 	box-sizing: border-box;
 }
 
+/* Frosted-glass background like the Files app navigation bar (instead of
+   the plain white #app-content default) — scoped to this app's page. */
+#content.app-files_picocms #app-content {
+	--color-text-maxcontrast: var(--color-text-maxcontrast-background-blur, var(--color-main-text));
+	background-color: var(--color-main-background-blur);
+	backdrop-filter: var(--filter-background-blur);
+	-webkit-backdrop-filter: var(--filter-background-blur);
+}
+
 .picocms-header {
 	display: flex;
 	align-items: center;
@@ -197,7 +206,11 @@
 #picoSiteTable thead th {
 	position: sticky;
 	top: 0;
-	background: var(--color-main-background, #fff);
+	/* frosted like the page background so the sticky header does not show
+	   as a solid white bar */
+	background-color: var(--color-main-background-blur, var(--color-main-background));
+	backdrop-filter: var(--filter-background-blur);
+	-webkit-backdrop-filter: var(--filter-background-blur);
 	z-index: 1;
 }
 
