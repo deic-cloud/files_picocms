@@ -14,6 +14,7 @@ $servePublic = $_['serve_public'];
 	</div>
 
 	<!-- Site list -->
+	<div id="picoSiteTableWrap">
 	<table id="picoSiteTable">
 		<thead>
 			<tr>
@@ -58,6 +59,7 @@ $servePublic = $_['serve_public'];
 			<?php endforeach; ?>
 		</tbody>
 	</table>
+	</div>
 
 	<?php if (empty($sites)): ?>
 	<p id="picoNoSites"><?php p($l->t('No websites yet. Use "New website" to get started.')); ?></p>
@@ -72,6 +74,7 @@ $servePublic = $_['serve_public'];
 			<input type="checkbox" id="picoServePublic"<?php if ($servePublic) echo ' checked'; ?> />
 			<?php p($l->t('Serve your /public folder as a website at the address below')); ?>
 		</label>
+		<p class="picoHint"><?php p($l->t('Nothing is served until the /public folder contains a website — the easiest way to create one is the wizard\'s "Public profile page" option.')); ?></p>
 		<p>
 			<?php if ($servePublic): ?>
 			<a href="<?php p($serverRoot); ?>/remote.php/files_picocms/users/<?php p(urlencode($email)); ?>"

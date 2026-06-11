@@ -5,7 +5,7 @@ $serverRoot = \OC::$WEBROOT;
 ?>
 <div class="section" id="filesPicoSettings">
 	<h2><?php p($l->t('Site folders')); ?></h2>
-	<p><?php p($l->t("Folders containing Markdown files (.md) that will be served as websites by Pico CMS.")); ?></p>
+	<p><?php p($l->t("Folders containing Markdown files (.md) that will be served as websites.")); ?></p>
 	<p><?php p($l->t("A site is served at: remote.php/files_picocms/sites/{name}")); ?></p>
 	<br />
 
@@ -38,6 +38,7 @@ $serverRoot = \OC::$WEBROOT;
 			<input type="checkbox" id="servePublicUrl"<?php if ($_['serve_public_url']) echo ' checked'; ?> />
 			<?php p($l->t('Serve your /public folder as a website at the address below')); ?>
 		</label>
+		<p class="picoHint"><?php p($l->t('Nothing is served until the /public folder contains a website — the easiest way to create one is the wizard\'s "Public profile page" option.')); ?></p>
 		<?php if ($email): ?>
 		<?php $publicUrl = $serverRoot . '/remote.php/files_picocms/users/' . $email; ?>
 		<p>

@@ -45,3 +45,16 @@
 	display: block;
 	margin: 4px 0 10px;
 }
+
+/* Muted hint lines (e.g. under the personal public page toggle) */
+.picoHint {
+	color: var(--color-text-maxcontrast, #767676);
+	font-size: 0.9em;
+	margin: 4px 0 8px;
+}
+
+/* Keep long site lists scrollable so the sections below stay visible */
+#filesPicoSiteFoldersList {
+	max-height: 40vh;
+	overflow-y: auto;
+}
