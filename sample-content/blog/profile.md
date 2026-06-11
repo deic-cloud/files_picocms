@@ -3,7 +3,7 @@ Title: Profile
 Description:
 Author:
 Template: profile
-Access: private
+Access: public
 Theme: blog
 Comments: on
 ---
@@ -18,13 +18,13 @@ Comments: on
 <hr class="small left">
 <div>
 <a href="https://github.com/GITHUB_ID" title="Visit me on GitHub">
-<span class="fa fa-github"></span></a>
+<span class="fab fa-github"></span></a>
 &nbsp;
 <a href="https://twitter.com/TWITTER_ID" title="Visit me on Twitter">
-<span class="fa fa-twitter"></span></a>
+<span class="fab fa-twitter"></span></a>
 &nbsp;
 <a href="https://www.linkedin.com/in/LINKEDIN_ID" title="Visit me on LinkedIn">
-<span class="fa fa-linkedin"></span>
+<span class="fab fa-linkedin"></span>
 </div>
 <hr class="small left">
 <p />

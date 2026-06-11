@@ -1271,8 +1271,12 @@ class Pico
 			// content directory, fallback to Pico's global status doc for the given code
 			return $this->loadFileContent($this->getConfig('content_dir') . $code . $this->getConfig('content_ext'));
 		}
-		$errorFile = $this->getConfig('content_dir') . $code . $this->getConfig('content_ext');
-		throw new RuntimeException('Required "' . $errorFile . '" not found');
+		// No status page in the site (e.g. a single-page personal site) —
+		// fall back to a built-in message instead of failing with a 500.
+		if ($code == 403) {
+			return "---\ntitle: Access denied\nrobots: noindex,nofollow\n---\n\n# Access denied\n\nThis page is private. Please [log in](%login_url%) to view it.\n";
+		}
+		return "---\ntitle: Not found\nrobots: noindex,nofollow\n---\n\n# Not found\n\nThis page does not exist.\n";
 	}
 
 

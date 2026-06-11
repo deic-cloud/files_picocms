@@ -45,14 +45,14 @@ namespace OCP {
 		class User {
 			public static function getUser(): string {
 				try {
-					return \OC::$server->getUserSession()->getUser()?->getUID() ?? '';
+					return \OCP\Server::get(\OCP\IUserSession::class)->getUser()?->getUID() ?? '';
 				} catch (\Throwable) {
 					return '';
 				}
 			}
 			public static function getDisplayName(string $uid): string {
 				try {
-					return \OC::$server->getUserManager()->get($uid)?->getDisplayName() ?? $uid;
+					return \OCP\Server::get(\OCP\IUserManager::class)->get($uid)?->getDisplayName() ?? $uid;
 				} catch (\Throwable) {
 					return $uid;
 				}
@@ -66,14 +66,14 @@ namespace OCP {
 			/** @param mixed $default */
 			public static function getSystemValue(string $key, $default = ''): mixed {
 				try {
-					return \OC::$server->getConfig()->getSystemValue($key, $default);
+					return \OCP\Server::get(\OCP\IConfig::class)->getSystemValue($key, $default);
 				} catch (\Throwable) {
 					return $default;
 				}
 			}
 			public static function getUserValue(string $uid, string $app, string $key, string $default = ''): string {
 				try {
-					return \OC::$server->getConfig()->getUserValue($uid, $app, $key, $default);
+					return \OCP\Server::get(\OCP\IConfig::class)->getUserValue($uid, $app, $key, $default);
 				} catch (\Throwable) {
 					return $default;
 				}
