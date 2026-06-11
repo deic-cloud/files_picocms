@@ -7,12 +7,12 @@ $(document).ready(function() {
 		var user = $('.edit-button').attr('user');
  		var path = $('.edit-button').attr('path');
  		var userhomeurl = $('.edit-button').attr('host');
+ 		var siteFolder = $('.edit-button').attr('folder') || '';
  		var pathArr = path.split('/');
- 		var file = pathArr.pop();
- 		var dir = pathArr.join('/');
- 		// NOTICE: To trigger opening the file, we call the files app with the id of the parent dir and the name of the file
- 		window.location.href = userhomeurl+'/index.php/apps/files/?mime=text/markdown&dir='+dir+'&group='+group+'&owner='+(user==owner?'':owner)+'&id='+
- 			(user==owner?'':parentid)+'&file='+encodeURIComponent(file);
+ 		pathArr.pop();
+ 		var dir = siteFolder + (pathArr.length ? '/' + pathArr.join('/') : '');
+ 		// Open the folder holding the current page in the Files app
+ 		window.location.href = userhomeurl+'/index.php/apps/files/?dir='+encodeURIComponent(dir);
 	});
  	// If a div.toc is in the twig and a toc is in the md, move div.toc in place.
  	$('toc').replaceWith($('div#toc').first());

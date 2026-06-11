@@ -44,21 +44,16 @@
         </div>
         {% if editable is not empty %}
             <button class="edit-button btn btn-primary btn-flat" path="{{  oc_path }}"
+            folder="{{ config.site_folder }}"
             id="{{  oc_id }}" dir_id="{{  oc_parent_id }}" user="{{  oc_user }}"
             owner="{{  oc_owner }}" group="{{  oc_group }}" host="{{  oc_user_home_url }}">
-            Show file{% if not current_page.id %}s{% endif %}</button>
+            Show files</button>
         {% endif %}
     </header>
     {% if readable is not empty and
     (not current_page.id) and folder!="/" and folder!="" %}
     	<div class="up-button btn btn-primary btn-flat noprint">
 				<a href="../">⤴</a>
-			</div>
-		{% elseif readable is not empty and
-			not (current_page.id == 'index' or current_page.id matches '{.*\/index$}') and
-			current_page.id and folder!="/" %}
-    	<div class="up-button btn btn-primary btn-flat noprint">
-				<a href="./">×</a>
 			</div>
 		{% endif %}
 		

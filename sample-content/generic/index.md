@@ -7,7 +7,7 @@ Theme: default
 
 ---
 
-# [Your site]
+# Welcome
 
 This is a **generic website**: the folder this site lives in is served as web
 pages, one page per Markdown file, with nothing assumed about structure or

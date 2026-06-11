@@ -1653,6 +1653,12 @@ class Pico
 	{
 		$files = $this->getFiles($this->getConfig('content_dir'), $this->getConfig('content_ext'), Pico::SORT_NONE);
 		foreach ($files as $i => $file) {
+			// _-prefixed files are configuration (e.g. _config.md), never pages —
+			// without this they show up in theme navigation and 404 when clicked
+			if (str_starts_with(basename($file), '_')) {
+				unset($files[$i]);
+				continue;
+			}
 			// skip 404 page
 			if (basename($file) === '404' . $this->getConfig('content_ext')) {
 				unset($files[$i]);

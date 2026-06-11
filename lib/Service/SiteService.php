@@ -333,7 +333,7 @@ class SiteService {
 					'/^Theme:.*$/m'  => 'Theme: ' . $theme,
 					'/^Date:.*$/m'   => 'Date: ' . date('j M Y'),
 					'/^Author:.*$/m' => 'Author: ' . $uid,
-					'/^Site:.*$/m'   => 'Site: ' . ($theme === 'blog' ? $displayName : $name),
+					'/^Site:.*$/m'   => 'Site: ' . ($theme === 'blog' ? $displayName : ($theme === 'default' ? 'My website' : $name)),
 				];
 			}
 			try {
@@ -351,7 +351,7 @@ class SiteService {
 			}
 		}
 
-		$this->writeDefaultConfig($uid, $folder, $name, $theme ?? 'default');
+		$this->writeDefaultConfig($uid, $folder, $theme === 'default' ? 'My website' : $name, $theme ?? 'default');
 
 		return self::OK;
 	}
