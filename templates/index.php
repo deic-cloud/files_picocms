@@ -146,7 +146,7 @@ $linkBase    = $_['link_base'] ?? '';
 					       data-folder="/website" data-content="/sample-content/doc"
 					       data-destination="" data-theme="default"
 					       data-copy-themes="no" />
-					<?php p($l->t('Default Pico')); ?>
+					<?php p($l->t('Generic')); ?>
 				</label>
 			</div>
 

@@ -1,6 +1,6 @@
 <?php /** @var array $_ */ ?>
 <div class="section" id="picoAdminSettings">
-	<h2><?php p($l->t('Pico CMS')); ?></h2>
+	<h2><?php p($l->t('Websites')); ?></h2>
 	<p><?php p($l->t('Sample site folder — shared with new users when they create their first site.')); ?></p>
 	<div>
 		<label><?php p($l->t('Owner of sample site folder:')); ?></label>

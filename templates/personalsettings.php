@@ -79,7 +79,7 @@ $linkBase   = $_['link_base'] ?? '';
 				data-theme="documentation" data-copy-themes="no" /> <?php p($l->t('Documentation')); ?></label><br />
 			<label><input type="radio" name="pico_type" value="default"
 				data-folder="/website" data-content="/sample-content/doc" data-destination=""
-				data-theme="default" data-copy-themes="no" /> <?php p($l->t('Default Pico')); ?></label>
+				data-theme="default" data-copy-themes="no" /> <?php p($l->t('Generic')); ?></label>
 		</div>
 		<br />
 		<p>
