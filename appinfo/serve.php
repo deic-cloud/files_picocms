@@ -92,10 +92,9 @@ if ($userEmail !== null) {
 		http_response_code(404);
 		exit;
 	}
-	if (!$siteService->getServePublicUrl($uid)) {
-		http_response_code(403);
-		exit;
-	}
+	// NOTE: the servepublicurl opt-in is checked AFTER the silo redirect below —
+	// it is per-node user config and only the user's home node has it set, so
+	// checking it here would 403 on the master before redirecting.
 	$siteInfo = [
 		'uid'  => $uid,
 		'path' => '/public',
@@ -150,6 +149,13 @@ if (class_exists(\OCA\FilesSharding\Service\ShardingService::class)) {
 	} catch (\Throwable $e) {
 		error_log('files_picocms silo redirect: ' . $e->getMessage());
 	}
+}
+
+// Personal pages: the opt-in flag is enforced by the node that actually
+// serves the page (per-node user config — see note at the lookup above).
+if ($userEmail !== null && !$siteService->getServePublicUrl($uid)) {
+	http_response_code(403);
+	exit;
 }
 
 // ── Determine master login base URL ──────────────────────────────────────────
