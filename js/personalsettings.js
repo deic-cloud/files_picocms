@@ -137,13 +137,21 @@
 			wizardDialog.scrollIntoView({ block: 'center' });
 		});
 
+		// The public profile page is fixed to /public (that is the folder the
+		// personal URL serves), so the destination field is locked for it.
+		const applyTypeToFolder = function (radio) {
+			if (wizardFolder) {
+				wizardFolder.value = radio.dataset.folder || '';
+				wizardFolder.disabled = radio.value === 'blog-profile';
+			}
+		};
 		document.querySelectorAll('input[name="pico_type"]').forEach(function (radio) {
-			radio.addEventListener('change', function () {
-				if (wizardFolder) {
-					wizardFolder.value = this.dataset.folder || '';
-				}
-			});
+			radio.addEventListener('change', function () { applyTypeToFolder(this); });
 		});
+		{
+			const checked = document.querySelector('input[name="pico_type"]:checked');
+			if (checked) applyTypeToFolder(checked);
+		}
 
 		document.getElementById('picoWizardCancel')?.addEventListener('click', function () {
 			wizardDialog.style.display = 'none';

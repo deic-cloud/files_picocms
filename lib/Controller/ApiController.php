@@ -77,6 +77,7 @@ class ApiController extends OCSController {
 		return match ($res) {
 			SiteService::OK                  => new DataResponse(['site' => $siteName]),
 			SiteService::SITE_NAME_EXISTS    => new DataResponse(['error' => 'Site name taken: ' . $siteName], 400),
+			SiteService::FOLDER_NOT_EMPTY    => new DataResponse(['error' => 'The folder ' . $folder . ' already exists and is not empty — choose another folder or rename the existing one.'], 400),
 			SiteService::COPY_CONTENT_FAILED => new DataResponse(['error' => 'Failed to copy content'], 500),
 			default                          => new DataResponse(['error' => 'Unexpected error'], 500),
 		};

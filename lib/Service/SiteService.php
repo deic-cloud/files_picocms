@@ -16,6 +16,7 @@ class SiteService {
 	public const OK                 = 0;
 	public const SITE_NAME_EXISTS   = 1;
 	public const COPY_CONTENT_FAILED = 2;
+	public const FOLDER_NOT_EMPTY   = 3;
 
 	public function __construct(
 		private SiteMapper    $mapper,
@@ -251,6 +252,23 @@ class SiteService {
 		?string $theme          = null,
 		bool    $copyThemes     = false,
 	): int {
+		try {
+			$userFolder = $this->rootFolder->getUserFolder($uid);
+		} catch (\Throwable $e) {
+			$this->logger->error('files_picocms: getUserFolder failed for ' . $uid . ': ' . $e->getMessage());
+			return self::COPY_CONTENT_FAILED;
+		}
+
+		// Never copy sample content into a folder that already has files in it
+		// (e.g. a pre-existing /public) — the user must pick another folder or
+		// rename the existing one.
+		if ($userFolder->nodeExists($folder)) {
+			$node = $userFolder->get($folder);
+			if (!($node instanceof \OCP\Files\Folder) || count($node->getDirectoryListing()) > 0) {
+				return self::FOLDER_NOT_EMPTY;
+			}
+		}
+
 		// Register the site (skip for /public which is the implicit personal page)
 		if ($folder !== '/public') {
 			if (!$this->addSite($uid, $folder, $name)) {
@@ -261,13 +279,6 @@ class SiteService {
 			// without this the freshly created page would 403 until the user
 			// separately finds the "personal public page" toggle.
 			$this->setServePublicUrl($uid, true);
-		}
-
-		try {
-			$userFolder = $this->rootFolder->getUserFolder($uid);
-		} catch (\Throwable $e) {
-			$this->logger->error('files_picocms: getUserFolder failed for ' . $uid . ': ' . $e->getMessage());
-			return self::COPY_CONTENT_FAILED;
 		}
 
 		// Ensure the target folder exists

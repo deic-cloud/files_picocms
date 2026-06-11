@@ -136,12 +136,25 @@
 			}
 		});
 
-		// Update folder suggestion when type changes
+		// Update folder suggestion when type changes. The public profile page is
+		// fixed to /public (that is the folder the personal URL serves), so the
+		// destination field is locked for it.
+		const applyTypeToFolder = (radio) => {
+			const locked = radio.value === 'blog-profile';
+			if (folderInput) {
+				folderInput.value = radio.dataset.folder || '';
+				folderInput.disabled = locked;
+			}
+			const browse = document.getElementById('picoWizardFolderBrowse');
+			if (browse) browse.disabled = locked;
+		};
 		document.querySelectorAll('input[name="pico_type"]').forEach(radio => {
-			radio.addEventListener('change', function () {
-				if (folderInput) folderInput.value = this.dataset.folder || '';
-			});
+			radio.addEventListener('change', function () { applyTypeToFolder(this); });
 		});
+		{
+			const checked = document.querySelector('input[name="pico_type"]:checked');
+			if (checked) applyTypeToFolder(checked);
+		}
 
 		document.getElementById('picoWizardFolderBrowse')?.addEventListener('click', () => {
 			if (!window.OC?.dialogs?.filepicker) return;
