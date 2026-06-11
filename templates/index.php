@@ -143,7 +143,7 @@ $linkBase    = $_['link_base'] ?? '';
 				</label>
 				<label>
 					<input type="radio" name="pico_type" value="default"
-					       data-folder="/website" data-content="/sample-content/doc"
+					       data-folder="/website" data-content="/sample-content/generic"
 					       data-destination="" data-theme="default"
 					       data-copy-themes="no" />
 					<?php p($l->t('Generic')); ?>
