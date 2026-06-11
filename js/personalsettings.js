@@ -130,6 +130,13 @@
 			wizardDialog.style.display = wizardDialog.style.display === 'none' ? '' : 'none';
 		});
 
+		// 'website wizard' link in the public-page hint opens the same dialog
+		document.getElementById('picoHintWizard')?.addEventListener('click', function (e) {
+			e.preventDefault();
+			wizardDialog.style.display = '';
+			wizardDialog.scrollIntoView({ block: 'center' });
+		});
+
 		document.querySelectorAll('input[name="pico_type"]').forEach(function (radio) {
 			radio.addEventListener('change', function () {
 				if (wizardFolder) {

@@ -1,6 +1,10 @@
 #picocms-app {
 	padding: 20px 40px;
-	max-width: 960px;
+	box-sizing: border-box;
+	/* The app container is the scroll area — one scrollbar for all content
+	   (NC's #content does not scroll for server-rendered app pages). */
+	height: 100%;
+	overflow-y: auto;
 }
 
 .picocms-header {
@@ -189,11 +193,7 @@
 	margin: 4px 0 8px;
 }
 
-/* Keep long site lists scrollable so the sections below stay visible */
-#picoSiteTableWrap {
-	max-height: 45vh;
-	overflow-y: auto;
-}
+/* Table header stays visible while the page content scrolls */
 #picoSiteTable thead th {
 	position: sticky;
 	top: 0;

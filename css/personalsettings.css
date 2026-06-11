@@ -53,8 +53,3 @@
 	margin: 4px 0 8px;
 }
 
-/* Keep long site lists scrollable so the sections below stay visible */
-#filesPicoSiteFoldersList {
-	max-height: 40vh;
-	overflow-y: auto;
-}

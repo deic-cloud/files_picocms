@@ -116,6 +116,13 @@
 			dialog.style.display = '';
 		});
 
+		// 'website wizard' link in the public-page hint opens the same dialog
+		document.getElementById('picoHintWizard')?.addEventListener('click', (e) => {
+			e.preventDefault();
+			dialog.style.display = '';
+			dialog.scrollIntoView({ block: 'center' });
+		});
+
 		document.getElementById('picoWizardCancel')?.addEventListener('click', () => {
 			dialog.style.display = 'none';
 			if (msg) msg.textContent = '';

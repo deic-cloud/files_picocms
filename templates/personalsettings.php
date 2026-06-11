@@ -38,7 +38,7 @@ $serverRoot = \OC::$WEBROOT;
 			<input type="checkbox" id="servePublicUrl"<?php if ($_['serve_public_url']) echo ' checked'; ?> />
 			<?php p($l->t('Serve your /public folder as a website at the address below')); ?>
 		</label>
-		<p class="picoHint"><?php p($l->t('Nothing is served until the /public folder contains a website — the easiest way to create one is the wizard\'s "Public profile page" option.')); ?></p>
+		<p class="picoHint"><?php p($l->t('Nothing is served until your /public folder contains a website. The easiest way to create one is via the')); ?> <a href="#" id="picoHintWizard"><?php p($l->t('website wizard')); ?></a>.</p>
 		<?php if ($email): ?>
 		<?php $publicUrl = $serverRoot . '/remote.php/files_picocms/users/' . $email; ?>
 		<p>
