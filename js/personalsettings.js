@@ -117,6 +117,8 @@
 		document.getElementById('servePublicUrl')?.addEventListener('change', async function () {
 			const serve = this.checked ? 'yes' : 'no';
 			await ocsPost('/serve-public', { serve });
+			// Reload to update the public-page link state (live vs greyed)
+			window.location.reload();
 		});
 
 		// Website wizard

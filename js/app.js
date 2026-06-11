@@ -224,8 +224,8 @@
 		document.getElementById('picoServePublic')?.addEventListener('change', async function () {
 			const serve = this.checked ? 'yes' : 'no';
 			await ocsPost('/serve-public', { serve });
-			// Simple reload to update the "Your public page" link
-			if (this.checked) window.location.reload();
+			// Reload to update the public-page link state (live vs greyed)
+			window.location.reload();
 		});
 	}
 

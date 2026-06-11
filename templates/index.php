@@ -66,19 +66,25 @@ $servePublic = $_['serve_public'];
 	<!-- Public page section -->
 	<div id="picoPublicSection">
 		<h3><?php p($l->t('Personal public page')); ?></h3>
-		<p><?php p($l->t('Serve your /public folder as a public page at a personal URL.')); ?></p>
+		<?php if ($email): ?>
+		<?php $publicUrl = $serverRoot . '/remote.php/files_picocms/users/' . $email; ?>
 		<label>
 			<input type="checkbox" id="picoServePublic"<?php if ($servePublic) echo ' checked'; ?> />
-			<?php p($l->t('Enable personal public page')); ?>
+			<?php p($l->t('Serve your /public folder as a website at the address below')); ?>
 		</label>
-		<?php if ($email && $servePublic): ?>
 		<p>
-			<?php p($l->t('Your public page:')); ?>
+			<?php if ($servePublic): ?>
 			<a href="<?php p($serverRoot); ?>/remote.php/files_picocms/users/<?php p(urlencode($email)); ?>"
-			   target="_blank" rel="noopener">
-				<?php p($serverRoot . '/remote.php/files_picocms/users/' . $email); ?>
+			   target="_blank" rel="noopener" title="<?php p($l->t('Open your public page in a new tab')); ?>">
+				<?php p($publicUrl); ?>
 			</a>
+			<?php else: ?>
+			<span style="color:#999;"><?php p($publicUrl); ?></span>
+			<em style="color:#999;"> — <?php p($l->t('not served until enabled')); ?></em>
+			<?php endif; ?>
 		</p>
+		<?php else: ?>
+		<p><?php p($l->t('Set an email address in your personal settings to get a personal public page URL.')); ?></p>
 		<?php endif; ?>
 	</div>
 

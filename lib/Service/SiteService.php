@@ -205,6 +205,11 @@ class SiteService {
 			if (!$this->addSite($uid, $folder, $name)) {
 				return self::SITE_NAME_EXISTS;
 			}
+		} else {
+			// Creating the personal public page implies consent to serve it —
+			// without this the freshly created page would 403 until the user
+			// separately finds the "personal public page" toggle.
+			$this->setServePublicUrl($uid, true);
 		}
 
 		try {

@@ -36,11 +36,22 @@ $serverRoot = \OC::$WEBROOT;
 	<div>
 		<label>
 			<input type="checkbox" id="servePublicUrl"<?php if ($_['serve_public_url']) echo ' checked'; ?> />
-			<?php p($l->t('Serve /public folder as personal public page')); ?>
-			<?php if ($email): ?>
-			(<a href="<?php p($serverRoot); ?>/remote.php/files_picocms/users/<?php p($email); ?>"><?php p($serverRoot . '/remote.php/files_picocms/users/' . $email); ?></a>)
-			<?php endif; ?>
+			<?php p($l->t('Serve your /public folder as a website at the address below')); ?>
 		</label>
+		<?php if ($email): ?>
+		<?php $publicUrl = $serverRoot . '/remote.php/files_picocms/users/' . $email; ?>
+		<p>
+			<?php if ($_['serve_public_url']): ?>
+			<a href="<?php p($serverRoot); ?>/remote.php/files_picocms/users/<?php p(urlencode($email)); ?>"
+			   target="_blank" rel="noopener" title="<?php p($l->t('Open your public page in a new tab')); ?>"><?php p($publicUrl); ?></a>
+			<?php else: ?>
+			<span style="color:#999;"><?php p($publicUrl); ?></span>
+			<em style="color:#999;"> — <?php p($l->t('not served until enabled')); ?></em>
+			<?php endif; ?>
+		</p>
+		<?php else: ?>
+		<p><?php p($l->t('Set an email address in your personal settings to get a personal public page URL.')); ?></p>
+		<?php endif; ?>
 	</div>
 
 	<br />
