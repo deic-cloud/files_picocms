@@ -53,3 +53,12 @@
 	margin: 4px 0 8px;
 }
 
+
+/* Classic hyperlink styling — make clickable text obviously clickable */
+#filesPicoSettings a {
+	color: var(--color-primary-element, #1a5fb4);
+	text-decoration: underline;
+}
+#filesPicoSettings a:hover {
+	color: var(--color-primary-element-hover, #1f6ed4);
+}

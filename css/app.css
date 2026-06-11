@@ -200,3 +200,12 @@
 	background: var(--color-main-background, #fff);
 	z-index: 1;
 }
+
+/* Classic hyperlink styling — make clickable text obviously clickable */
+#picocms-app a {
+	color: var(--color-primary-element, #1a5fb4);
+	text-decoration: underline;
+}
+#picocms-app a:hover {
+	color: var(--color-primary-element-hover, #1f6ed4);
+}
