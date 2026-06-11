@@ -173,6 +173,57 @@ class SiteService {
 
 	public function setServePublicUrl(string $uid, bool $serve): void {
 		$this->config->setUserValue($uid, 'files_picocms', 'servepublicurl', $serve ? 'yes' : 'no');
+		try {
+			$this->syncWebsiteProfileField($uid, $serve);
+		} catch (\Throwable $e) {
+			$this->logger->warning('files_picocms: could not sync profile Website field for ' . $uid . ': ' . $e->getMessage());
+		}
+	}
+
+	/** The user's personal public page URL, or null when no email address is set. */
+	public function publicPageUrl(string $uid): ?string {
+		$email = $this->userManager->get($uid)?->getEMailAddress() ?? '';
+		if ($email === '') {
+			return null;
+		}
+		// Prefer the master URL (stable, redirects to the user's silo);
+		// fall back to this instance's own base URL.
+		$base = rtrim((string)$this->config->getSystemValue('files_sharding_master_url', ''), '/');
+		if ($base === '') {
+			$base = rtrim(\OCP\Server::get(\OCP\IURLGenerator::class)->getAbsoluteURL('/'), '/');
+		}
+		return $base . '/remote.php/files_picocms/users/' . $email;
+	}
+
+	/**
+	 * Keep the NC profile's "Website" field in sync with the personal public
+	 * page: fill it on enable (only when empty or already pointing at a
+	 * public page of ours), clear it on disable (only when it is still ours —
+	 * a website the user typed in themselves is never touched).
+	 */
+	private function syncWebsiteProfileField(string $uid, bool $serve): void {
+		$user = $this->userManager->get($uid);
+		if ($user === null) {
+			return;
+		}
+		$accountManager = \OCP\Server::get(\OCP\Accounts\IAccountManager::class);
+		$account  = $accountManager->getAccount($user);
+		$property = $account->getProperty(\OCP\Accounts\IAccountManager::PROPERTY_WEBSITE);
+		$current  = $property->getValue();
+		$isOurs   = str_contains($current, '/remote.php/files_picocms/users/');
+
+		if ($serve) {
+			$url = $this->publicPageUrl($uid);
+			if ($url === null || ($current !== '' && !$isOurs) || $current === $url) {
+				return;
+			}
+			$scope = $property->getScope() !== '' ? $property->getScope() : \OCP\Accounts\IAccountManager::SCOPE_LOCAL;
+			$account->setProperty(\OCP\Accounts\IAccountManager::PROPERTY_WEBSITE, $url, $scope, \OCP\Accounts\IAccountManager::NOT_VERIFIED);
+			$accountManager->updateAccount($account);
+		} elseif ($isOurs) {
+			$account->setProperty(\OCP\Accounts\IAccountManager::PROPERTY_WEBSITE, '', $property->getScope(), \OCP\Accounts\IAccountManager::NOT_VERIFIED);
+			$accountManager->updateAccount($account);
+		}
 	}
 
 	public function getUserIdFromEmail(string $email): ?string {
