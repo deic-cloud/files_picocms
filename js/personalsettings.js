@@ -6,6 +6,8 @@
 	const OCS = (OC.webroot || '') + '/ocs/v2.php/apps/files_picocms/api/v1';
 	// Site URL prefix — '' when the web server rewrites /sites|/users to remote.php
 	const URL_PREFIX = document.getElementById('filesPicoSettings')?.dataset.urlPrefix ?? '/remote.php/files_picocms';
+	// Published links point at the master (it redirects to the hosting silo)
+	const LINK_BASE = document.getElementById('filesPicoSettings')?.dataset.linkBase ?? '';
 
 	async function ocsPost(path, body) {
 		const res = await fetch(OCS + path + '?format=json', {
@@ -49,7 +51,7 @@
 				</a>
 			</span>
 			<span class="url">
-				<label>${serverRoot}${URL_PREFIX}/sites/</label>
+				<label>${LINK_BASE}${URL_PREFIX}/sites/</label>
 				<input type="text" value="${name}" autocomplete="off" />
 			</span>
 			<button class="remove-site-btn" data-path="${folder}">-</button>`;
@@ -173,7 +175,7 @@
 			const data = await ocsPost('/create', { folder, name, content, destination, theme, copy_themes: copyThemes });
 			if (data?.ocs?.meta?.status === 'ok') {
 				const site = data.ocs.data.site;
-				const url  = (OC.webroot || '') + URL_PREFIX + '/sites/' + encodeURIComponent(site);
+				const url  = LINK_BASE + URL_PREFIX + '/sites/' + encodeURIComponent(site);
 				if (msg) msg.textContent = '';
 				wizardDialog.style.display = 'none';
 				window.location.href = url;

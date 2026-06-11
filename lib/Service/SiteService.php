@@ -190,19 +190,26 @@ class SiteService {
 		return rtrim((string)$this->config->getSystemValue('files_picocms.url_prefix', '/remote.php/files_picocms'), '/');
 	}
 
+	/**
+	 * Canonical base URL for published links: the master (stable across user
+	 * moves — it redirects to the hosting silo), falling back to this
+	 * instance's own base URL on standalone installs.
+	 */
+	public function linkBase(): string {
+		$base = rtrim((string)$this->config->getSystemValue('files_sharding_master_url', ''), '/');
+		if ($base === '') {
+			$base = rtrim(\OCP\Server::get(\OCP\IURLGenerator::class)->getAbsoluteURL('/'), '/');
+		}
+		return $base;
+	}
+
 	/** The user's personal public page URL, or null when no email address is set. */
 	public function publicPageUrl(string $uid): ?string {
 		$email = $this->userManager->get($uid)?->getEMailAddress() ?? '';
 		if ($email === '') {
 			return null;
 		}
-		// Prefer the master URL (stable, redirects to the user's silo);
-		// fall back to this instance's own base URL.
-		$base = rtrim((string)$this->config->getSystemValue('files_sharding_master_url', ''), '/');
-		if ($base === '') {
-			$base = rtrim(\OCP\Server::get(\OCP\IURLGenerator::class)->getAbsoluteURL('/'), '/');
-		}
-		return $base . $this->urlPrefix() . '/users/' . $email;
+		return $this->linkBase() . $this->urlPrefix() . '/users/' . $email;
 	}
 
 	/**

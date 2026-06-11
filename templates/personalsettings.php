@@ -3,11 +3,12 @@
 $email      = $_['email'];
 $serverRoot = \OC::$WEBROOT;
 $urlPrefix  = $_['url_prefix'] ?? '/remote.php/files_picocms';
+$linkBase   = $_['link_base'] ?? '';
 ?>
-<div class="section" id="filesPicoSettings" data-url-prefix="<?php p($urlPrefix); ?>">
+<div class="section" id="filesPicoSettings" data-url-prefix="<?php p($urlPrefix); ?>" data-link-base="<?php p($linkBase); ?>">
 	<h2><?php p($l->t('Site folders')); ?></h2>
 	<p><?php p($l->t("Folders containing Markdown files (.md) that will be served as websites.")); ?></p>
-	<p><?php p($l->t('A site is served at:')); ?> <?php p($urlPrefix . '/sites/{name}'); ?></p>
+	<p><?php p($l->t('A site is served at:')); ?> <?php p($linkBase . $urlPrefix . '/sites/{name}'); ?></p>
 	<br />
 
 	<div id="filesPicoSiteFoldersList">
@@ -19,7 +20,7 @@ $urlPrefix  = $_['url_prefix'] ?? '/remote.php/files_picocms';
 				</a>
 			</span>
 			<span class="url">
-				<label><?php p($serverRoot . $urlPrefix . '/sites/'); ?></label>
+				<label><?php p($linkBase . $urlPrefix . '/sites/'); ?></label>
 				<input type="text" value="<?php p($site['site']); ?>" autocomplete="off" />
 			</span>
 			<button class="remove-site-btn" data-path="<?php p($site['path']); ?>">-</button>
@@ -41,10 +42,10 @@ $urlPrefix  = $_['url_prefix'] ?? '/remote.php/files_picocms';
 		</label>
 		<p class="picoHint"><?php p($l->t('Nothing is served until your /public folder contains a website. The easiest way to create one is via the')); ?> <a href="#" id="picoHintWizard"><?php p($l->t('website wizard')); ?></a>.</p>
 		<?php if ($email): ?>
-		<?php $publicUrl = $serverRoot . $urlPrefix . '/users/' . $email; ?>
+		<?php $publicUrl = $linkBase . $urlPrefix . '/users/' . $email; ?>
 		<p>
 			<?php if ($_['serve_public_url']): ?>
-			<a href="<?php p($serverRoot . $urlPrefix); ?>/users/<?php p(urlencode($email)); ?>"
+			<a href="<?php p($linkBase . $urlPrefix); ?>/users/<?php p(urlencode($email)); ?>"
 			   target="_blank" rel="noopener" title="<?php p($l->t('Open your public page in a new tab')); ?>"><?php p($publicUrl); ?></a>
 			<?php else: ?>
 			<span style="color:#999;"><?php p($publicUrl); ?></span>

@@ -33,6 +33,7 @@ class PersonalSettings implements ISettings {
 			'serve_public_url' => $servePublic,
 			'email'            => $email,
 			'url_prefix'       => $this->siteService->urlPrefix(),
+			'link_base'        => $this->siteService->linkBase(),
 		]);
 	}
 

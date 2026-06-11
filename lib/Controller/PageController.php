@@ -41,6 +41,7 @@ class PageController extends Controller {
 			'email'        => $email,
 			'serve_public' => $servePublic,
 			'url_prefix'   => $this->siteService->urlPrefix(),
+			'link_base'    => $this->siteService->linkBase(),
 		]);
 	}
 }
