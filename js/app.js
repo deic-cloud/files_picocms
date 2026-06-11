@@ -4,6 +4,8 @@
 	'use strict';
 
 	const OCS = (OC.webroot || '') + '/ocs/v2.php/apps/files_picocms/api/v1';
+	// Site URL prefix — '' when the web server rewrites /sites|/users to remote.php
+	const URL_PREFIX = document.getElementById('picocms-app')?.dataset.urlPrefix ?? '/remote.php/files_picocms';
 
 	async function ocsPost(path, body) {
 		const res = await fetch(OCS + path + '?format=json', {
@@ -45,7 +47,7 @@
 		tr.innerHTML = `
 			<td><a href="${root}/index.php/apps/files?dir=${encodeURIComponent(path)}" title="${t('files_picocms', 'Browse site files in Nextcloud')}">${path}</a></td>
 			<td><input class="picoSiteName" type="text" value="${name}" title="${t('files_picocms', 'URL slug — edit to rename')}" /></td>
-			<td><a href="${root}/remote.php/files_picocms/sites/${encodeURIComponent(name)}" target="_blank" rel="noopener" title="${t('files_picocms', 'Open the website in a new tab')}">/remote.php/files_picocms/sites/${name}</a></td>
+			<td><a href="${root}${URL_PREFIX}/sites/${encodeURIComponent(name)}" target="_blank" rel="noopener" title="${t('files_picocms', 'Open the website in a new tab')}">${URL_PREFIX}/sites/${name}</a></td>
 			<td class="picoActions">
 				<button class="picoManageBtn" data-path="${path}" title="${t('files_picocms', 'Edit site configuration (_config.md)')}">${t('files_picocms', 'Manage')}</button>
 				<button class="picoDeleteBtn" data-path="${path}" title="${t('files_picocms', 'Stop serving this folder as a website')}">${t('files_picocms', 'Remove')}</button>
@@ -70,8 +72,8 @@
 			const root = OC.webroot || '';
 			const link = tr.querySelector('td:nth-child(3) a');
 			if (link) {
-				link.href = `${root}/remote.php/files_picocms/sites/${encodeURIComponent(name)}`;
-				link.textContent = `/remote.php/files_picocms/sites/${name}`;
+				link.href = `${root}${URL_PREFIX}/sites/${encodeURIComponent(name)}`;
+				link.textContent = `${URL_PREFIX}/sites/${name}`;
 			}
 		});
 

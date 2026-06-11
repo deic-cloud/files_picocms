@@ -42,9 +42,16 @@ if ($webRoot !== '' && str_starts_with($uriPath, $webRoot)) {
 	$uriPath = substr($uriPath, strlen($webRoot));
 }
 
-// $uriPath is now e.g. /remote.php/files_picocms/sites/mysite/themes/x.css
-$prefix    = '/remote.php/files_picocms';
-$localPath = str_starts_with($uriPath, $prefix) ? substr($uriPath, strlen($prefix)) : $uriPath;
+// $uriPath is now e.g. /remote.php/files_picocms/sites/mysite/themes/x.css,
+// /remote.php/sites/mysite/… (pretty-URL remote services), or /sites/mysite/…
+// (REQUEST_URI of a webserver-rewritten pretty URL).
+$localPath = $uriPath;
+foreach (['/remote.php/files_picocms', '/remote.php'] as $prefix) {
+	if (str_starts_with($localPath, $prefix)) {
+		$localPath = substr($localPath, strlen($prefix));
+		break;
+	}
+}
 // $localPath = /sites/mysite/themes/x.css  or  /users/someone@example.com
 
 $siteName  = null;
@@ -73,6 +80,10 @@ $siteService = \OC::$server->get(SiteService::class);
 /** @var IConfig $config */
 $config = \OC::$server->get(IConfig::class);
 
+// URL prefix for generated links — '' when the web server rewrites /sites
+// and /users to remote.php (config: files_picocms.url_prefix; see README).
+$urlPrefix = rtrim((string)$config->getSystemValue('files_picocms.url_prefix', '/remote.php/files_picocms'), '/');
+
 $siteInfo = null;
 
 if ($userEmail !== null) {
@@ -91,7 +102,7 @@ if ($userEmail !== null) {
 		'site' => 'Public page',
 		'gid'  => '',
 	];
-	$baseUrl = 'https://' . $_SERVER['HTTP_HOST'] . $webRoot . '/remote.php/files_picocms/users/' . urlencode($userEmail);
+	$baseUrl = 'https://' . $_SERVER['HTTP_HOST'] . $webRoot . $urlPrefix . '/users/' . urlencode($userEmail);
 } else {
 	$siteInfo = $siteService->lookupSite($siteName);
 	if ($siteInfo === null) {
@@ -114,7 +125,7 @@ if ($userEmail !== null) {
 		// Stale local registry (master says the site is here) — serve with the master's row.
 		$siteInfo = $remote;
 	}
-	$baseUrl = 'https://' . $_SERVER['HTTP_HOST'] . $webRoot . '/remote.php/files_picocms/sites/' . urlencode($siteName);
+	$baseUrl = 'https://' . $_SERVER['HTTP_HOST'] . $webRoot . $urlPrefix . '/sites/' . urlencode($siteName);
 }
 
 $uid = $siteInfo['uid'];
@@ -313,7 +324,7 @@ if ($sitePath !== '') {
 
 $picoConfig = [
 	'base_url'          => $baseUrl,
-	'base_uri'          => $webRoot . '/remote.php/files_picocms/' . ($siteName !== null ? 'sites/' . urlencode($siteName) : 'users/' . urlencode($userEmail)),
+	'base_uri'          => $webRoot . $urlPrefix . '/' . ($siteName !== null ? 'sites/' . urlencode($siteName) : 'users/' . urlencode($userEmail)),
 	'content_dir'       => $contentDir,
 	'rewrite_url'       => true,
 	'site_title'        => $siteConfig['title'] ?? $siteInfo['site'],

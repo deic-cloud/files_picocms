@@ -40,6 +40,7 @@ class PageController extends Controller {
 			'sites'        => $sites,
 			'email'        => $email,
 			'serve_public' => $servePublic,
+			'url_prefix'   => $this->siteService->urlPrefix(),
 		]);
 	}
 }

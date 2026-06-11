@@ -5,9 +5,10 @@ $serverRoot  = \OC::$WEBROOT;
 $sites       = $_['sites'];
 $email       = $_['email'];
 $servePublic = $_['serve_public'];
+$urlPrefix   = $_['url_prefix'] ?? '/remote.php/files_picocms';
 ?>
 <div id="app-content">
-<div id="picocms-app">
+<div id="picocms-app" data-url-prefix="<?php p($urlPrefix); ?>">
 
 	<div class="picocms-header">
 		<h2><?php p($l->t('Your websites')); ?></h2>
@@ -40,10 +41,10 @@ $servePublic = $_['serve_public'];
 					       title="<?php p($l->t('URL slug — edit to rename')); ?>" />
 				</td>
 				<td>
-					<a href="<?php p($serverRoot); ?>/remote.php/files_picocms/sites/<?php p(urlencode($site['site'])); ?>"
+					<a href="<?php p($serverRoot . $urlPrefix); ?>/sites/<?php p(urlencode($site['site'])); ?>"
 					   target="_blank" rel="noopener"
 					   title="<?php p($l->t('Open the website in a new tab')); ?>">
-						<?php p('/remote.php/files_picocms/sites/' . $site['site']); ?>
+						<?php p($urlPrefix . '/sites/' . $site['site']); ?>
 					</a>
 				</td>
 				<td class="picoActions">
@@ -70,7 +71,7 @@ $servePublic = $_['serve_public'];
 	<div id="picoPublicSection">
 		<h3><?php p($l->t('Personal public page')); ?></h3>
 		<?php if ($email): ?>
-		<?php $publicUrl = $serverRoot . '/remote.php/files_picocms/users/' . $email; ?>
+		<?php $publicUrl = $serverRoot . $urlPrefix . '/users/' . $email; ?>
 		<label>
 			<input type="checkbox" id="picoServePublic"<?php if ($servePublic) echo ' checked'; ?> />
 			<?php p($l->t('Serve your /public folder as a website at the address below')); ?>
@@ -78,7 +79,7 @@ $servePublic = $_['serve_public'];
 		<p class="picoHint"><?php p($l->t('Nothing is served until your /public folder contains a website. The easiest way to create one is via the')); ?> <a href="#" id="picoHintWizard"><?php p($l->t('website wizard')); ?></a>.</p>
 		<p>
 			<?php if ($servePublic): ?>
-			<a href="<?php p($serverRoot); ?>/remote.php/files_picocms/users/<?php p(urlencode($email)); ?>"
+			<a href="<?php p($serverRoot . $urlPrefix); ?>/users/<?php p(urlencode($email)); ?>"
 			   target="_blank" rel="noopener" title="<?php p($l->t('Open your public page in a new tab')); ?>">
 				<?php p($publicUrl); ?>
 			</a>

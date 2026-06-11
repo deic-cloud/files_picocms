@@ -181,6 +181,15 @@ class SiteService {
 		}
 	}
 
+	/**
+	 * URL path prefix for site/user page URLs. Defaults to the remote.php
+	 * endpoint; set 'files_picocms.url_prefix' => '' in config.php when the
+	 * web server rewrites /sites and /users to remote.php (pretty URLs).
+	 */
+	public function urlPrefix(): string {
+		return rtrim((string)$this->config->getSystemValue('files_picocms.url_prefix', '/remote.php/files_picocms'), '/');
+	}
+
 	/** The user's personal public page URL, or null when no email address is set. */
 	public function publicPageUrl(string $uid): ?string {
 		$email = $this->userManager->get($uid)?->getEMailAddress() ?? '';
@@ -193,7 +202,7 @@ class SiteService {
 		if ($base === '') {
 			$base = rtrim(\OCP\Server::get(\OCP\IURLGenerator::class)->getAbsoluteURL('/'), '/');
 		}
-		return $base . '/remote.php/files_picocms/users/' . $email;
+		return $base . $this->urlPrefix() . '/users/' . $email;
 	}
 
 	/**
@@ -211,7 +220,10 @@ class SiteService {
 		$account  = $accountManager->getAccount($user);
 		$property = $account->getProperty(\OCP\Accounts\IAccountManager::PROPERTY_WEBSITE);
 		$current  = $property->getValue();
-		$isOurs   = str_contains($current, '/remote.php/files_picocms/users/');
+		// Ours = the remote.php form, or the pretty form pointing at this user's own email
+		$email    = $user->getEMailAddress() ?? '';
+		$isOurs   = str_contains($current, '/remote.php/files_picocms/users/')
+			|| ($email !== '' && str_contains($current, '/users/' . $email));
 
 		if ($serve) {
 			$url = $this->publicPageUrl($uid);

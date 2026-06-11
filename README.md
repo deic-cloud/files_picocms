@@ -26,6 +26,49 @@ blog-style Twig theme; no composer install or build step is required.
 All requests are handled by `appinfo/serve.php`, which runs inside the
 Nextcloud bootstrap environment and has full access to NC services.
 
+### Pretty URLs
+
+With rewrite rules in the web server, sites can be served at
+`/sites/{name}` and `/users/{email}` directly. Two pieces:
+
+1. Web server rewrite (Apache):
+
+```apache
+RewriteRule ^/?sites/(.*)$ /remote.php/sites/$1 [PT,L]
+RewriteRule ^/?users/(.*)$ /remote.php/users/$1 [PT,L]
+```
+
+   or Caddy:
+
+```caddy
+@picocms path /sites /sites/* /users /users/*
+rewrite @picocms /remote.php{uri}
+```
+
+   The target is `/remote.php/sites/…`, NOT `…/files_picocms/sites/…`:
+   Nextcloud derives the remote *service* name from the original
+   `REQUEST_URI` (which internal rewrites do not change), so the first path
+   segment of the public URL must itself be a registered service. The app
+   registers `sites` and `users` as remote services in `info.xml` for
+   exactly this purpose (on manual installs make sure
+   `occ config:app:get core remote_sites` returns
+   `files_picocms/appinfo/serve.php`, likewise `remote_users` — the app
+   installer writes these on install/update).
+
+2. Tell the app to generate matching links, in `config.php`:
+
+```php
+'files_picocms.url_prefix' => '',
+```
+
+The parameter is the URL path prefix for all generated site/user links
+(default `/remote.php/files_picocms`). Incoming requests are accepted in
+both forms regardless of the setting, and redirects between nodes preserve
+whichever form the visitor used — but set the parameter the same on every
+node, and only together with the rewrite rules: with `''` and no rules,
+every generated link 404s. Note that `/sites` and `/users` become reserved
+top-level paths on the host.
+
 ---
 
 ## Site configuration

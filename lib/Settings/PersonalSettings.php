@@ -32,6 +32,7 @@ class PersonalSettings implements ISettings {
 			'site_folders'     => $sites,
 			'serve_public_url' => $servePublic,
 			'email'            => $email,
+			'url_prefix'       => $this->siteService->urlPrefix(),
 		]);
 	}
 
