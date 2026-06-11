@@ -5,7 +5,7 @@
 	<name>Pico CMS</name>
 	<summary>Flat-file CMS: serve Markdown files as websites from your Nextcloud folders</summary>
 	<description>Pico CMS lets users publish websites directly from Nextcloud folders. Markdown files are rendered via Pico and Twig themes. Sites are accessible at remote.php/files_picocms/sites/{name}.</description>
-	<version>1.0.6</version>
+	<version>1.0.7</version>
 	<licence>agpl</licence>
 	<author mail="fror@dtu.dk">Frederik Orellana, DTU</author>
 	<namespace>FilesPicoCMS</namespace>

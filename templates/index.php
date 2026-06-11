@@ -6,6 +6,7 @@ $sites       = $_['sites'];
 $email       = $_['email'];
 $servePublic = $_['serve_public'];
 ?>
+<div id="app-content">
 <div id="picocms-app">
 
 	<div class="picocms-header">
@@ -176,3 +177,4 @@ $servePublic = $_['serve_public'];
 	</div>
 
 </div><!-- #picocms-app -->
+</div><!-- #app-content -->

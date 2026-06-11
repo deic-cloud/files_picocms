@@ -1,10 +1,10 @@
+/* The page lives inside NC's #app-content (white background, full width,
+   overflow:auto) — that is the one scroll container. NC's #content is a
+   flex box with overflow:clip; a bare div there shrinks to content width
+   and gets clipped, which is why #app-content must wrap everything. */
 #picocms-app {
 	padding: 20px 40px;
 	box-sizing: border-box;
-	/* The app container is the scroll area — one scrollbar for all content
-	   (NC's #content does not scroll for server-rendered app pages). */
-	height: 100%;
-	overflow-y: auto;
 }
 
 .picocms-header {
