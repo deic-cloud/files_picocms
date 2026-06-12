@@ -351,9 +351,9 @@ class Pico
 		}
 		$this->ocUserHomeUrl = $this->ocMasterUrl;
 		$this->ocSupportEmail = \OCP\Config::getSystemValue('fromemail', '');
-		if(\OCP\App::isEnabled('user_orcid')){
-			require_once('user_orcid/lib/lib_orcid.php');
-			$this->orcid = \OCA\FilesOrcid\Lib::getOrcid($owner);
+		// NC34 user_orcid exposes a static facade; guarded so the app is optional
+		if (class_exists(\OCA\UserOrcid\Lib::class)) {
+			$this->orcid = \OCA\UserOrcid\Lib::getOrcid($owner);
 		}
 		$this->ocEmail = \OCP\Config::getUserValue($owner, 'settings', 'email');
 		$this->indexInferred = false;
