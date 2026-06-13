@@ -18,6 +18,7 @@ class AdminSettings implements ISettings {
 	public function getForm(): TemplateResponse {
 		$sample = $this->siteService->getSampleFolder();
 		Util::addScript('files_picocms', 'settings');
+		Util::addStyle('files_picocms', 'settings');
 		return new TemplateResponse('files_picocms', 'settings', [
 			'samplesiteowner' => $sample['owner'],
 			'samplesitepath'  => $sample['path'],

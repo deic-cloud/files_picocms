@@ -5,7 +5,7 @@
 	<name>Websites</name>
 	<summary>Serve folders of Markdown files as websites — blogs, team sites and documentation with in-browser editing</summary>
 	<description>Publish websites directly from Nextcloud folders: Markdown files are rendered with selectable themes (blog, team site, documentation), with in-browser editing for owners and collaborators. Sites are served at /sites/{name} (or remote.php/files_picocms/sites/{name}).</description>
-	<version>1.1.1</version>
+	<version>1.1.2</version>
 	<licence>agpl</licence>
 	<author mail="fror@dtu.dk">Frederik Orellana, DTU</author>
 	<namespace>FilesPicoCMS</namespace>

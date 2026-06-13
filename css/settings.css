@@ -1,0 +1,5 @@
+/* Clear the settings-navigation hamburger toggle that overlaps the top-left
+   on narrow widths, so the heading isn't partly covered. */
+#picoAdminSettings {
+	margin-top: 22px;
+}
