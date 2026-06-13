@@ -198,9 +198,14 @@
 			order:         60,
 			tagName:       SIDEBAR_TAG,
 
-			enabled: function(nodes) {
-				if (!nodes || !nodes.length) return true;
-				return isDir(nodes[0]);
+			enabled: function(arg) {
+				// NC34 calls this either with a context object
+				// {nodes:[source], folder, view} (file/folder details) or with a
+				// node/folder directly (current-folder sidebar). Show the tab
+				// only for folders — picocms sites are folders, never files.
+				var node = (arg && arg.nodes) ? arg.nodes[0] : arg;
+				if (!node) return false;
+				return isDir(node);
 			},
 
 			// NC30 API
