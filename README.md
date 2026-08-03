@@ -279,8 +279,20 @@ Manage button to link into the NC Files app).
 Themes live under `themes/` (either in the site directory or in the app's
 `themes/` directory).  Bundled themes: `blog` (Bootstrap 3, CSS derived from
 Clean Blog, EasyMDE), `team` (sidebar navigation, EasyMDE inline editing),
-`documentation`, and `default`.  Theme CSS/JS files are named after the theme
-(`css/blog.css`, `js/team.js`, …).
+`documentation`, `default`, and `briefing`.  Theme CSS/JS files are named after
+the theme (`css/blog.css`, `js/team.js`, …).
+
+The `briefing` theme is a presentation-first layout for management reviews,
+service reports, and one-page decision memos: a slate/petrol-teal institutional
+palette, Georgia headings over a system-sans body, styled Markdown tables and
+block-quote callouts, plus opt-in `.stats` / `.price` / `.cards` / `.pill`
+utility blocks (via inline HTML) for richer one-pagers. It is deliberately the
+leanest theme — only `index.twig` + `style.css` + a ~25-line vanilla-JS
+"Show files" button, no jQuery, no bundled web fonts (Georgia and the system
+stack are OS-native) — and prints cleanly to a single sheet. In-page editing is
+out of scope; author the Markdown in Files, or use the `team`/`blog` theme when
+inline editing is wanted. Front-matter keys it reads: `eyebrow`, `tag`, `date`,
+`footer` (alongside the usual `Title` / `description`).
 
 Theme files (`themes/…`) are served directly without running Pico, so CSS/JS
 assets load even before the page is rendered.

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% if meta.title %}{{ meta.title }} | {% endif %}{{ site_title }}</title>
+    {% if meta.description %}<meta name="description" content="{{ meta.description|striptags }}">{% endif %}
+    {% if meta.robots %}<meta name="robots" content="{{ meta.robots }}">{% endif %}
+    <link rel="stylesheet" href="{{ theme_url }}/style.css" type="text/css" />
+    {% if editable is not empty %}<script src="{{ theme_url }}/scripts/briefing.js"></script>{% endif %}
+</head>
+<body>
+<div class="wrap">
+
+    <header class="masthead">
+        <p class="eyebrow">{% if meta.eyebrow %}{{ meta.eyebrow }}{% else %}{{ site_title }}{% endif %}</p>
+        {% if meta.title %}<h1>{{ meta.title }}</h1>{% endif %}
+        {% if meta.description %}<p class="dek">{{ meta.description }}</p>{% endif %}
+        {% if meta.tag or meta.date %}
+        <div class="meta">
+            {% if meta.tag %}<span class="tag">{{ meta.tag }}</span>{% endif %}
+            {% if meta.date %}<span>{{ meta.date }}</span>{% endif %}
+        </div>
+        {% endif %}
+        {% if editable is not empty %}
+        <button class="edit-button" path="{{ oc_path }}" folder="{{ config.site_folder }}"
+            id="{{ oc_id }}" dir_id="{{ oc_parent_id }}" user="{{ oc_user }}"
+            owner="{{ oc_owner }}" group="{{ oc_group }}" host="{{ oc_user_home_url }}">Show files</button>
+        {% endif %}
+    </header>
+
+    {% if readable is not empty and (not current_page.id) and folder != "/" and folder != "" %}
+    <p class="upnav"><a href="../">&#x2934; up one level</a></p>
+    {% endif %}
+
+    {% if current_page.id is empty and readable is not empty %}
+        {# Folder with no index page — list the documents in it #}
+        <nav class="pagelist">
+            <ul>
+            {% for page in pages|sort_by("title") %}
+                {% if page.title and page.id != "index" %}
+                <li><a href="{{ page.url }}">{{ page.title }}</a>
+                    {% if page.description %}<span class="pl-desc">{{ page.description|striptags }}</span>{% endif %}
+                </li>
+                {% endif %}
+            {% endfor %}
+            </ul>
+        </nav>
+    {% else %}
+        <main class="content">
+            {{ content }}
+        </main>
+    {% endif %}
+
+    {% if meta.footer %}<footer class="foot">{{ meta.footer }}</footer>{% endif %}
+
+</div>
+</body>
+</html>

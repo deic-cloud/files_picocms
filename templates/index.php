@@ -142,6 +142,13 @@ $linkBase    = $_['link_base'] ?? '';
 					<?php p($l->t('Documentation')); ?>
 				</label>
 				<label>
+					<input type="radio" name="pico_type" value="briefing"
+					       data-folder="/briefing" data-content="/sample-content/briefing"
+					       data-destination="" data-theme="briefing"
+					       data-copy-themes="no" />
+					<?php p($l->t('Briefing / report')); ?>
+				</label>
+				<label>
 					<input type="radio" name="pico_type" value="default"
 					       data-folder="/website" data-content="/sample-content/generic"
 					       data-destination="" data-theme="default"
