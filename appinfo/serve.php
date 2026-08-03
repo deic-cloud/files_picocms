@@ -106,8 +106,21 @@ if ($userEmail !== null) {
 	$siteInfo = $siteService->lookupSite($siteName);
 	if ($siteInfo === null) {
 		// Not in the local registry — the master holds the authoritative copy.
-		// Ask it where the site lives and redirect the browser there.
+		// On a silo: ask the master where the site lives. On the master: our own
+		// registry is authoritative, but it can go stale if a silo→master forward
+		// was lost during a transient master outage — so heal by asking the silos
+		// we manage, then backfill locally so future lookups resolve without a hop.
 		$remote = _pico_master_lookup($config, $siteName);
+		if ($remote === null) {
+			$remote = _pico_silo_broadcast_lookup($config, $siteName);
+			if ($remote !== null) {
+				try {
+					$siteService->addSite($remote['uid'], $remote['path'], $siteName, $remote['gid'] ?? '');
+				} catch (\Throwable $e) {
+					error_log('files_picocms heal backfill: ' . $e->getMessage());
+				}
+			}
+		}
 		if ($remote === null) {
 			http_response_code(404);
 			exit;
@@ -662,6 +675,58 @@ function _pico_master_lookup(IConfig $config, string $siteName): ?array {
 	} catch (\Throwable) {
 		return null;
 	}
+}
+
+/**
+ * Master-only self-heal: our authoritative registry missed a site. A silo→master
+ * registry forward may have been lost during a transient master outage, leaving us
+ * stale. Ask every silo we manage; the one that hosts the site answers. Returns the
+ * site row with server_url pointing at the responding silo (for the redirect), or
+ * null if no silo has it.
+ *
+ * A short negative cache stops scanner traffic (repeated misses for random names)
+ * from fanning out to every silo on each request.
+ */
+function _pico_silo_broadcast_lookup(IConfig $config, string $siteName): ?array {
+	if (!class_exists(\OCA\FilesSharding\Service\ShardingService::class)
+		|| !class_exists(\OCA\FilesSharding\Service\InterServerClient::class)) {
+		return null;
+	}
+	$cache = null;
+	try {
+		$cf    = \OCP\Server::get(\OCP\ICacheFactory::class);
+		$cache = $cf->isAvailable() ? $cf->createLocal('files_picocms_heal') : null;
+	} catch (\Throwable) {
+	}
+	if ($cache !== null && $cache->get($siteName)) {
+		return null;
+	}
+	try {
+		$sharding = \OCP\Server::get(\OCA\FilesSharding\Service\ShardingService::class);
+		if (!$sharding->isMaster()) {
+			return null;
+		}
+		$client = \OCP\Server::get(\OCA\FilesSharding\Service\InterServerClient::class);
+		foreach ($sharding->getAllServers() as $server) {
+			$apiBase = rtrim($sharding->apiUrlForServer($server), '/');
+			if ($apiBase === '') {
+				continue;
+			}
+			$data = $client->getDirect($apiBase, 'internal/lookup', ['site' => $siteName], 'files_picocms');
+			if (is_array($data) && !empty($data['site'])) {
+				// The silo that answered is the host — redirect there regardless of
+				// the user→server assignment table's state on either node.
+				$data['server_url'] = rtrim($server->getUrl(), '/');
+				return $data;
+			}
+		}
+	} catch (\Throwable $e) {
+		error_log('files_picocms heal lookup: ' . $e->getMessage());
+	}
+	if ($cache !== null) {
+		$cache->set($siteName, 1, 60);
+	}
+	return null;
 }
 
 /**
