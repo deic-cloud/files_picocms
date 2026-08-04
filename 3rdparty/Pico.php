@@ -2017,7 +2017,10 @@ class Pico
 				function ($m) use (&$tocItems) {
 					$level = (int)$m[1];
 					$attrs = $m[2];
-					$text  = strip_tags($m[3]);
+					// $m[3] is already-rendered (Parsedown-escaped) HTML — decode entities
+					// so the id slug and TOC label build from plain text, not double-escaped
+					// (otherwise "A & B" → id "a-amp-b" and the label shows a literal "&amp;").
+					$text  = html_entity_decode(strip_tags($m[3]), ENT_QUOTES | ENT_HTML5);
 					if (!preg_match('/\bid\s*=/i', $attrs)) {
 						$id = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($text)), '-');
 						$attrs .= ' id="' . htmlspecialchars($id, ENT_QUOTES) . '"';
