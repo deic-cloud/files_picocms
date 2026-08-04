@@ -2012,9 +2012,15 @@ class Pico
 		$toc = '';
 		if (!empty($this->content) && !$this->notFound) {
 			$tocItems = [];
+			// Front-matter `TocDepth: N` = deepest heading level to LIST (2–4,
+			// matching ##/###/####); default 4 = list all. Anchor id=s are still
+			// added to every h2–h4 so deep-linking works regardless of depth.
+			$tocDepth = isset($this->meta['tocdepth'])
+				? max(2, min(4, (int)$this->meta['tocdepth']))
+				: 4;
 			$this->content = preg_replace_callback(
 				'/<h([2-4])([^>]*?)>(.*?)<\/h\1>/is',
-				function ($m) use (&$tocItems) {
+				function ($m) use (&$tocItems, $tocDepth) {
 					$level = (int)$m[1];
 					$attrs = $m[2];
 					// $m[3] is already-rendered (Parsedown-escaped) HTML — decode entities
@@ -2028,7 +2034,9 @@ class Pico
 						preg_match('/\bid\s*=\s*["\']([^"\']+)["\']/', $attrs, $idm);
 						$id = $idm[1] ?? '';
 					}
-					$tocItems[] = ['level' => $level, 'id' => $id, 'text' => $text];
+					if ($level <= $tocDepth) {
+						$tocItems[] = ['level' => $level, 'id' => $id, 'text' => $text];
+					}
 					return '<h' . $level . $attrs . '>' . $m[3] . '</h' . $level . '>';
 				},
 				$this->content
