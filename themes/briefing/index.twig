@@ -7,10 +7,12 @@
     {% if meta.description %}<meta name="description" content="{{ meta.description|striptags }}">{% endif %}
     {% if meta.robots %}<meta name="robots" content="{{ meta.robots }}">{% endif %}
     <link rel="stylesheet" href="{{ theme_url }}/style.css" type="text/css" />
-    {% if editable is not empty %}<script src="{{ theme_url }}/scripts/briefing.js"></script>{% endif %}
+    {% if editable is not empty or meta.toc %}<script src="{{ theme_url }}/scripts/briefing.js"></script>{% endif %}
 </head>
 <body>
 <div class="wrap">
+
+    {% if meta.toc %}{{ toc }}{% endif %}
 
     <header class="masthead">
         <p class="eyebrow">{% if meta.eyebrow %}{{ meta.eyebrow }}{% else %}{{ site_title }}{% endif %}</p>

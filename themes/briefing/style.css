@@ -149,3 +149,41 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   .price ul, .price .big span { color: var(--muted); }
   .card, .stat, .content table { break-inside: avoid; }
 }
+
+/* ── Table of contents (opt-in via front-matter `Toc: true`) ──────────────────
+   Pico auto-generates #toc <div><ul><li class="toc2|toc3|toc4"> from h2–h4 and
+   adds matching id= anchors. Fixed card in the right gutter on wide screens;
+   hidden where it would overlap the centred column, and in print. The heading
+   anchors work regardless, so nothing is lost when the box is hidden. */
+#toc { display: none; }
+@media (min-width: 1300px) {
+  #toc {
+    display: block; position: fixed; top: 28px; right: 24px;
+    width: 212px; max-height: calc(100vh - 56px); overflow-y: auto;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px 14px 14px; box-shadow: 0 1px 3px rgba(27,42,58,.07);
+    font-size: 13px; z-index: 20;
+  }
+}
+#toc_header {
+  display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  font-weight: 700; color: var(--accent-ink);
+}
+#toc_toggle {
+  margin-left: auto; cursor: pointer; color: var(--muted);
+  font-weight: 600; letter-spacing: 0; text-transform: none;
+}
+#toc_toggle:hover { color: var(--accent-ink); }
+#toc ul { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--line); }
+#toc li { margin: 0; }
+#toc a {
+  display: block; padding: 3px 0 3px 12px; margin-left: -1px;
+  border-left: 2px solid transparent; color: var(--muted);
+  text-decoration: none; line-height: 1.35;
+}
+#toc a:hover { color: var(--accent-ink); }
+#toc li.toc3 a { padding-left: 24px; font-size: 12.5px; }
+#toc li.toc4 a { padding-left: 34px; font-size: 12px; }
+#toc a.active { color: var(--accent-ink); font-weight: 600; border-left-color: var(--accent); }
+@media print { #toc { display: none; } }
