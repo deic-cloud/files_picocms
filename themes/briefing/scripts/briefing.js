@@ -42,16 +42,29 @@
         header.appendChild(toggle);
         toc.insertBefore(header, toc.firstChild);
 
+        var userToggled = false;
         function setHidden(hidden) {
             list.style.display = hidden ? 'none' : '';
             toggle.textContent = hidden ? '[show]' : '[hide]';
         }
         toggle.addEventListener('click', function () {
+            userToggled = true;
             setHidden(list.style.display !== 'none');
         });
         toggle.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle.click(); }
         });
+
+        // Default state by width: expanded when floated in the right gutter (wide),
+        // collapsed when inline under the masthead (narrow). Re-sync on breakpoint
+        // change unless the reader has toggled it themselves.
+        var wide = window.matchMedia ? window.matchMedia('(min-width: 1300px)') : null;
+        setHidden(wide ? !wide.matches : false);
+        if (wide) {
+            var onChange = function (e) { if (!userToggled) { setHidden(!e.matches); } };
+            if (wide.addEventListener) { wide.addEventListener('change', onChange); }
+            else if (wide.addListener) { wide.addListener(onChange); }
+        }
 
         // Pair each link with its target heading.
         var targets = [];

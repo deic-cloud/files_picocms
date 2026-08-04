@@ -12,8 +12,6 @@
 <body>
 <div class="wrap">
 
-    {% if meta.toc %}{{ toc }}{% endif %}
-
     <header class="masthead">
         <p class="eyebrow">{% if meta.eyebrow %}{{ meta.eyebrow }}{% else %}{{ site_title }}{% endif %}</p>
         {% if meta.title %}<h1>{{ meta.title }}</h1>{% endif %}
@@ -30,6 +28,8 @@
             owner="{{ oc_owner }}" group="{{ oc_group }}" host="{{ oc_user_home_url }}">Show files</button>
         {% endif %}
     </header>
+
+    {% if meta.toc %}{{ toc }}{% endif %}
 
     {% if readable is not empty and (not current_page.id) and folder != "/" and folder != "" %}
     <p class="upnav"><a href="../">&#x2934; up one level</a></p>

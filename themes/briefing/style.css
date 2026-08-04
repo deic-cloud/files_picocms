@@ -155,14 +155,17 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
    adds matching id= anchors. Fixed card in the right gutter on wide screens;
    hidden where it would overlap the centred column, and in print. The heading
    anchors work regardless, so nothing is lost when the box is hidden. */
-#toc { display: none; }
+/* Base (all widths): an inline collapsible card just under the masthead. */
+#toc {
+  display: block; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; padding: 12px 16px 14px; margin: 0 0 30px; font-size: 13px;
+}
+/* Wide screens: float it out of flow into the right gutter as a fixed card. */
 @media (min-width: 1300px) {
   #toc {
-    display: block; position: fixed; top: 28px; right: 24px;
-    width: 212px; max-height: calc(100vh - 56px); overflow-y: auto;
-    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
-    padding: 12px 14px 14px; box-shadow: 0 1px 3px rgba(27,42,58,.07);
-    font-size: 13px; z-index: 20;
+    position: fixed; top: 28px; right: 24px; width: 212px;
+    max-height: calc(100vh - 56px); overflow-y: auto; margin: 0;
+    padding: 12px 14px 14px; box-shadow: 0 1px 3px rgba(27,42,58,.07); z-index: 20;
   }
 }
 #toc_header {
