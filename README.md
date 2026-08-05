@@ -66,8 +66,16 @@ The parameter is the URL path prefix for all generated site/user links
 both forms regardless of the setting, and redirects between nodes preserve
 whichever form the visitor used — but set the parameter the same on every
 node, and only together with the rewrite rules: with `''` and no rules,
-every generated link 404s. Note that `/sites` and `/users` become reserved
-top-level paths on the host.
+every generated link 404s (the page loads via `remote.php` but its CSS/JS,
+linked with the pretty prefix, do not — so the site renders **unstyled**).
+Note that `/sites` and `/users` become reserved top-level paths on the host.
+
+**Setup check.** When `url_prefix` is empty, the app registers a Nextcloud
+setup check (`PrettyUrlsCheck`) that probes `/sites/__picocms_probe` over HTTP
+and, if the rewrite isn't reaching the app, raises a warning in
+**Admin → Administration settings → Overview** with the fix. It's web-server
+agnostic (it tests actual behaviour, not config) — so a fresh install that
+forgot the rewrite is flagged rather than silently serving unstyled pages.
 
 ---
 

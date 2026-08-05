@@ -73,6 +73,19 @@ if (preg_match('|^/sites/([^/]+)(/.*)?$|', $localPath, $m)) {
 // the write/raw proxies) work for names with spaces or non-ASCII characters.
 $sitePath = rawurldecode($sitePath);
 
+// ── Rewrite self-probe ────────────────────────────────────────────────────────
+// PrettyUrlsCheck (setup check) GETs /sites/__picocms_probe to verify the
+// webserver rewrite (/sites → /remote.php/sites) actually reaches this endpoint.
+// Answer with a stable marker before any lookup/auth. If the rewrite is missing
+// the request never gets here — Nextcloud returns its own 404 — and the check warns.
+if ($siteName === '__picocms_probe') {
+	header('Content-Type: text/plain; charset=utf-8');
+	header('X-Picocms-Probe: ok');
+	http_response_code(200);
+	echo 'files_picocms:rewrite-ok';
+	exit;
+}
+
 // ── Resolve site info ─────────────────────────────────────────────────────────
 
 /** @var SiteService $siteService */
