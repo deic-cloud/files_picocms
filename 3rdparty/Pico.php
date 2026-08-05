@@ -314,6 +314,7 @@ class Pico
 	protected $readable;
 	protected $editable;
 	protected $writable = false;
+	protected $readTrusted = false;
 	public $loginToEditUrl = '';
 	
 	public static $SHARE_TYPE_NONE = 'none';
@@ -398,6 +399,19 @@ class Pico
 		$this->writable = true;
 		$this->readable = true;
 		$this->ocPath   = $ocPath;
+	}
+
+	/**
+	 * Called by serve.php when a non-owner has READ-ONLY share access to the site
+	 * folder (owner or write access is handled above). Grants read without write,
+	 * and marks read as trusted so checkReadPermission() honours it directly rather
+	 * than falling through to the legacy \OC\Files NC-API share walk (unreliable in
+	 * NC34, especially cross-silo). No edit/write buttons (writable stays false).
+	 */
+	public function setReadAccess(string $ocPath): void {
+		$this->readTrusted = true;
+		$this->readable    = true;
+		$this->ocPath      = $ocPath;
 	}
 
 	public static function shutDownFunction() {
@@ -1061,8 +1075,10 @@ class Pico
 		// $access = 'private' or 'shared'
 
 		// serve.php already verified the user's access via NC share/ownership checks.
-		// Skip the old NC API code (unreliable in NC34) and trust that result.
-		if ($this->writable) {
+		// Skip the old NC API code (unreliable in NC34) and trust that result —
+		// for owner/write access ($this->writable) AND read-only shares
+		// ($this->readTrusted, set by serve.php's setReadAccess()).
+		if ($this->writable || $this->readTrusted) {
 			if ($setPermissions) {
 				$this->readable = true;
 			}
@@ -1145,106 +1161,16 @@ class Pico
 			return true;
 		}
 		else{
-			\OC\Files\Filesystem::tearDown();
-			\OC_User::setUserId($owner);
-			$baseDir = '/'.$owner.(!empty($group)?'/user_group_admin/'.$group:'/files');
-			try{
-				if($setPermissions){
-					$this->ocOwner = $owner;
-				}
-				\OC\Files\Filesystem::init($owner, $baseDir);
-				// Next check if the file or one of its parent folders is shared with me.
-				$i = 0;
-				while(!empty($ocPath) && $ocPath!=='.'){
-					$view = new \OC\Files\View($baseDir);
-					$pathInfo = $view->getFileInfo($ocPath);
-					$fileInfo = \OC\Files\Filesystem::getFileInfo($ocPath);
-					if($ocPath == dirname($ocPath)){
-						break;
-					}
-					if($this->indexInferred && empty($fileInfo)){
-						$ocPath = dirname($ocPath);
-						++$i;
-						continue;
-					}
-					if($setPermissions && empty($this->ocId)){
-						if(empty($this->ocParentId)){
-							if($this->indexInferred){
-								if($i>0){
-									$this->ocParentId = $fileInfo->getId();
-								}
-								if(!empty($fileInfo)){
-									$this->ocId = $fileInfo->getId();
-									$this->ocParentId = $pathInfo['parent'];
-								}
-							}
-							else{
-								$this->ocParentId = $pathInfo['parent'];
-								$this->ocId = $fileInfo->getId();
-							}
-						}
-					}
-					if(!\OCP\App::isEnabled('files_sharding')){
-						$fileType = $fileInfo->getType()===\OCP\Files\FileInfo::TYPE_FOLDER?'folder':'file';
-						$itemShared = \OCP\Share::getItemSharedWithUser($fileType, $fileInfo->getId(), $this->ocUser);
-						$itemSharedPermissions = (int)$itemShared['permissions'];
-					}
-					else{
-						$fileType = $fileInfo->getType()===\OCP\Files\FileInfo::TYPE_FOLDER?'folder':'file';
-						// NC34: \OCA\FilesSharding\Lib no longer exists — fail safe (no access).
-						// serve.php grants the real permissions before Pico runs; this legacy
-						// walk only matters for non-writers on private/shared pages.
-						$itemSharedPermissions = class_exists(\OCA\FilesSharding\Lib::class)
-							? \OCA\FilesSharding\Lib::checkAccess($this->ocUser, $fileInfo->getId(), $fileType)
-							: 0;
-					}
-					pico_log('files_picocms', 'Checking sharing of: '.$ocPath.':'.$fileInfo->getId().':'.
-							$fileInfo->getType().':'.$this->ocId.':'.$this->ocParentId.':'.serialize($itemShared).':'.
-							serialize($itemSharedPermissions), \OC_Log::WARN);
-					if(!empty($itemSharedPermissions)){
-						if($setPermissions){
-							$this->permissions = (int)$itemSharedPermissions;
-							$this->ocShare = $fileInfo->getId();
-							// This sets $this->ocPath to the path relative to the parent of the shared folder
-							$sharePathLen = dirname($ocPath)=="."?0:strlen(dirname($ocPath));
-							$this->ocPath = substr($this->ocPath, $sharePathLen);
-						}
-						break;
-					}
-					$ocPath = dirname($ocPath);
-					++$i;
-				}
-				if($setPermissions && empty($file) && empty($this->ocParentId)){
-					$this->ocParentId = $view->getFileInfo($ocRootPath)->getId();
-				}
+			// Non-owner. serve.php granted neither write ($this->writable) nor read
+			// ($this->readTrusted) access above — so there is no valid ownership or
+			// share for this user. Deny. (The old \OC\Files share-walk that used to
+			// live here fail-opened, and its checkAccess is a no-op in NC34 since
+			// \OCA\FilesSharding\Lib was removed — serve.php is authoritative now.)
+			if($setPermissions){
+				$this->shareType = self::$SHARE_TYPE_NONE;
+				$this->permissions = 0;
 			}
-			catch(\Throwable $e){
-				pico_log('files_picocms', 'ERROR: exception thrown '.$e->getMessage(), \OC_Log::ERROR);
-			}
-			finally {
-				\OC_Util::teardownFS();
-				\OC_User::setUserId($this->ocUser);
-				\OC_Util::setupFS('/'.$this->ocUser.'/files');
-			}
-			if(!empty($ocPath) && $ocPath!=='.'){
-				if($setPermissions && !empty($this->permissions) && ($this->permissions & \OCP\Constants::PERMISSION_DELETE)){
-					$this->shareType = self::$SHARE_TYPE_SHARED_WITH_ME_RW;
-					$this->editable = true;
-					$this->readable = true;
-				}
-				elseif($setPermissions && !empty($this->permissions) && ($this->permissions & \OCP\Constants::PERMISSION_READ)){
-					$this->shareType = self::$SHARE_TYPE_SHARED_WITH_ME;
-					$this->readable = true;
-				}
-				return true;
-			}
-			else{
-				if($setPermissions){
-					$this->shareType = self::$SHARE_TYPE_NONE;
-					$this->permissions = 0;
-				}
-				return false;
-			}
+			return false;
 		}
 		return false;
 	}

@@ -454,34 +454,47 @@ try {
 
 				// Strategy 1: local mount lookup (same silo)
 				foreach ($rootFolder->getUserFolder($currentUid)->getById($nodeId) as $node) {
+					$found = true;
 					if ($node->isUpdateable()) {
 						$writeGranted = true;
 						$pico->setWriteAccess($ocPath);
-						$found = true;
-						break;
+					} else {
+						$pico->setReadAccess($ocPath);
 					}
+					break;
 				}
 
 				// Strategy 2: outgoing shares from site owner (cross-silo federated shares)
 				if (!$found) {
 					$shareManager = \OC::$server->get(\OCP\Share\IManager::class);
 					$cloudIdMgr   = \OC::$server->get(\OCP\Federation\ICloudIdManager::class);
-					foreach ([\OCP\Share\IShare::TYPE_REMOTE, \OCP\Share\IShare::TYPE_USER] as $type) {
+					$groupManager = \OC::$server->get(\OCP\IGroupManager::class);
+					foreach ([\OCP\Share\IShare::TYPE_REMOTE, \OCP\Share\IShare::TYPE_USER, \OCP\Share\IShare::TYPE_GROUP] as $type) {
 						foreach ($shareManager->getSharesBy($uid, $type, $siteNode, false, -1) as $share) {
-							if (!($share->getPermissions() & \OCP\Constants::PERMISSION_UPDATE)) {
+							$match = false;
+							if ($type === \OCP\Share\IShare::TYPE_GROUP) {
+								// Folder shared with a group the current user belongs to.
+								$grp   = $groupManager->get($share->getSharedWith());
+								$match = $grp !== null && $currentUser !== null && $grp->inGroup($currentUser);
+							} else {
+								try {
+									$sharedUser = $cloudIdMgr->resolveCloudId($share->getSharedWith())->getUser();
+								} catch (\Throwable) {
+									$sharedUser = strstr($share->getSharedWith(), '@', true) ?: $share->getSharedWith();
+								}
+								$match = ($sharedUser === $currentUid);
+							}
+							if (!$match) {
 								continue;
 							}
-							try {
-								$sharedUser = $cloudIdMgr->resolveCloudId($share->getSharedWith())->getUser();
-							} catch (\Throwable) {
-								$sharedUser = strstr($share->getSharedWith(), '@', true) ?: $share->getSharedWith();
-							}
-							if ($sharedUser === $currentUid) {
+							$found = true;
+							if ($share->getPermissions() & \OCP\Constants::PERMISSION_UPDATE) {
 								$writeGranted = true;
 								$pico->setWriteAccess($ocPath);
-								$found = true;
-								break 2;
+							} else {
+								$pico->setReadAccess($ocPath);
 							}
+							break 2;
 						}
 					}
 				}

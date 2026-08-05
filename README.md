@@ -111,29 +111,36 @@ site name, chosen theme, and a detected or copied `img/data_icon.png`.
 ### Who can write
 
 - **Site owner** — the NC user whose files contain the site directory.
-- **Collaborator** — any NC user who has been granted update-permission
+- **Collaborator (write)** — any user or group granted *update*-permission
   share access to the site folder (see *Share detection* below).
+
+Read access to a `private` site uses the **same** detection: the owner, plus any
+user or group the site folder is shared with — **read or write**, local, group,
+or cross-silo federated. Everyone else, including a logged-in user with no share,
+is denied (fail-closed). So read-only sharing works for confidential material.
 
 ### Share detection
 
-`serve.php` runs two strategies to determine if the current user has write
-access:
+`serve.php` runs two strategies to determine the current user's access. A share
+grants **read**; a share carrying update permission also grants **write**. Both
+are fail-closed — no matching share means no access:
 
 **Strategy 1 — local mount lookup (same silo)**  
 If the collaborator is on the same NC instance as the owner, NC's
 `IRootFolder::getById()` finds the shared node in the collaborator's mount
-tree.  If the node reports `isUpdateable()`, write access is granted.  This
-handles standard TYPE_USER local shares.
+tree.  If found, the folder is shared with them → **read**; if the node also
+reports `isUpdateable()` → **write**.  Handles standard local TYPE_USER shares.
 
-**Strategy 2 — outgoing federated shares (cross-silo)**  
-In a sharded / trusted federation, a share from the owner to
-`collaborator@master` is recorded in the owner's silo as a TYPE_REMOTE
-(`share_type = 6`) outgoing share.  `serve.php` iterates the owner's
-outgoing TYPE_REMOTE and TYPE_USER shares, resolves the `share_with` cloud ID
-to a plain username, and compares it with the currently authenticated user's
-UID.  This covers the case where the owner is on silo2 and the collaborator's
-ghost account on silo2 (created by `files_sharding` exchange) matches the
-share recipient.
+**Strategy 2 — outgoing shares from the owner (cross-silo + groups)**  
+`serve.php` iterates the owner's outgoing TYPE_REMOTE, TYPE_USER and TYPE_GROUP
+shares of the site folder and grants access if the current user is the
+recipient: for user/federated shares by resolving the `share_with` cloud ID and
+comparing UIDs (covers the sharded case where the owner is on silo2 and the
+collaborator's federated account there matches the recipient); for TYPE_GROUP
+shares by group membership.  Read or write is granted per the share's
+permissions.  This is the sole read authority for private sites — the old
+`\OC\Files` NC-API permission walk (unreliable in NC34, and it fail-*opened*)
+has been removed.
 
 ### Write proxy
 
@@ -239,9 +246,13 @@ visitor is not already authenticated on the silo.
 
 ## Private sites
 
-Set `access: private` in `_config.md`.  Unauthenticated visitors receive HTTP
-403.  If the site provides a `content/403.md`, it is rendered through Pico
-(themed); otherwise a plain HTML page with a login link is shown.
+Set `access: private` in `_config.md`. Access is then limited to the **owner and
+whoever the site folder is shared with** (user, group, or cross-silo federated;
+read or write — see *Share detection* above). Everyone else is denied:
+unauthenticated visitors get HTTP 403 (the site's `content/403.md` themed, or a
+plain login-link page), and **logged-in users without a share are refused too**
+(fail-closed). This makes `private` safe for confidential documentation shared
+with specific people or a group.
 
 ---
 
