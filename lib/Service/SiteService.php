@@ -182,12 +182,13 @@ class SiteService {
 	}
 
 	/**
-	 * URL path prefix for site/user page URLs. Defaults to the remote.php
-	 * endpoint; set 'files_picocms.url_prefix' => '' in config.php when the
-	 * web server rewrites /sites and /users to remote.php (pretty URLs).
+	 * URL path prefix for site/user page URLs. Defaults to '/remote.php' — i.e.
+	 * links use the /remote.php/sites and /remote.php/users remote services, which
+	 * work on any web server with NO rewrite. Pretty URLs (/sites, /users) are
+	 * opt-in: set 'files_picocms.url_prefix' => '' AND add a web-server rewrite.
 	 */
 	public function urlPrefix(): string {
-		return rtrim((string)$this->config->getSystemValue('files_picocms.url_prefix', '/remote.php/files_picocms'), '/');
+		return rtrim((string)$this->config->getSystemValue('files_picocms.url_prefix', '/remote.php'), '/');
 	}
 
 	/**
@@ -229,7 +230,8 @@ class SiteService {
 		$current  = $property->getValue();
 		// Ours = the remote.php form, or the pretty form pointing at this user's own email
 		$email    = $user->getEMailAddress() ?? '';
-		$isOurs   = str_contains($current, '/remote.php/files_picocms/users/')
+		$isOurs   = str_contains($current, '/remote.php/users/')
+			|| str_contains($current, '/remote.php/files_picocms/users/')
 			|| ($email !== '' && str_contains($current, '/users/' . $email));
 
 		if ($serve) {

@@ -19,17 +19,20 @@ blog-style Twig theme; no composer install or build step is required.
 ### URL scheme
 
 ```
-/remote.php/files_picocms/sites/{name}[/{page}]    — named site (registered in DB)
-/remote.php/files_picocms/users/{email}[/{page}]   — user public page
+/remote.php/sites/{name}[/{page}]     — named site (registered in DB)
+/remote.php/users/{email}[/{page}]    — user public page
 ```
 
-All requests are handled by `appinfo/serve.php`, which runs inside the
-Nextcloud bootstrap environment and has full access to NC services.
+These are the default link form — the `sites` and `users` remote services —
+which work on any web server with **no rewrite**. All requests are handled by
+`appinfo/serve.php`, which runs inside the Nextcloud bootstrap environment and
+has full access to NC services.
 
-### Pretty URLs
+### Pretty URLs (opt-in)
 
-With rewrite rules in the web server, sites can be served at
-`/sites/{name}` and `/users/{email}` directly. Two pieces:
+By default the app generates `/remote.php/sites/…` links, which need no web-server
+configuration. Pretty URLs (`/sites/{name}`, `/users/{email}`) are **opt-in** and
+require two pieces — the app never assumes the rewrite is present:
 
 1. Web server rewrite (Apache):
 
@@ -62,13 +65,13 @@ rewrite @picocms /remote.php{uri}
 ```
 
 The parameter is the URL path prefix for all generated site/user links
-(default `/remote.php/files_picocms`). Incoming requests are accepted in
-both forms regardless of the setting, and redirects between nodes preserve
-whichever form the visitor used — but set the parameter the same on every
-node, and only together with the rewrite rules: with `''` and no rules,
-every generated link 404s (the page loads via `remote.php` but its CSS/JS,
-linked with the pretty prefix, do not — so the site renders **unstyled**).
-Note that `/sites` and `/users` become reserved top-level paths on the host.
+(**default `/remote.php`** — the no-rewrite form). Incoming requests are accepted
+in both forms regardless of the setting, and redirects between nodes preserve
+whichever form the visitor used — but only set `''` **together with** the rewrite
+rules, and set it the same on every node: with `''` and no rules, every generated
+link 404s (the page loads via `remote.php` but its CSS/JS, linked with the pretty
+prefix, do not — so the site renders **unstyled**). Note that `/sites` and
+`/users` then become reserved top-level paths on the host.
 
 **Setup check.** When `url_prefix` is empty, the app registers a Nextcloud
 setup check (`PrettyUrlsCheck`) that probes `/sites/__picocms_probe` over HTTP

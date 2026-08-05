@@ -36,7 +36,7 @@ class PrettyUrlsCheck implements ISetupCheck {
 
 	public function run(): SetupResult {
 		// Non-pretty mode (url_prefix set, e.g. "/remote.php") needs no rewrite.
-		$prefix = trim((string)$this->config->getSystemValue('files_picocms.url_prefix', '/remote.php/files_picocms'));
+		$prefix = trim((string)$this->config->getSystemValue('files_picocms.url_prefix', '/remote.php'));
 		if ($prefix !== '') {
 			return SetupResult::success('Pretty URLs are disabled (files_picocms.url_prefix is set); no web server rewrite required.');
 		}

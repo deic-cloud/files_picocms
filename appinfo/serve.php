@@ -95,7 +95,7 @@ $config = \OC::$server->get(IConfig::class);
 
 // URL prefix for generated links — '' when the web server rewrites /sites
 // and /users to remote.php (config: files_picocms.url_prefix; see README).
-$urlPrefix = rtrim((string)$config->getSystemValue('files_picocms.url_prefix', '/remote.php/files_picocms'), '/');
+$urlPrefix = rtrim((string)$config->getSystemValue('files_picocms.url_prefix', '/remote.php'), '/');
 
 $siteInfo = null;
 
