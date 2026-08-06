@@ -5,16 +5,31 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<title>{{ site_title }}{% if meta.title %} — {{ meta.title }}{% endif %}</title>
 	{% if meta.description %}<meta name="description" content="{{ meta.description|striptags }}">{% endif %}
-	<link rel="stylesheet" href="{{ theme_url }}/css/style.css" />
+	<link rel="stylesheet" href="{{ theme_url }}/css/style.css?v={{ config.sd_asset_ver|default('1') }}" />
 	{% if config.icon %}<link rel="icon" href="{{ base_url }}/{{ config.icon }}" />{% endif %}
 </head>
 <body>
 
-{# --- Full-window hero with rotating background ------------------------------
-   Danish landscapes carried over from the old sciencedata.dk theme. Add/remove by
-   editing this list and dropping files in themes/frontpage/img/backgrounds/. Images
-   are LAZY-loaded (only the visible one is fetched, then the next just before it
-   crossfades in) so the set can grow without slowing the page. #}
+{# Persistent top bar: transparent over the hero, solid once scrolled.
+   Stays fixed so "Your files" / "Log in" is always one click away. #}
+<header class="site-head" id="siteHead">
+	<a class="brand" href="{{ base_url }}">ScienceData</a>
+	<nav class="site-nav">
+		<a href="/sites/blog">Blog</a>
+		<a href="/sites/documentation">Documentation</a>
+		<a href="/sites/terms">Terms</a>
+		{% if config.sd_logged_in %}
+			<a class="nav-cta" href="{{ config.sd_files_url }}">Your files</a>
+		{% else %}
+			<a class="nav-cta" href="{{ config.sd_login_url }}">Log in</a>
+		{% endif %}
+	</nav>
+</header>
+
+{# --- Full-window hero with lazy-loaded rotating background ------------------
+   Danish landscapes from the old sciencedata.dk theme. Edit this list and drop
+   files in themes/frontpage/img/backgrounds/. Only the visible image is fetched;
+   the next is fetched just before it crossfades in, so the set stays light. #}
 {% set backgrounds = [
 	'peberholm.jpg', 'skagen.jpg', 'moens_klint.jpg', 'disko-bugten.jpg',
 	'rubjerg_knude.jpg', 'raps.jpg', 'nordlys.jpg', 'helligdomsklipperne.jpg',
@@ -28,20 +43,6 @@
 		<div class="slide layer-a"></div>
 		<div class="slide layer-b"></div>
 	</div>
-
-	<header class="site-head">
-		<a class="brand" href="{{ base_url }}">ScienceData</a>
-		<nav class="site-nav">
-			<a href="/sites/blog">Blog</a>
-			<a href="/sites/documentation">Documentation</a>
-			<a href="/sites/terms">Terms</a>
-			{% if config.sd_logged_in %}
-				<a href="{{ config.sd_files_url }}">Your files</a>
-			{% else %}
-				<a href="{{ config.sd_login_url }}">Log in</a>
-			{% endif %}
-		</nav>
-	</header>
 
 	<div class="hero-inner">
 		<h1>{% if meta.title %}{{ meta.title }}{% else %}{{ site_title }}{% endif %}</h1>
@@ -72,11 +73,9 @@
 </section>
 {% endif %}
 
-{# --- Body H2 sections rendered as responsive cards (3 cols → 1 col) --------- #}
+{# Body H2 sections → responsive cards (3 cols → 1). Split tolerates <h2 id="…">. #}
 <main class="content">
 	<div class="cards">
-		{# Split the Markdown body's H2 sections into cards. Pico gives headings id
-		   attributes (<h2 id="...">), so split on "<h2" and drop the opening tag. #}
 		{% for chunk in content|split('<h2') %}
 			{% if '</h2>' in chunk %}
 				{% set rest  = chunk|split('>', 2)[1] %}
@@ -104,23 +103,27 @@
 <footer class="site-foot">
 	<div class="foot-inner">
 		<span>ScienceData — i2, Technical University of Denmark (DTU)</span>
-		<nav>
-			<a href="/sites/blog">Blog</a>
-			<a href="/sites/documentation">Documentation</a>
-			<a href="/sites/terms">Terms</a>
-			{% if not config.sd_logged_in %}<a href="{{ config.sd_login_url }}">Log in</a>{% endif %}
-		</nav>
+		<a href="mailto:support@sciencedata.dk">support@sciencedata.dk</a>
 	</div>
 </footer>
 
 <script>
 (function () {
+	// Persistent header: solid once scrolled off the hero.
+	var head = document.getElementById('siteHead');
+	function onScroll() {
+		if (window.scrollY > 40) { head.classList.add('scrolled'); }
+		else { head.classList.remove('scrolled'); }
+	}
+	window.addEventListener('scroll', onScroll, { passive: true });
+	onScroll();
+
+	// Lazy-loaded background crossfade.
 	var imgs = [{% for bg in backgrounds %}"{{ theme_url }}/img/backgrounds/{{ bg }}"{% if not loop.last %},{% endif %}{% endfor %}];
 	var a = document.querySelector('.hero-bg .layer-a');
 	var b = document.querySelector('.hero-bg .layer-b');
 	if (!a || !b || !imgs.length) return;
 
-	// Show the first image immediately; it is the only one fetched on load.
 	a.style.backgroundImage = "url('" + imgs[0] + "')";
 	a.classList.add('active');
 	if (imgs.length < 2) return;
@@ -129,7 +132,7 @@
 	setInterval(function () {
 		var next = (idx + 1) % imgs.length;
 		var hidden = layers[(cur + 1) % 2];
-		var pre = new Image();          // lazy: fetch the next image just in time
+		var pre = new Image();
 		pre.onload = function () {
 			hidden.style.backgroundImage = "url('" + imgs[next] + "')";
 			hidden.classList.add('active');

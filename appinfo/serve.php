@@ -427,6 +427,9 @@ if ($siteName !== null && $siteName === $sdFrontpage) {
 		exit;
 	}
 	$picoConfig['sd_stats'] = _pico_sd_stats();
+	// Cache-bust the theme CSS/JS by its mtime so redeploys take effect without a
+	// hard refresh (theme assets are served with a 1-day cache header).
+	$picoConfig['sd_asset_ver'] = (string)(@filemtime($themesDir . 'frontpage/css/style.css') ?: '1');
 }
 
 // Provide request token for authenticated calls within the site (e.g. avatars)
