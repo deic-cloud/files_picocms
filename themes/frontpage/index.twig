@@ -33,8 +33,8 @@
 {% set backgrounds = [
 	'peberholm.jpg', 'skagen.jpg', 'moens_klint.jpg', 'disko-bugten.jpg',
 	'rubjerg_knude.jpg', 'raps.jpg', 'nordlys.jpg', 'helligdomsklipperne.jpg',
-	'hvedemark.jpg', 'rebild_bakker.jpg', 'esbjerg.jpg', 'fyns_hoved.jpg',
-	'hvidesande.jpg', 'loekken.jpg', 'markvej.jpg', 'sandvig.jpg',
+	'hvedemark.jpg', 'rebild_bakker.jpg', 'esbjerg.jpg',
+	'hvidesande.jpg', 'loekken.jpg', 'markvej.jpg',
 	'sorvagsvatn.jpg', 'storebaeltsbroen.jpg'
 ] %}
 
@@ -116,6 +116,33 @@
 	}
 	window.addEventListener('scroll', onScroll, { passive: true });
 	onScroll();
+
+	// Slow smooth-scroll: down-arrow glides to the content; the brand glides
+	// back to the top. (~1.4s, ease-in-out — deliberately gentler than the
+	// browser default.)
+	function ease(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+	function scrollToY(targetY, duration) {
+		var startY = window.pageYOffset, dist = targetY - startY, start = null;
+		if (Math.abs(dist) < 2) return;
+		function step(ts) {
+			start = start || ts;
+			var p = Math.min((ts - start) / duration, 1);
+			window.scrollTo(0, startY + dist * ease(p));
+			if (p < 1) { requestAnimationFrame(step); }
+		}
+		requestAnimationFrame(step);
+	}
+	var cue = document.querySelector('.scroll-cue');
+	if (cue) { cue.addEventListener('click', function (e) {
+		e.preventDefault();
+		var t = document.getElementById('more');
+		if (t) { scrollToY(t.offsetTop, 1400); }
+	}); }
+	var brand = document.querySelector('.brand');
+	if (brand) { brand.addEventListener('click', function (e) {
+		e.preventDefault();
+		scrollToY(0, 1400);
+	}); }
 
 	// One background per page load, chosen at random; changes only on reload.
 	var imgs = [{% for bg in backgrounds %}"{{ theme_url }}/img/backgrounds/{{ bg }}"{% if not loop.last %},{% endif %}{% endfor %}];
