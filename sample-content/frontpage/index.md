@@ -14,11 +14,10 @@ on free software. It is offered as a service on academic terms, not for profit.
 ## Built for research data
 
 Store and share files of any size, organise them with metadata and tags, and work
-with them where they live — launch a container next to your data, send larger jobs
-to the compute back-end, or read notebooks and e-books in the browser.
+with them where they live — launch containers and Jupyter notebooks next to your
+data, send larger jobs to compute back-ends.
 
-## Yours to keep, and to publish
+## Yours to keep, yours to publish
 
 Your files stay yours. When you want to make something public, share a folder with
-a link, or mint a DOI through Zenodo or Figshare — the choice, and the timing, are
-yours.
+a link, or mint a DOI through Zenodo or Figshare — the choice and timing are yours.

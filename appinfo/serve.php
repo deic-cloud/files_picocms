@@ -58,12 +58,33 @@ $siteName  = null;
 $userEmail = null;
 $sitePath  = '';
 
+// Detect the bare-root request (the "/" landing). The rewrite leaves REQUEST_URI
+// as "/" (which is why $localPath is "/" here and the site patterns miss), and it
+// also sets env SD_ROOT=1 — internal rewrites prefix that with one or more
+// REDIRECT_, so match any key ending in SD_ROOT rather than a fixed name.
+$sdViaRoot = ($localPath === '/' || $localPath === '');
+if (!$sdViaRoot) {
+	foreach ($_SERVER as $k => $v) {
+		if (substr($k, -7) === 'SD_ROOT' && $v === '1') {
+			$sdViaRoot = true;
+			break;
+		}
+	}
+}
+
 if (preg_match('|^/sites/([^/]+)(/.*)?$|', $localPath, $m)) {
 	$siteName = urldecode($m[1]);
 	$sitePath = isset($m[2]) ? ltrim($m[2], '/') : '';
 } elseif (preg_match('|^/users/([^/]+)(/.*)?$|', $localPath, $m)) {
 	$userEmail = urldecode($m[1]);
 	$sitePath  = isset($m[2]) ? ltrim($m[2], '/') : '';
+} elseif ($sdViaRoot) {
+	// ScienceData landing: the bare-root rewrite (SD_ROOT=1) points "/" at the
+	// welcome site, but REQUEST_URI stays "/" so the patterns above don't match.
+	// Resolve the configured landing site explicitly. (Logged-in visitors are
+	// redirected on to Files further below, once the session is known.)
+	$siteName = (string)\OC::$server->get(\OCP\IConfig::class)->getSystemValue('files_picocms.frontpage_site', 'welcome');
+	$sitePath = '';
 } else {
 	http_response_code(404);
 	exit;
@@ -421,8 +442,7 @@ if ($siteName !== null && $siteName === $sdFrontpage) {
 	// a session cookie to anonymous visitors too, so the web server can't tell
 	// login state from cookies. Reaching /sites/welcome directly (no SD_ROOT)
 	// always renders — so logged-in users can still view the landing page.
-	$viaRoot = (($_SERVER['REDIRECT_SD_ROOT'] ?? $_SERVER['SD_ROOT'] ?? '') === '1');
-	if ($viaRoot && $sdUser !== null) {
+	if ($sdViaRoot && $sdUser !== null) {
 		header('Location: ' . $picoConfig['sd_files_url'], true, 302);
 		exit;
 	}
