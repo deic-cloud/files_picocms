@@ -394,6 +394,41 @@ $picoConfig['original_path']  = $sitePath;
 // into the NC Files app (e.g. the team-site Manage button).
 $picoConfig['site_folder']    = $siteInfo['path'];
 
+// --- ScienceData: login-aware nav + (landing-only) live service stats --------
+// Nextcloud is already booted here, so every theme can render a context-aware
+// header — "Log in" for anonymous visitors, "Your files" once logged in — and
+// content pages (blog/docs/terms) stay reachable in both states. The landing
+// site additionally gets self-updating service numbers so it never reads as a
+// static brochure.
+try {
+	$sdUser = \OC::$server->get(\OCP\IUserSession::class)->getUser();
+} catch (\Throwable) {
+	$sdUser = null;
+}
+$picoConfig['sd_logged_in']    = ($sdUser !== null);
+$picoConfig['sd_user_display'] = $sdUser ? $sdUser->getDisplayName() : '';
+$picoConfig['sd_files_url']    = $masterBase . '/index.php/apps/files/';
+$picoConfig['sd_login_url']    = $masterBase . '/index.php/login';
+
+// Live pulse + participating institutions — computed only for the landing site
+// (configurable name, default "welcome"), cached so anonymous hits never run
+// these queries per request.
+$sdFrontpage = (string)$config->getSystemValue('files_picocms.frontpage_site', 'welcome');
+if ($siteName !== null && $siteName === $sdFrontpage) {
+	// When reached via the bare-root rewrite (the web server sets SD_ROOT=1 for a
+	// request to "/"), send logged-in users straight to their files; anonymous
+	// visitors get the landing page. Deciding this in PHP is deliberate: NC issues
+	// a session cookie to anonymous visitors too, so the web server can't tell
+	// login state from cookies. Reaching /sites/welcome directly (no SD_ROOT)
+	// always renders — so logged-in users can still view the landing page.
+	$viaRoot = (($_SERVER['REDIRECT_SD_ROOT'] ?? $_SERVER['SD_ROOT'] ?? '') === '1');
+	if ($viaRoot && $sdUser !== null) {
+		header('Location: ' . $picoConfig['sd_files_url'], true, 302);
+		exit;
+	}
+	$picoConfig['sd_stats'] = _pico_sd_stats();
+}
+
 // Provide request token for authenticated calls within the site (e.g. avatars)
 try {
 	$picoConfig['requesttoken'] = \OC::$server->get(\OCP\ISession::class)->get('requesttoken') ?? '';
@@ -674,6 +709,116 @@ try {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Live service pulse + participating institutions for the landing page.
+ *
+ * Cheap COUNT queries, cached (default 10 min) so anonymous landing-page hits
+ * never touch the DB per request. Sources are the platform's real user model, not
+ * oc_users (which on the master holds only service accounts): institutions are the
+ * hidden schacHomeOrganization domain groups (user_group_admin), researchers are
+ * the distinct members of those groups (every SAML login is added to its domain
+ * group), groups are the user-created (non-hidden) groups, and public datasets are
+ * public-link shares. Each block is guarded, so a node without user_group_admin
+ * degrades to 0 rather than erroring. On multi-silo deployments the landing page is
+ * served from the master, so shares are master-side; a service-wide share rollup is
+ * the same aggregation the public-share catalog (Increment 2) will add.
+ *
+ * @return array{researchers:int,institutions:int,institution_list:string[],groups:int,public_datasets:int}
+ */
+function _pico_sd_stats(): array {
+	$cache = null;
+	try {
+		$cf = \OC::$server->get(\OCP\ICacheFactory::class);
+		if ($cf->isAvailable()) {
+			$cache = $cf->createDistributed('files_picocms_stats');
+		}
+	} catch (\Throwable) {
+		$cache = null;
+	}
+	if ($cache !== null) {
+		$hit = $cache->get('landing');
+		if (is_array($hit)) {
+			return $hit;
+		}
+	}
+
+	$out = [
+		'researchers'      => 0,
+		'institutions'     => 0,
+		'institution_list' => [],
+		'groups'           => 0,
+		'public_datasets'  => 0,
+	];
+	$db = null;
+	try {
+		$db = \OC::$server->get(\OCP\IDBConnection::class);
+	} catch (\Throwable) {
+		$db = null;
+	}
+	$intParam = \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT;
+
+	if ($db !== null) {
+		// Researchers = distinct members of the (domain + user) groups. Every SAML
+		// login is added to its schacHomeOrganization domain group, so this tracks
+		// the real research user base regardless of which silo they live on.
+		try {
+			$q = $db->getQueryBuilder();
+			$q->selectDistinct('uid')->from('uga_group_members');
+			$res = $q->executeQuery();
+			$n = 0;
+			while (($res->fetch()) !== false) {
+				$n++;
+			}
+			$res->closeCursor();
+			$out['researchers'] = $n;
+		} catch (\Throwable) {
+		}
+
+		// Institutions = hidden domain groups (one per schacHomeOrganization).
+		try {
+			$q = $db->getQueryBuilder();
+			$q->select('gid')->from('uga_groups')
+				->where($q->expr()->eq('hidden', $q->createNamedParameter(1, $intParam)));
+			$res = $q->executeQuery();
+			$insts = [];
+			while (($row = $res->fetch()) !== false) {
+				$g = (string)($row['gid'] ?? '');
+				if ($g !== '') {
+					$insts[] = $g;
+				}
+			}
+			$res->closeCursor();
+			sort($insts);
+			$out['institution_list'] = $insts;
+			$out['institutions']     = count($insts);
+		} catch (\Throwable) {
+		}
+
+		// Groups = user-created (non-hidden) groups.
+		try {
+			$q = $db->getQueryBuilder();
+			$q->select($q->func()->count('*', 'c'))->from('uga_groups')
+				->where($q->expr()->eq('hidden', $q->createNamedParameter(0, $intParam)));
+			$out['groups'] = (int)$q->executeQuery()->fetchOne();
+		} catch (\Throwable) {
+		}
+
+		// Public datasets = public-link shares (share_type 3 = TYPE_LINK).
+		try {
+			$q = $db->getQueryBuilder();
+			$q->select($q->func()->count('*', 'c'))->from('share')
+				->where($q->expr()->eq('share_type', $q->createNamedParameter(3, $intParam)));
+			$out['public_datasets'] = (int)$q->executeQuery()->fetchOne();
+		} catch (\Throwable) {
+		}
+	}
+
+	if ($cache !== null) {
+		$cache->set('landing', $out, 600);
+	}
+	return $out;
+}
 
 /**
  * Resolve a site name via the master's authoritative registry.

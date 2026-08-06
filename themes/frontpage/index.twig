@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>{{ site_title }}{% if meta.title %} — {{ meta.title }}{% endif %}</title>
+	{% if meta.description %}<meta name="description" content="{{ meta.description|striptags }}">{% endif %}
+	<link rel="stylesheet" href="{{ theme_url }}/css/style.css" />
+	{% if config.icon %}<link rel="icon" href="{{ base_url }}/{{ config.icon }}" />{% endif %}
+</head>
+<body>
+
+<header class="site-head">
+	<a class="brand" href="{{ base_url }}">ScienceData</a>
+	<nav class="site-nav">
+		<a href="/sites/blog">Blog</a>
+		<a href="/sites/documentation">Documentation</a>
+		<a href="/sites/terms">Terms</a>
+		{% if config.sd_logged_in %}
+			<a class="btn btn-primary" href="{{ config.sd_files_url }}">Your files</a>
+		{% else %}
+			<a class="btn btn-primary" href="{{ config.sd_login_url }}">Log in</a>
+		{% endif %}
+	</nav>
+</header>
+
+<section class="hero">
+	<div class="hero-inner">
+		<h1>{% if meta.title %}{{ meta.title }}{% else %}{{ site_title }}{% endif %}</h1>
+		{% if meta.tagline %}<p class="tagline">{{ meta.tagline }}</p>{% endif %}
+		<div class="hero-actions">
+			{% if config.sd_logged_in %}
+				<a class="btn btn-primary btn-lg" href="{{ config.sd_files_url }}">Go to your files</a>
+			{% else %}
+				<a class="btn btn-primary btn-lg" href="{{ config.sd_login_url }}">Log in</a>
+			{% endif %}
+			<a class="btn btn-ghost btn-lg" href="/sites/documentation">Read the docs</a>
+		</div>
+	</div>
+</section>
+
+{% if config.sd_stats %}
+<section class="pulse">
+	<div class="pulse-inner">
+		<div class="stat"><span class="num">{{ config.sd_stats.researchers }}</span><span class="label">researchers</span></div>
+		<div class="stat"><span class="num">{{ config.sd_stats.institutions }}</span><span class="label">institutions</span></div>
+		<div class="stat"><span class="num">{{ config.sd_stats.groups }}</span><span class="label">groups</span></div>
+		<div class="stat"><span class="num">{{ config.sd_stats.public_datasets }}</span><span class="label">public datasets</span></div>
+	</div>
+</section>
+{% endif %}
+
+<main class="content">
+	<div class="content-inner">
+		{{ content }}
+	</div>
+</main>
+
+{% if config.sd_stats and config.sd_stats.institution_list is not empty %}
+<section class="institutions">
+	<div class="institutions-inner">
+		<h2>Researchers from</h2>
+		<ul class="inst-list">
+			{% for inst in config.sd_stats.institution_list %}<li>{{ inst }}</li>{% endfor %}
+		</ul>
+	</div>
+</section>
+{% endif %}
+
+<footer class="site-foot">
+	<div class="foot-inner">
+		<span>ScienceData — i2, Technical University of Denmark (DTU)</span>
+		<nav>
+			<a href="/sites/blog">Blog</a>
+			<a href="/sites/documentation">Documentation</a>
+			<a href="/sites/terms">Terms</a>
+			{% if not config.sd_logged_in %}<a href="{{ config.sd_login_url }}">Log in</a>{% endif %}
+		</nav>
+	</div>
+</footer>
+
+</body>
+</html>
