@@ -10,21 +10,32 @@
 </head>
 <body>
 
-<header class="site-head">
-	<a class="brand" href="{{ base_url }}">ScienceData</a>
-	<nav class="site-nav">
-		<a href="/sites/blog">Blog</a>
-		<a href="/sites/documentation">Documentation</a>
-		<a href="/sites/terms">Terms</a>
-		{% if config.sd_logged_in %}
-			<a class="btn btn-primary" href="{{ config.sd_files_url }}">Your files</a>
-		{% else %}
-			<a class="btn btn-primary" href="{{ config.sd_login_url }}">Log in</a>
-		{% endif %}
-	</nav>
-</header>
+{# --- Full-window hero with rotating background ------------------------------
+   Add more photos by dropping files in themes/frontpage/img/backgrounds/ and
+   listing them here. With one image it stays static; with several it crossfades. #}
+{% set backgrounds = ['peberholm.jpg'] %}
 
 <section class="hero">
+	<div class="hero-bg">
+		{% for bg in backgrounds %}
+		<div class="slide{% if loop.first %} active{% endif %}" style="background-image:url('{{ theme_url }}/img/backgrounds/{{ bg }}')"></div>
+		{% endfor %}
+	</div>
+
+	<header class="site-head">
+		<a class="brand" href="{{ base_url }}">ScienceData</a>
+		<nav class="site-nav">
+			<a href="/sites/blog">Blog</a>
+			<a href="/sites/documentation">Documentation</a>
+			<a href="/sites/terms">Terms</a>
+			{% if config.sd_logged_in %}
+				<a href="{{ config.sd_files_url }}">Your files</a>
+			{% else %}
+				<a href="{{ config.sd_login_url }}">Log in</a>
+			{% endif %}
+		</nav>
+	</header>
+
 	<div class="hero-inner">
 		<h1>{% if meta.title %}{{ meta.title }}{% else %}{{ site_title }}{% endif %}</h1>
 		{% if meta.tagline %}<p class="tagline">{{ meta.tagline }}</p>{% endif %}
@@ -37,7 +48,11 @@
 			<a class="btn btn-ghost btn-lg" href="/sites/documentation">Read the docs</a>
 		</div>
 	</div>
+
+	<a class="scroll-cue" href="#more" aria-label="Scroll down"><span></span></a>
 </section>
+
+<a id="more"></a>
 
 {% if config.sd_stats %}
 <section class="pulse">
@@ -50,9 +65,21 @@
 </section>
 {% endif %}
 
+{# --- Body H2 sections rendered as responsive cards (3 cols → 1 col) --------- #}
 <main class="content">
-	<div class="content-inner">
-		{{ content }}
+	<div class="cards">
+		{# Split the Markdown body's H2 sections into cards. Pico gives headings id
+		   attributes (<h2 id="...">), so split on "<h2" and drop the opening tag. #}
+		{% for chunk in content|split('<h2') %}
+			{% if '</h2>' in chunk %}
+				{% set rest  = chunk|split('>', 2)[1] %}
+				{% set parts = rest|split('</h2>', 2) %}
+				<article class="card">
+					<h3>{{ parts[0]|striptags }}</h3>
+					<div class="card-body">{{ parts[1]|raw }}</div>
+				</article>
+			{% endif %}
+		{% endfor %}
 	</div>
 </main>
 
@@ -78,6 +105,19 @@
 		</nav>
 	</div>
 </footer>
+
+<script>
+(function () {
+	var slides = document.querySelectorAll('.hero-bg .slide');
+	if (slides.length < 2) return;
+	var i = 0;
+	setInterval(function () {
+		slides[i].classList.remove('active');
+		i = (i + 1) % slides.length;
+		slides[i].classList.add('active');
+	}, 7000);
+})();
+</script>
 
 </body>
 </html>
