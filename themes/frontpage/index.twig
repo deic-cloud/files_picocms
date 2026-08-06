@@ -11,15 +11,22 @@
 <body>
 
 {# --- Full-window hero with rotating background ------------------------------
-   Add more photos by dropping files in themes/frontpage/img/backgrounds/ and
-   listing them here. With one image it stays static; with several it crossfades. #}
-{% set backgrounds = ['peberholm.jpg'] %}
+   Danish landscapes carried over from the old sciencedata.dk theme. Add/remove by
+   editing this list and dropping files in themes/frontpage/img/backgrounds/. Images
+   are LAZY-loaded (only the visible one is fetched, then the next just before it
+   crossfades in) so the set can grow without slowing the page. #}
+{% set backgrounds = [
+	'peberholm.jpg', 'skagen.jpg', 'moens_klint.jpg', 'disko-bugten.jpg',
+	'rubjerg_knude.jpg', 'raps.jpg', 'nordlys.jpg', 'helligdomsklipperne.jpg',
+	'hvedemark.jpg', 'rebild_bakker.jpg', 'esbjerg.jpg', 'fyns_hoved.jpg',
+	'hvidesande.jpg', 'loekken.jpg', 'markvej.jpg', 'sandvig.jpg',
+	'sorvagsvatn.jpg', 'storebaeltsbroen.jpg'
+] %}
 
 <section class="hero">
 	<div class="hero-bg">
-		{% for bg in backgrounds %}
-		<div class="slide{% if loop.first %} active{% endif %}" style="background-image:url('{{ theme_url }}/img/backgrounds/{{ bg }}')"></div>
-		{% endfor %}
+		<div class="slide layer-a"></div>
+		<div class="slide layer-b"></div>
 	</div>
 
 	<header class="site-head">
@@ -108,13 +115,29 @@
 
 <script>
 (function () {
-	var slides = document.querySelectorAll('.hero-bg .slide');
-	if (slides.length < 2) return;
-	var i = 0;
+	var imgs = [{% for bg in backgrounds %}"{{ theme_url }}/img/backgrounds/{{ bg }}"{% if not loop.last %},{% endif %}{% endfor %}];
+	var a = document.querySelector('.hero-bg .layer-a');
+	var b = document.querySelector('.hero-bg .layer-b');
+	if (!a || !b || !imgs.length) return;
+
+	// Show the first image immediately; it is the only one fetched on load.
+	a.style.backgroundImage = "url('" + imgs[0] + "')";
+	a.classList.add('active');
+	if (imgs.length < 2) return;
+
+	var layers = [a, b], cur = 0, idx = 0;
 	setInterval(function () {
-		slides[i].classList.remove('active');
-		i = (i + 1) % slides.length;
-		slides[i].classList.add('active');
+		var next = (idx + 1) % imgs.length;
+		var hidden = layers[(cur + 1) % 2];
+		var pre = new Image();          // lazy: fetch the next image just in time
+		pre.onload = function () {
+			hidden.style.backgroundImage = "url('" + imgs[next] + "')";
+			hidden.classList.add('active');
+			layers[cur].classList.remove('active');
+			cur = (cur + 1) % 2;
+			idx = next;
+		};
+		pre.src = imgs[next];
 	}, 7000);
 })();
 </script>
