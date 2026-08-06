@@ -41,7 +41,6 @@
 <section class="hero">
 	<div class="hero-bg">
 		<div class="slide layer-a"></div>
-		<div class="slide layer-b"></div>
 	</div>
 
 	<div class="hero-inner">
@@ -118,30 +117,14 @@
 	window.addEventListener('scroll', onScroll, { passive: true });
 	onScroll();
 
-	// Lazy-loaded background crossfade.
+	// One background per page load, chosen at random; changes only on reload.
 	var imgs = [{% for bg in backgrounds %}"{{ theme_url }}/img/backgrounds/{{ bg }}"{% if not loop.last %},{% endif %}{% endfor %}];
 	var a = document.querySelector('.hero-bg .layer-a');
-	var b = document.querySelector('.hero-bg .layer-b');
-	if (!a || !b || !imgs.length) return;
-
-	a.style.backgroundImage = "url('" + imgs[0] + "')";
-	a.classList.add('active');
-	if (imgs.length < 2) return;
-
-	var layers = [a, b], cur = 0, idx = 0;
-	setInterval(function () {
-		var next = (idx + 1) % imgs.length;
-		var hidden = layers[(cur + 1) % 2];
-		var pre = new Image();
-		pre.onload = function () {
-			hidden.style.backgroundImage = "url('" + imgs[next] + "')";
-			hidden.classList.add('active');
-			layers[cur].classList.remove('active');
-			cur = (cur + 1) % 2;
-			idx = next;
-		};
-		pre.src = imgs[next];
-	}, 7000);
+	if (a && imgs.length) {
+		var pick = imgs[Math.floor(Math.random() * imgs.length)];
+		a.style.backgroundImage = "url('" + pick + "')";
+		a.classList.add('active');
+	}
 })();
 </script>
 

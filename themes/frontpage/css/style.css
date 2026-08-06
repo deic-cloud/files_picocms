@@ -112,12 +112,12 @@ a:hover { text-decoration: underline; }
 }
 @keyframes bob { 0%,100% { transform: rotate(45deg) translate(0,0); } 50% { transform: rotate(45deg) translate(4px,4px); } }
 
-#more { scroll-margin-top: 72px; }
+#more { scroll-margin-top: 0; }
 
 /* --- pulse --- */
 .pulse { border-bottom: 1px solid var(--line); }
 .pulse-inner {
-	max-width: 900px; margin: 0 auto; padding: 2.25rem 1.5rem;
+	max-width: 900px; margin: 0 auto; padding: 4.5rem 1.5rem 2.25rem;
 	display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; text-align: center;
 }
 .stat { display: flex; flex-direction: column; gap: 0.15rem; }
