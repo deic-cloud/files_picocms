@@ -430,6 +430,11 @@ if ($siteName !== null && $siteName === $sdFrontpage) {
 	// Cache-bust the theme CSS/JS by its mtime so redeploys take effect without a
 	// hard refresh (theme assets are served with a 1-day cache header).
 	$picoConfig['sd_asset_ver'] = (string)(@filemtime($themesDir . 'frontpage/css/style.css') ?: '1');
+	// Serve the theme's static assets (CSS + the background photos) from the app's
+	// real path so Apache delivers them DIRECTLY — no Nextcloud bootstrap, no
+	// session cookie, long cache. Going through this serve.php (a <remote> script)
+	// boots NC per request and sets Set-Cookie, which is slow and defeats caching.
+	$picoConfig['sd_theme_static'] = $webRoot . '/apps/files_picocms/themes/frontpage';
 }
 
 // Provide request token for authenticated calls within the site (e.g. avatars)

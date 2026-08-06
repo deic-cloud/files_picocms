@@ -5,7 +5,8 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<title>{{ site_title }}{% if meta.title %} — {{ meta.title }}{% endif %}</title>
 	{% if meta.description %}<meta name="description" content="{{ meta.description|striptags }}">{% endif %}
-	<link rel="stylesheet" href="{{ theme_url }}/css/style.css?v={{ config.sd_asset_ver|default('1') }}" />
+	{% set static_base = config.sd_theme_static|default(theme_url) %}
+	<link rel="stylesheet" href="{{ static_base }}/css/style.css?v={{ config.sd_asset_ver|default('1') }}" />
 	{% if config.icon %}<link rel="icon" href="{{ base_url }}/{{ config.icon }}" />{% endif %}
 </head>
 <body>
@@ -145,7 +146,7 @@
 	}); }
 
 	// One background per page load, chosen at random; changes only on reload.
-	var imgs = [{% for bg in backgrounds %}"{{ theme_url }}/img/backgrounds/{{ bg }}"{% if not loop.last %},{% endif %}{% endfor %}];
+	var imgs = [{% for bg in backgrounds %}"{{ static_base }}/img/backgrounds/{{ bg }}"{% if not loop.last %},{% endif %}{% endfor %}];
 	var a = document.querySelector('.hero-bg .layer-a');
 	if (a && imgs.length) {
 		var pick = imgs[Math.floor(Math.random() * imgs.length)];
