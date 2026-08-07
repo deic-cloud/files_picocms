@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ScienceData">
   <!-- transparent background; a large dark dotless "i" stem topped by a red dot -->
-  <rect x="26.5" y="25" width="11" height="29" rx="3" fill="#1a2230"/>
-  <circle cx="32" cy="9" r="6" fill="#C8102E"/>
+  <rect x="26.5" y="20" width="11" height="34" rx="3" fill="#1a2230"/>
+  <circle cx="32" cy="8" r="6.5" fill="#C8102E"/>
 </svg>
