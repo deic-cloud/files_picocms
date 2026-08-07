@@ -1,12 +1,11 @@
 ---
-Title: About me
-Site: Personal site
-Tagline: Information on my interests and <span class=text-green>research</span> activities
-Social:
-  https://www.linkedin.com/company/deic: linkedin
-  https://github.com/deic-dk: github
-  https://twitter.com/deic1: twitter
+Title: Blog
 Theme: blog
-Access: private
+Description: News and updates.
 ---
 
+# Blog
+
+A starter blog. Replace this with your own posts — each Markdown file you add to
+this folder becomes a post. Edit it from the content account (e.g.
+`cloud/files/blog/`).

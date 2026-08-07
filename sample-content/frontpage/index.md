@@ -1,23 +1,23 @@
 ---
-Title: Big data without big tech
-Tagline: Research data storage run on non-profit academic terms — you keep control of your own data.
+Title: Store, share and publish research data
+Tagline: Your files and datasets, under your control.
 Theme: frontpage
-Description: ScienceData — research data storage, sharing, computation and publishing, run by i2 at the Technical University of Denmark.
+Description: A research data service.
 Robots: index,follow
 ---
 
-## Non-profit
+## Store and share
 
-ScienceData is run by i2, an IT unit at the Technical University of Denmark (DTU),
-on free software. It is offered as a service on academic terms, not for profit.
+Keep files and datasets of any size, sync them across the web, desktop and
+WebDAV, and share them with people, groups, or a public link — including
+read-only links.
 
-## Built for research data
+## Work with your data
 
-Store and share files of any size, organise them with metadata and tags, and work
-with them where they live — launch containers and Jupyter notebooks next to your
-data, send larger jobs to compute back-ends.
+Launch containers and notebooks next to your data, send larger jobs to compute
+back-ends, and read notebooks and e-books in the browser.
 
 ## Yours to keep, yours to publish
 
-Your files stay yours. When you want to make something public, share a folder with
-a link, or mint a DOI through Zenodo or Figshare — the choice and timing are yours.
+Your files stay yours. Share a folder as a public dataset when you choose to, or
+mint a citable DOI through Zenodo or Figshare — the choice and timing are yours.
