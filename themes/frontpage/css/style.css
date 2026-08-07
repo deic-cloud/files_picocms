@@ -19,10 +19,10 @@
 	content: "";
 	position: absolute;
 	left: 50%;
-	bottom: 0.78em;   /* sits above the (dotless) i stem — tune this one value */
+	bottom: 0.76em;   /* sits above the (dotless) i stem — tune this one value */
 	transform: translateX(-50%);
-	width: 0.15em;
-	height: 0.15em;
+	width: 0.2em;
+	height: 0.2em;
 	border-radius: 50%;
 	background: var(--sd-red);
 }

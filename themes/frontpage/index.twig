@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>{{ site_title }}{% if meta.title %} — {{ meta.title }}{% endif %}</title>
+	<title>{{ meta.title ? 'ScienceData — ' ~ meta.title : 'ScienceData' }}</title>
 	{% if meta.description %}<meta name="description" content="{{ meta.description|striptags }}">{% endif %}
 	{% set static_base = config.sd_theme_static|default(theme_url) %}
 	<link rel="stylesheet" href="{{ static_base }}/css/style.css?v={{ config.sd_asset_ver|default('1') }}" />
