@@ -6,7 +6,9 @@ namespace OCA\FilesPicoCMS\AppInfo;
 
 use OCA\Files\Event\LoadAdditionalScriptsEvent;
 use OCA\FilesPicoCMS\Listener\LoadSidebarScriptsListener;
+use OCA\FilesPicoCMS\Listener\WelcomeListener;
 use OCP\AppFramework\App;
+use OCP\AppFramework\Http\Events\BeforeTemplateRenderedEvent;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
@@ -20,6 +22,8 @@ class Application extends App implements IBootstrap {
 
 	public function register(IRegistrationContext $context): void {
 		$context->registerEventListener(LoadAdditionalScriptsEvent::class, LoadSidebarScriptsListener::class);
+		// One-time welcome + terms-consent modal on any logged-in page.
+		$context->registerEventListener(BeforeTemplateRenderedEvent::class, WelcomeListener::class);
 		// Admin-overview warning if pretty URLs (/sites, /users) aren't rewritten to
 		// the app. Guarded: the silo stub IRegistrationContext lacks this method.
 		try {

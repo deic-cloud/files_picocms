@@ -1,0 +1,61 @@
+/* ScienceData welcome + terms-consent modal. Uses NC theme variables (with
+   fallbacks) so it matches light/dark themes. */
+
+.sd-welcome-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+}
+
+.sd-welcome-card {
+	background: var(--color-main-background, #ffffff);
+	color: var(--color-main-text, #1a2230);
+	max-width: 460px;
+	width: 100%;
+	border-radius: 12px;
+	padding: 2rem;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+	text-align: center;
+	line-height: 1.5;
+}
+
+.sd-welcome-card h2 {
+	margin: 0 0 0.75rem;
+	font-size: 1.5rem;
+	font-weight: 700;
+}
+
+.sd-welcome-card p {
+	margin: 0 0 1rem;
+}
+
+.sd-welcome-terms {
+	font-size: 0.95rem;
+	color: var(--color-text-maxcontrast, #5b6672);
+}
+
+.sd-welcome-btn {
+	margin-top: 0.5rem;
+	background: var(--color-primary-element, #235789);
+	color: var(--color-primary-element-text, #ffffff);
+	border: none;
+	border-radius: 8px;
+	padding: 0.7rem 1.6rem;
+	font-size: 1.05rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.sd-welcome-btn:hover {
+	background: var(--color-primary-element-hover, #1b456d);
+}
+
+.sd-welcome-btn:disabled {
+	opacity: 0.6;
+	cursor: default;
+}

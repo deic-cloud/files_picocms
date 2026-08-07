@@ -8,6 +8,7 @@ use OCA\FilesPicoCMS\Service\SiteService;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
+use OCP\IConfig;
 use OCP\IRequest;
 use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
@@ -19,8 +20,23 @@ class ApiController extends OCSController {
 		private SiteService $siteService,
 		private IUserSession $userSession,
 		private LoggerInterface $logger,
+		private IConfig     $config,
 	) {
 		parent::__construct($appName, $request);
+	}
+
+	/**
+	 * Record that the current user has seen the welcome modal and accepted the
+	 * terms (passive consent). Sets a per-user flag with the acceptance time, so
+	 * WelcomeListener stops injecting the modal.
+	 */
+	#[NoAdminRequired]
+	public function setWelcomed(): DataResponse {
+		$user = $this->userSession->getUser();
+		if ($user !== null) {
+			$this->config->setUserValue($user->getUID(), 'files_picocms', 'welcomed', (string)time());
+		}
+		return new DataResponse(['status' => 'ok']);
 	}
 
 	#[NoAdminRequired]

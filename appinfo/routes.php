@@ -14,6 +14,8 @@ return [
 		['name' => 'api#setServePublic',    'url' => '/api/v1/serve-public',  'verb' => 'POST'],
 		['name' => 'api#getConfig',         'url' => '/api/v1/config',        'verb' => 'GET'],
 		['name' => 'api#putConfig',         'url' => '/api/v1/config',        'verb' => 'POST'],
+		// Welcome/terms consent (set the per-user 'welcomed' flag)
+		['name' => 'api#setWelcomed',       'url' => '/api/v1/welcomed',      'verb' => 'POST'],
 		// Admin API
 		['name' => 'api#getSampleFolder',   'url' => '/api/v1/sample-folder', 'verb' => 'GET'],
 		['name' => 'api#setSampleFolder',   'url' => '/api/v1/sample-folder', 'verb' => 'POST'],
