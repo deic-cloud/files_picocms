@@ -17,5 +17,7 @@ class LoadSidebarScriptsListener implements IEventListener {
 		}
 		Util::addScript('files_picocms', 'sidebar');
 		Util::addStyle('files_picocms', 'sidebar');
+		// "Publish to catalog" folder action (bundled; registers via @nextcloud/files).
+		Util::addScript('files_picocms', 'files-action', 'files');
 	}
 }
