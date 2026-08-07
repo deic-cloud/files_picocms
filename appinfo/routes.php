@@ -21,6 +21,10 @@ return [
 	'routes' => [
 		// App page
 		['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
+		// Site-root landing decision (Application::boot() sends "/" here so the
+		// logged-in vs. anonymous choice is made on index.php, after auth loads —
+		// avoids the remote.php strict-cookie 412 on the post-SAML-login "/").
+		['name' => 'frontpage#index', 'url' => '/home', 'verb' => 'GET'],
 		// Internal inter-server API (authenticated by shared secret, used by files_sharding)
 		['name' => 'internal#listSites',      'url' => '/internal/sites',         'verb' => 'GET'],
 		['name' => 'internal#addSite',        'url' => '/internal/sites',         'verb' => 'POST'],

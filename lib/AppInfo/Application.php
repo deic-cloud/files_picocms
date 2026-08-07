@@ -61,12 +61,15 @@ class Application extends App implements IBootstrap {
 				return;
 			}
 
-			/** @var \OCP\IConfig $config */
-			$config = $server->get(\OCP\IConfig::class);
-			$site = (string)$config->getSystemValue('files_picocms.frontpage_site', 'welcome');
+			// Hand off to the FrontpageController (index.php) rather than jumping
+			// straight to the /sites/ landing (remote.php): the controller re-checks
+			// login AFTER auth is loaded and, being on index.php, is exempt from the
+			// strict-cookie 412 that bit a just-logged-in cross-site "/" request.
+			// (isLoggedIn() here in boot() can be false for such a request because
+			// the SameSite strict cookie isn't sent on the WAYF cross-site return.)
 			/** @var \OCP\IURLGenerator $urlGenerator */
 			$urlGenerator = $server->get(\OCP\IURLGenerator::class);
-			header('Location: ' . $urlGenerator->getAbsoluteURL('/sites/' . $site . '/'));
+			header('Location: ' . $urlGenerator->linkToRouteAbsolute('files_picocms.frontpage.index'));
 			exit;
 		} catch (\Throwable) {
 			// Never let the landing redirect break normal request handling.
