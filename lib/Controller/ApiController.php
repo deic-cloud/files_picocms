@@ -5,12 +5,18 @@ declare(strict_types=1);
 namespace OCA\FilesPicoCMS\Controller;
 
 use OCA\FilesPicoCMS\Service\SiteService;
+use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
+use OCP\Constants;
+use OCP\Files\IRootFolder;
 use OCP\IConfig;
 use OCP\IRequest;
+use OCP\IURLGenerator;
 use OCP\IUserSession;
+use OCP\Share\IManager as IShareManager;
+use OCP\Share\IShare;
 use Psr\Log\LoggerInterface;
 
 class ApiController extends OCSController {
@@ -21,8 +27,61 @@ class ApiController extends OCSController {
 		private IUserSession $userSession,
 		private LoggerInterface $logger,
 		private IConfig     $config,
+		private IRootFolder $rootFolder,
+		private IShareManager $shareManager,
+		private IURLGenerator $urlGenerator,
 	) {
 		parent::__construct($appName, $request);
+	}
+
+	/**
+	 * Opt a folder in/out of the public ScienceData catalog (the "Publish to
+	 * catalog" file action). Ensures the folder has a public link share, then
+	 * sets/clears the sciencedata:catalog_listed attribute on it. Listing does not
+	 * change the share's permissions — it only marks an already-public folder as
+	 * discoverable. Returns the public link so the UI can show/nudge.
+	 */
+	#[NoAdminRequired]
+	public function setCatalogListed(int $fileId, bool $listed = true): DataResponse {
+		$user = $this->userSession->getUser();
+		if ($user === null) {
+			return new DataResponse(['status' => 'error', 'message' => 'not logged in'], Http::STATUS_UNAUTHORIZED);
+		}
+		$uid = $user->getUID();
+
+		$nodes = $this->rootFolder->getUserFolder($uid)->getById($fileId);
+		$node = $nodes[0] ?? null;
+		if ($node === null) {
+			return new DataResponse(['status' => 'error', 'message' => 'not found'], Http::STATUS_NOT_FOUND);
+		}
+
+		$shares = $this->shareManager->getSharesBy($uid, IShare::TYPE_LINK, $node, false, 50);
+		$share = $shares[0] ?? null;
+
+		if ($share === null) {
+			if (!$listed) {
+				// Nothing public and asked to unlist → nothing to do.
+				return new DataResponse(['status' => 'ok', 'listed' => false]);
+			}
+			$share = $this->shareManager->newShare();
+			$share->setNode($node)
+				->setShareType(IShare::TYPE_LINK)
+				->setSharedBy($uid)
+				->setPermissions(Constants::PERMISSION_READ);
+			$share = $this->shareManager->createShare($share);
+		}
+
+		$attrs = $share->getAttributes() ?? $share->newAttributes();
+		$attrs->setAttribute('sciencedata', 'catalog_listed', $listed);
+		$share->setAttributes($attrs);
+		$this->shareManager->updateShare($share);
+
+		return new DataResponse([
+			'status' => 'ok',
+			'listed' => $listed,
+			'token'  => $share->getToken(),
+			'url'    => $this->urlGenerator->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $share->getToken()]),
+		]);
 	}
 
 	/**

@@ -16,6 +16,8 @@ return [
 		['name' => 'api#putConfig',         'url' => '/api/v1/config',        'verb' => 'POST'],
 		// Welcome/terms consent (set the per-user 'welcomed' flag)
 		['name' => 'api#setWelcomed',       'url' => '/api/v1/welcomed',      'verb' => 'POST'],
+		// Publish-to-catalog: opt a folder in/out of the public catalog
+		['name' => 'api#setCatalogListed',  'url' => '/api/v1/catalog',       'verb' => 'POST'],
 		// Admin API
 		['name' => 'api#getSampleFolder',   'url' => '/api/v1/sample-folder', 'verb' => 'GET'],
 		['name' => 'api#setSampleFolder',   'url' => '/api/v1/sample-folder', 'verb' => 'POST'],
