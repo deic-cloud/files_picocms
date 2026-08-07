@@ -9,6 +9,22 @@
 	--bg-alt:   #f4f4f2;   /* warm off-white */
 	--accent:   #235789;
 	--accent-d: #1b456d;
+	--sd-red:   #C8102E;   /* postkasserød (the wordmark dot); DTU red = #990000 */
+}
+
+/* Wordmark: "Scıence…" with a red dot over the (dotless) i. The dot stays red
+   regardless of the header text colour (white over the hero, ink when scrolled). */
+.brand .sd-i { position: relative; display: inline-block; }
+.brand .sd-i::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	bottom: 0.58em;
+	transform: translateX(-50%);
+	width: 0.16em;
+	height: 0.16em;
+	border-radius: 50%;
+	background: var(--sd-red);
 }
 
 * { box-sizing: border-box; }
