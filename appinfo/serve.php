@@ -447,6 +447,10 @@ if ($siteName !== null && $siteName === $sdFrontpage) {
 		exit;
 	}
 	$picoConfig['sd_stats'] = _pico_sd_stats();
+	// Public dataset catalog: folders shared with a public link whose owner opted in
+	// (share attribute sciencedata:catalog_listed). Cached like the pulse; local to
+	// this node for now (cross-silo master aggregation is a later step).
+	$picoConfig['sd_catalog'] = _pico_sd_catalog();
 	// Cache-bust the theme CSS/JS by its mtime so redeploys take effect without a
 	// hard refresh (theme assets are served with a 1-day cache header).
 	$picoConfig['sd_asset_ver'] = (string)(@filemtime($themesDir . 'frontpage/css/style.css') ?: '1');
@@ -846,6 +850,106 @@ function _pico_sd_stats(): array {
 		$cache->set('landing', $out, 600);
 	}
 	return $out;
+}
+
+/**
+ * Public dataset catalog: public-link shares whose owner opted in via the share
+ * attribute sciencedata:catalog_listed. Cached (10 min). LOCAL to this node for
+ * now — on a multi-silo deployment the master will additionally merge each silo's
+ * listings over the files_sharding internal API (later step); public link shares
+ * live on the owner's node.
+ *
+ * Each entry: title (folder name), url (/s/<token> public link), institution
+ * (owner's domain, if any), stime (unix). Newest first, capped.
+ *
+ * @return list<array{title:string,url:string,institution:string,stime:int}>
+ */
+function _pico_sd_catalog(): array {
+	$cache = null;
+	try {
+		$cf = \OC::$server->get(\OCP\ICacheFactory::class);
+		if ($cf->isAvailable()) {
+			$cache = $cf->createDistributed('files_picocms_stats');
+		}
+	} catch (\Throwable) {
+		$cache = null;
+	}
+	if ($cache !== null) {
+		$hit = $cache->get('catalog');
+		if (is_array($hit)) {
+			return $hit;
+		}
+	}
+
+	$out = [];
+	try {
+		$db  = \OC::$server->get(\OCP\IDBConnection::class);
+		$url = \OC::$server->get(\OCP\IURLGenerator::class);
+		$q = $db->getQueryBuilder();
+		// share_type 3 = TYPE_LINK; narrow to rows carrying a sciencedata attribute
+		// (cheap prefilter) — the authoritative check is the JSON parse below.
+		$q->select('uid_owner', 'file_target', 'token', 'stime', 'label', 'attributes')
+			->from('share')
+			->where($q->expr()->eq('share_type', $q->createNamedParameter(3, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)))
+			->andWhere($q->expr()->isNotNull('token'))
+			->andWhere($q->expr()->like('attributes', $q->createNamedParameter('%sciencedata%')))
+			->orderBy('stime', 'DESC')
+			->setMaxResults(200);
+		$res = $q->executeQuery();
+		while (($row = $res->fetch()) !== false) {
+			if (!_pico_attr_listed((string)($row['attributes'] ?? ''))) {
+				continue;
+			}
+			$token = (string)($row['token'] ?? '');
+			if ($token === '') {
+				continue;
+			}
+			$label = trim((string)($row['label'] ?? ''));
+			$title = $label !== '' ? $label : trim(basename((string)($row['file_target'] ?? '')), '/');
+			if ($title === '') {
+				$title = 'Shared folder';
+			}
+			$owner = (string)($row['uid_owner'] ?? '');
+			$at    = strrpos($owner, '@');
+			$out[] = [
+				'title'       => $title,
+				'url'         => $url->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $token]),
+				'institution' => $at !== false ? strtolower(substr($owner, $at + 1)) : '',
+				'stime'       => (int)($row['stime'] ?? 0),
+			];
+		}
+		$res->closeCursor();
+	} catch (\Throwable $e) {
+		error_log('files_picocms _pico_sd_catalog: ' . $e->getMessage());
+	}
+
+	if ($cache !== null) {
+		$cache->set('catalog', $out, 600);
+	}
+	return $out;
+}
+
+/**
+ * True if the share `attributes` JSON ([[scope,key,value],…]) contains a truthy
+ * sciencedata:catalog_listed entry.
+ */
+function _pico_attr_listed(string $json): bool {
+	if ($json === '') {
+		return false;
+	}
+	$decoded = json_decode($json, true);
+	if (!is_array($decoded)) {
+		return false;
+	}
+	foreach ($decoded as $a) {
+		if (is_array($a)
+			&& (($a['scope'] ?? $a[0] ?? '') === 'sciencedata')
+			&& (($a['key'] ?? $a[1] ?? '') === 'catalog_listed')) {
+			$v = $a['value'] ?? $a[2] ?? false;
+			return $v === true || $v === 1 || $v === '1' || $v === 'true';
+		}
+	}
+	return false;
 }
 
 /**

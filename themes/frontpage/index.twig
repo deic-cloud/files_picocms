@@ -89,6 +89,23 @@
 	</div>
 </main>
 
+{% if config.sd_catalog is not empty %}
+<section class="catalog">
+	<div class="catalog-inner">
+		<h2>Public datasets</h2>
+		<p class="catalog-sub">Folders their owners chose to share openly.</p>
+		<ul class="catalog-list">
+			{% for d in config.sd_catalog %}
+			<li class="dataset">
+				<a class="dataset-link" href="{{ d.url }}">{{ d.title }}</a>
+				{% if d.institution %}<span class="dataset-inst">{{ d.institution }}</span>{% endif %}
+			</li>
+			{% endfor %}
+		</ul>
+	</div>
+</section>
+{% endif %}
+
 {% if config.sd_stats and config.sd_stats.institution_list is not empty %}
 <section class="institutions">
 	<div class="institutions-inner">
