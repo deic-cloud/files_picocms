@@ -21,6 +21,7 @@ return [
 		// Admin API
 		['name' => 'api#getSampleFolder',   'url' => '/api/v1/sample-folder', 'verb' => 'GET'],
 		['name' => 'api#setSampleFolder',   'url' => '/api/v1/sample-folder', 'verb' => 'POST'],
+		['name' => 'api#setContentUser',    'url' => '/api/v1/content-user',  'verb' => 'POST'],
 	],
 	'routes' => [
 		// App page

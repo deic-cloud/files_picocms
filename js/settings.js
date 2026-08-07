@@ -27,5 +27,25 @@
 					: t('files_picocms', 'Error saving.');
 			}
 		});
+
+		document.getElementById('contentUserSubmit')?.addEventListener('click', async function () {
+			const user = document.getElementById('contentUser').value;
+			const msg  = document.getElementById('contentUserMsg');
+			const res = await fetch(OCS + '/content-user', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded',
+					'OCS-APIREQUEST': 'true',
+					'requesttoken': OC.requestToken,
+				},
+				body: new URLSearchParams({ user }).toString(),
+			});
+			const data = await res.json();
+			if (msg) {
+				msg.textContent = data?.ocs?.meta?.status === 'ok'
+					? t('files_picocms', 'Saved.')
+					: t('files_picocms', 'Error saving.');
+			}
+		});
 	});
 })();

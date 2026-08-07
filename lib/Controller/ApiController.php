@@ -211,4 +211,13 @@ class ApiController extends OCSController {
 		$this->siteService->setSampleFolder($owner, $path);
 		return new DataResponse(['msg' => 'Saved']);
 	}
+
+	/**
+	 * Set the user whose homedir hosts the public pages (front page, terms, blog,
+	 * documentation). Admin-only.
+	 */
+	public function setContentUser(string $user): DataResponse {
+		$this->config->setAppValue('files_picocms', 'content_user', trim($user));
+		return new DataResponse(['msg' => 'Saved']);
+	}
 }

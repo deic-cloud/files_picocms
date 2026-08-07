@@ -6,12 +6,14 @@ namespace OCA\FilesPicoCMS\Settings;
 
 use OCA\FilesPicoCMS\Service\SiteService;
 use OCP\AppFramework\Http\TemplateResponse;
+use OCP\IConfig;
 use OCP\Settings\ISettings;
 use OCP\Util;
 
 class AdminSettings implements ISettings {
 	public function __construct(
 		private SiteService $siteService,
+		private IConfig $config,
 	) {
 	}
 
@@ -22,6 +24,7 @@ class AdminSettings implements ISettings {
 		return new TemplateResponse('files_picocms', 'settings', [
 			'samplesiteowner' => $sample['owner'],
 			'samplesitepath'  => $sample['path'],
+			'contentuser'     => $this->config->getAppValue('files_picocms', 'content_user', 'cloud'),
 		]);
 	}
 
