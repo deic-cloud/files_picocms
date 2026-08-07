@@ -14,15 +14,15 @@
 
 /* Wordmark: "Scıence…" with a red dot over the (dotless) i. The dot stays red
    regardless of the header text colour (white over the hero, ink when scrolled). */
-.brand .sd-i { position: relative; display: inline-block; }
+.brand .sd-i { position: relative; display: inline-block; line-height: 1; }
 .brand .sd-i::after {
 	content: "";
 	position: absolute;
 	left: 50%;
-	bottom: 0.58em;
+	bottom: 0.78em;   /* sits above the (dotless) i stem — tune this one value */
 	transform: translateX(-50%);
-	width: 0.16em;
-	height: 0.16em;
+	width: 0.15em;
+	height: 0.15em;
 	border-radius: 50%;
 	background: var(--sd-red);
 }
