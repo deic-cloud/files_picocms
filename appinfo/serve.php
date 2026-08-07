@@ -459,6 +459,23 @@ if ($siteName !== null && $siteName === $sdFrontpage) {
 	// session cookie, long cache. Going through this serve.php (a <remote> script)
 	// boots NC per request and sets Set-Cookie, which is slow and defeats caching.
 	$picoConfig['sd_theme_static'] = $webRoot . '/apps/files_picocms/themes/frontpage';
+
+	// Brand identity comes from config (kept out of the app code so the app stays
+	// generic / app-store-installable): files_picocms.brand_name + .brand_blurb.
+	$brand = trim((string)$config->getSystemValue('files_picocms.brand_name', 'Nextcloud'));
+	if ($brand === '') {
+		$brand = 'Nextcloud';
+	}
+	$picoConfig['sd_brand_name']  = $brand;
+	$picoConfig['sd_brand_blurb'] = (string)$config->getSystemValue('files_picocms.brand_blurb', '');
+	// Wordmark: a red dot over the first lowercase "i" of the brand (if any),
+	// using a dotless i so the font draws no dot; otherwise the plain name.
+	$ip = strpos($brand, 'i');
+	$picoConfig['sd_brand_html'] = $ip === false
+		? htmlspecialchars($brand, ENT_QUOTES)
+		: htmlspecialchars(substr($brand, 0, $ip), ENT_QUOTES)
+			. '<span class="sd-i">' . "\u{0131}" . '</span>'
+			. htmlspecialchars(substr($brand, $ip + 1), ENT_QUOTES);
 }
 
 // Provide request token for authenticated calls within the site (e.g. avatars)

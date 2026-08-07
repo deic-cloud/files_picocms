@@ -18,7 +18,17 @@
 	// the /sites rewrite (and is editable by the 'cloud' account).
 	var TERMS_URL = '/sites/terms';
 
+	function loadState() {
+		var el = document.getElementById('initial-state-files_picocms-welcome')
+		if (!el) { return {} }
+		try { return JSON.parse(atob(el.value)) } catch (e) { return {} }
+	}
+
 	function build() {
+		var state = loadState()
+		var brand = state.brand || 'Nextcloud'
+		var blurb = state.blurb || 'Store, share, compute on, and publish your data.'
+
 		var overlay = document.createElement('div');
 		overlay.id = 'sd-welcome-overlay';
 		overlay.className = 'sd-welcome-overlay';
@@ -31,10 +41,10 @@
 
 		var h = document.createElement('h2');
 		h.id = 'sd-welcome-title';
-		h.textContent = 'Welcome to ScienceData';
+		h.textContent = 'Welcome to ' + brand;
 
 		var p = document.createElement('p');
-		p.textContent = 'A non-profit research data service run by i2 at the Technical University of Denmark. Store, share, compute on, and publish your data.';
+		p.textContent = blurb;
 
 		var terms = document.createElement('p');
 		terms.className = 'sd-welcome-terms';

@@ -3,7 +3,8 @@
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>{{ meta.title ? 'ScienceData — ' ~ meta.title : 'ScienceData' }}</title>
+	{% set brand = config.sd_brand_name|default('Nextcloud') %}
+	<title>{{ meta.title ? brand ~ ' — ' ~ meta.title : brand }}</title>
 	{% if meta.description %}<meta name="description" content="{{ meta.description|striptags }}">{% endif %}
 	{% set static_base = config.sd_theme_static|default(theme_url) %}
 	<link rel="stylesheet" href="{{ static_base }}/css/style.css?v={{ config.sd_asset_ver|default('1') }}" />
@@ -14,7 +15,7 @@
 {# Persistent top bar: transparent over the hero, solid once scrolled.
    Stays fixed so "Your files" / "Log in" is always one click away. #}
 <header class="site-head" id="siteHead">
-	<a class="brand" href="{{ base_url }}">Sc<span class="sd-i">&#x131;</span>enceData</a>
+	<a class="brand" href="{{ base_url }}">{{ config.sd_brand_html|default(brand)|raw }}</a>
 	<nav class="site-nav">
 		<a href="/sites/blog">Blog</a>
 		<a href="/sites/documentation">Documentation</a>

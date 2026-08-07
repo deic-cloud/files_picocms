@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\FilesPicoCMS\Listener;
 
 use OCP\AppFramework\Http\Events\BeforeTemplateRenderedEvent;
+use OCP\AppFramework\Services\IInitialState;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\IConfig;
@@ -26,6 +27,7 @@ class WelcomeListener implements IEventListener {
 	public function __construct(
 		private IUserSession $userSession,
 		private IConfig $config,
+		private IInitialState $initialState,
 	) {
 	}
 
@@ -40,6 +42,12 @@ class WelcomeListener implements IEventListener {
 		if ($this->config->getUserValue($user->getUID(), 'files_picocms', 'welcomed', '') !== '') {
 			return;
 		}
+		// Brand identity from config (keeps the app generic); read by welcome.js.
+		$brand = trim((string)$this->config->getSystemValue('files_picocms.brand_name', 'Nextcloud'));
+		$this->initialState->provideInitialState('welcome', [
+			'brand' => $brand !== '' ? $brand : 'Nextcloud',
+			'blurb' => (string)$this->config->getSystemValue('files_picocms.brand_blurb', ''),
+		]);
 		Util::addScript('files_picocms', 'welcome');
 		Util::addStyle('files_picocms', 'welcome');
 	}
