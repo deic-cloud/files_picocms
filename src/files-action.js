@@ -76,11 +76,11 @@ function modal(innerHTML) {
 function confirmPublish(name) {
 	return new Promise((resolve) => {
 		const overlay = modal(
-			'<h2>' + t('files_picocms', 'List in the ScienceData catalog?') + '</h2>'
-			+ '<p>' + t('files_picocms', '“{name}” will be shared with a public link — anyone with the link can view it — and listed in the public ScienceData catalog.').replace('{name}', name) + '</p>'
+			'<h2>' + t('files_picocms', 'Share as a public dataset?') + '</h2>'
+			+ '<p>' + t('files_picocms', '“{name}” will be shared with a public link — anyone with the link can view it — and listed in the public dataset catalog.').replace('{name}', name) + '</p>'
 			+ '<div class="sd-cat-actions">'
 			+ '<button type="button" class="sd-cat-btn secondary" data-act="cancel">' + t('files_picocms', 'Cancel') + '</button>'
-			+ '<button type="button" class="sd-cat-btn" data-act="ok">' + t('files_picocms', 'List it') + '</button>'
+			+ '<button type="button" class="sd-cat-btn" data-act="ok">' + t('files_picocms', 'Share it') + '</button>'
 			+ '</div>')
 		const done = (val) => { overlay.remove(); resolve(val) }
 		overlay.querySelector('[data-act="ok"]').addEventListener('click', () => done(true))
@@ -91,8 +91,8 @@ function confirmPublish(name) {
 
 function nudge(url) {
 	const overlay = modal(
-		'<h2>' + t('files_picocms', 'Listed in the public catalog') + '</h2>'
-		+ '<p>' + t('files_picocms', 'Anyone with the link can now view this folder, and it appears in the public ScienceData catalog.') + '</p>'
+		'<h2>' + t('files_picocms', 'Shared as a public dataset') + '</h2>'
+		+ '<p>' + t('files_picocms', 'Anyone with the link can now view this folder, and it appears in the public dataset catalog.') + '</p>'
 		+ '<a class="sd-cat-link" href="' + url + '" target="_blank" rel="noopener">' + url + '</a>'
 		+ '<p class="sd-cat-nudge">' + t('files_picocms', 'Want a citable DOI for this dataset? Use the “Publish…” action to mint one via Zenodo or Figshare.') + '</p>'
 		+ '<div class="sd-cat-actions"><button type="button" class="sd-cat-btn" data-act="ok">' + t('files_picocms', 'Done') + '</button></div>')
@@ -123,14 +123,14 @@ async function publish(node) {
 		markShared(node)
 		nudge(res.ocs.data.url)
 	} else {
-		toastError(t('files_picocms', 'Could not list in catalog') + (res?.ocs?.meta?.message ? ': ' + res.ocs.meta.message : ''))
+		toastError(t('files_picocms', 'Could not share as public dataset') + (res?.ocs?.meta?.message ? ': ' + res.ocs.meta.message : ''))
 	}
 }
 
 registerFileAction({
 	id: 'files_picocms-catalog',
-	displayName: () => t('files_picocms', 'List in ScienceData catalog'),
-	title: () => t('files_picocms', 'Share this folder publicly and list it in the ScienceData catalog'),
+	displayName: () => t('files_picocms', 'Share as public dataset'),
+	title: () => t('files_picocms', 'Share this folder with a public link and list it as a public dataset'),
 	iconSvgInline: () => ICON,
 	enabled: ({ nodes }) => Array.isArray(nodes) && nodes.length === 1 && nodes[0].type === 'folder',
 	exec: async ({ nodes }) => {
@@ -140,7 +140,7 @@ registerFileAction({
 				await publish(node)
 			}
 		} catch (e) {
-			toastError(t('files_picocms', 'Listing failed') + ': ' + (e && e.message ? e.message : e))
+			toastError(t('files_picocms', 'Sharing failed') + ': ' + (e && e.message ? e.message : e))
 			console.error('[files_picocms]', e)
 		}
 		return null

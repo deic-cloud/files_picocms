@@ -37,7 +37,7 @@ class ApiController extends OCSController {
 	/**
 	 * Opt a folder in/out of the public ScienceData catalog (the "Publish to
 	 * catalog" file action). Ensures the folder has a public link share, then
-	 * sets/clears the sciencedata:catalog_listed attribute on it. Listing does not
+	 * sets/clears the files_picocms:catalog_listed attribute on it. Listing does not
 	 * change the share's permissions — it only marks an already-public folder as
 	 * discoverable. Returns the public link so the UI can show/nudge.
 	 */
@@ -72,7 +72,7 @@ class ApiController extends OCSController {
 		}
 
 		$attrs = $share->getAttributes() ?? $share->newAttributes();
-		$attrs->setAttribute('sciencedata', 'catalog_listed', $listed);
+		$attrs->setAttribute('files_picocms', 'catalog_listed', $listed);
 		$share->setAttributes($attrs);
 		$this->shareManager->updateShare($share);
 

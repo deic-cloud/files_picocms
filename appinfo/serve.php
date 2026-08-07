@@ -448,7 +448,7 @@ if ($siteName !== null && $siteName === $sdFrontpage) {
 	}
 	$picoConfig['sd_stats'] = _pico_sd_stats();
 	// Public dataset catalog: folders shared with a public link whose owner opted in
-	// (share attribute sciencedata:catalog_listed). Cached like the pulse; local to
+	// (share attribute files_picocms:catalog_listed). Cached like the pulse; local to
 	// this node for now (cross-silo master aggregation is a later step).
 	$picoConfig['sd_catalog'] = _pico_sd_catalog();
 	// Cache-bust the theme CSS/JS by its mtime so redeploys take effect without a
@@ -854,7 +854,7 @@ function _pico_sd_stats(): array {
 
 /**
  * Public dataset catalog: public-link shares whose owner opted in via the share
- * attribute sciencedata:catalog_listed. Cached (10 min). LOCAL to this node for
+ * attribute files_picocms:catalog_listed. Cached (10 min). LOCAL to this node for
  * now — on a multi-silo deployment the master will additionally merge each silo's
  * listings over the files_sharding internal API (later step); public link shares
  * live on the owner's node.
@@ -886,13 +886,13 @@ function _pico_sd_catalog(): array {
 		$db  = \OC::$server->get(\OCP\IDBConnection::class);
 		$url = \OC::$server->get(\OCP\IURLGenerator::class);
 		$q = $db->getQueryBuilder();
-		// share_type 3 = TYPE_LINK; narrow to rows carrying a sciencedata attribute
+		// share_type 3 = TYPE_LINK; narrow to rows carrying a files_picocms attribute
 		// (cheap prefilter) — the authoritative check is the JSON parse below.
 		$q->select('uid_owner', 'file_target', 'token', 'stime', 'label', 'attributes')
 			->from('share')
 			->where($q->expr()->eq('share_type', $q->createNamedParameter(3, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)))
 			->andWhere($q->expr()->isNotNull('token'))
-			->andWhere($q->expr()->like('attributes', $q->createNamedParameter('%sciencedata%')))
+			->andWhere($q->expr()->like('attributes', $q->createNamedParameter('%files_picocms%')))
 			->orderBy('stime', 'DESC')
 			->setMaxResults(200);
 		$res = $q->executeQuery();
@@ -931,7 +931,7 @@ function _pico_sd_catalog(): array {
 
 /**
  * True if the share `attributes` JSON ([[scope,key,value],…]) contains a truthy
- * sciencedata:catalog_listed entry.
+ * files_picocms:catalog_listed entry.
  */
 function _pico_attr_listed(string $json): bool {
 	if ($json === '') {
@@ -943,7 +943,7 @@ function _pico_attr_listed(string $json): bool {
 	}
 	foreach ($decoded as $a) {
 		if (is_array($a)
-			&& (($a['scope'] ?? $a[0] ?? '') === 'sciencedata')
+			&& (($a['scope'] ?? $a[0] ?? '') === 'files_picocms')
 			&& (($a['key'] ?? $a[1] ?? '') === 'catalog_listed')) {
 			$v = $a['value'] ?? $a[2] ?? false;
 			return $v === true || $v === 1 || $v === '1' || $v === 'true';
