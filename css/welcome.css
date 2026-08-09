@@ -39,8 +39,14 @@
 	color: var(--color-text-maxcontrast, #5b6672);
 }
 
+/* Make the Terms link obviously a link: the Continue blue, a touch darker, underlined. */
+.sd-welcome-terms a {
+	color: var(--color-primary-element-hover, #1b456d);
+	text-decoration: underline;
+	font-weight: 600;
+}
+
 .sd-welcome-btn {
-	margin-top: 0.5rem;
 	background: var(--color-primary-element, #235789);
 	color: var(--color-primary-element-text, #ffffff);
 	border: none;
@@ -58,4 +64,21 @@
 .sd-welcome-btn:disabled {
 	opacity: 0.6;
 	cursor: default;
+}
+
+.sd-welcome-actions {
+	display: flex;
+	gap: 0.75rem;
+	justify-content: center;
+	margin-top: 0.5rem;
+}
+
+/* Secondary (Cancel) — defined after .sd-welcome-btn so it wins on equal specificity. */
+.sd-welcome-btn-secondary {
+	background: var(--color-background-dark, #ededed);
+	color: var(--color-main-text, #1a2230);
+}
+
+.sd-welcome-btn-secondary:hover {
+	background: var(--color-background-darker, #dbdbdb);
 }

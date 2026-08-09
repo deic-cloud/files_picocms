@@ -57,17 +57,39 @@
 		terms.appendChild(a);
 		terms.appendChild(document.createTextNode('.'));
 
+		var actions = document.createElement('div');
+		actions.className = 'sd-welcome-actions';
+
+		var cancel = document.createElement('button');
+		cancel.className = 'sd-welcome-btn sd-welcome-btn-secondary';
+		cancel.type = 'button';
+		cancel.textContent = 'Cancel';
+
 		var btn = document.createElement('button');
 		btn.className = 'sd-welcome-btn';
 		btn.type = 'button';
 		btn.textContent = 'Continue';
 
+		actions.appendChild(cancel);
+		actions.appendChild(btn);
+
 		card.appendChild(h);
 		card.appendChild(p);
 		card.appendChild(terms);
-		card.appendChild(btn);
+		card.appendChild(actions);
 		overlay.appendChild(card);
 		document.body.appendChild(overlay);
+
+		// Cancel = decline the terms. Use of the service is gated on consent, so
+		// declining logs the user out; no 'welcomed' flag is set.
+		cancel.addEventListener('click', function () {
+			cancel.disabled = true;
+			var token = (window.OC && OC.requestToken) ? OC.requestToken : '';
+			var url = (window.OC && OC.generateUrl)
+				? OC.generateUrl('logout') + '?requesttoken=' + encodeURIComponent(token)
+				: '/index.php/logout';
+			window.location.href = url;
+		});
 
 		btn.addEventListener('click', function () {
 			btn.disabled = true;
