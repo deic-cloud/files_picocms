@@ -64,6 +64,12 @@ class Application extends App implements IBootstrap {
 			if ($userSession->isLoggedIn()) {
 				return;
 			}
+			// The public landing at "/" is MASTER-ONLY. On a silo, fall through to
+			// Nextcloud's normal login page so direct login works even when the master
+			// is down (a silo must never depend on the master to log a user in).
+			if (!self::isMasterNode($server->get(\OCP\IConfig::class))) {
+				return;
+			}
 
 			// Hand off to the FrontpageController (index.php) rather than jumping
 			// straight to the /sites/ landing (remote.php): the controller re-checks
@@ -79,5 +85,30 @@ class Application extends App implements IBootstrap {
 			// Never let the landing redirect break normal request handling.
 			return;
 		}
+	}
+
+	/**
+	 * Master-node detection, mirroring files_sharding's ShardingService::isMaster()
+	 * via the same config keys but WITHOUT a hard dependency on that app (files_picocms
+	 * must stay independently installable). No sharding configured (empty master URL)
+	 * => treated as master, so the landing page still works on a single-node install.
+	 * Used to keep the "/" → landing redirect MASTER-ONLY; silos present the normal
+	 * login page so direct login works even if the master is down.
+	 */
+	public static function isMasterNode(\OCP\IConfig $config): bool {
+		$explicit = $config->getSystemValue('files_sharding_master', null);
+		if ($explicit !== null) {
+			return $explicit === true || $explicit === 1 || $explicit === '1' || $explicit === 'true';
+		}
+		$masterUrl = rtrim((string)$config->getSystemValue('files_sharding_master_url', ''), '/');
+		if ($masterUrl === '') {
+			return true; // standalone / no sharding → this node is the master
+		}
+		$authority = static function (string $url): string {
+			$p = parse_url($url);
+			return strtolower(($p['host'] ?? '') . ':' . ($p['port'] ?? ''));
+		};
+		$ma = $authority($masterUrl);
+		return $ma !== ':' && $ma === $authority(rtrim((string)$config->getSystemValue('overwrite.cli.url', ''), '/'));
 	}
 }

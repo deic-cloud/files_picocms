@@ -42,6 +42,11 @@ class FrontpageController extends Controller {
 			// Logged in → their default page (Files).
 			return new RedirectResponse($this->urlGenerator->linkToDefaultPageUrl());
 		}
+		// The public landing is MASTER-ONLY. On a silo, send anonymous visitors to the
+		// normal login page so direct login works even when the master is down.
+		if (!\OCA\FilesPicoCMS\AppInfo\Application::isMasterNode($this->config)) {
+			return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/login'));
+		}
 		// Anonymous → the landing site.
 		$site = (string)$this->config->getSystemValue('files_picocms.frontpage_site', 'welcome');
 		return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/sites/' . $site . '/'));
