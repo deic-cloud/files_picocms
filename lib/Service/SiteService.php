@@ -108,8 +108,13 @@ class SiteService {
 
 	/** @return array{0: object, 1: string}|null  [InterServerClient, master base URL] */
 	private function masterClient(): ?array {
-		$isMaster = $this->config->getSystemValue('files_sharding_master', false);
-		if ($isMaster === true || $isMaster === 1 || $isMaster === '1' || $isMaster === 'true') {
+		// Master reads the registry locally; only a silo talks to the master. Use the
+		// app's URL-aware detection (Application::isMasterNode) — the old flag-only
+		// check mis-detected the URL-auto-detected master (files_sharding_master unset,
+		// master_url == overwrite.cli.url) as a SILO, so it HTTP-called ITSELF for
+		// every site lookup — a blocking mod_php self-call on the front-page render
+		// path that starves workers and times out (10s).
+		if (\OCA\FilesPicoCMS\AppInfo\Application::isMasterNode($this->config)) {
 			return null;
 		}
 		if (!class_exists(\OCA\FilesSharding\Service\InterServerClient::class)) {
