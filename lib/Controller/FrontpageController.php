@@ -8,6 +8,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\RedirectResponse;
+use OCA\FilesPicoCMS\Service\SiteService;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\IURLGenerator;
@@ -31,6 +32,7 @@ class FrontpageController extends Controller {
 		private IUserSession $userSession,
 		private IURLGenerator $urlGenerator,
 		private IConfig $config,
+		private SiteService $siteService,
 	) {
 		parent::__construct($appName, $request);
 	}
@@ -47,8 +49,14 @@ class FrontpageController extends Controller {
 		if (!\OCA\FilesPicoCMS\AppInfo\Application::isMasterNode($this->config)) {
 			return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/login'));
 		}
-		// Anonymous → the landing site.
+		// Anonymous → the landing site, IF it exists. On a fresh install (or a node
+		// where no frontpage site has been seeded) the site is absent, and redirecting
+		// to /sites/<site>/ 404s to a blank root. Fall back to the login page instead,
+		// so the node stays usable.
 		$site = (string)$this->config->getSystemValue('files_picocms.frontpage_site', 'welcome');
+		if (!$this->siteService->siteExists($site)) {
+			return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/login'));
+		}
 		return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/sites/' . $site . '/'));
 	}
 }
