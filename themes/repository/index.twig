@@ -100,7 +100,7 @@
 				{% for tg in e.tags|default([]) %}{% set hay = hay ~ ' ' ~ tg %}{% endfor %}
 				<li class="repo-item" data-search="{{ hay|lower }}"
 					data-tags="{{ e.tags|default([])|join('||') }}">
-					<h3><a href="{{ e.url }}" target="_blank" rel="noopener">{{ e.title }}</a></h3>
+					<h3><a href="{{ e.url }}">{{ e.title }}</a></h3>
 					<div class="repo-byline">
 						{{ e.owner_name }}{% if e.institution %} · {{ e.institution }}{% endif %}
 						{% if e.stime %} · shared {{ e.stime|date('j M Y') }}{% endif %}

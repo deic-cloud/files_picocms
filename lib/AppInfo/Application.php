@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\FilesPicoCMS\AppInfo;
 
 use OCA\Files\Event\LoadAdditionalScriptsEvent;
+use OCA\FilesPicoCMS\Listener\CatalogBannerListener;
 use OCA\FilesPicoCMS\Listener\LoadSidebarScriptsListener;
 use OCA\FilesPicoCMS\Listener\WelcomeListener;
 use OCP\AppFramework\App;
@@ -24,6 +25,9 @@ class Application extends App implements IBootstrap {
 		$context->registerEventListener(LoadAdditionalScriptsEvent::class, LoadSidebarScriptsListener::class);
 		// One-time welcome + terms-consent modal on any logged-in page.
 		$context->registerEventListener(BeforeTemplateRenderedEvent::class, WelcomeListener::class);
+		// Catalog top bar on public share pages of catalog-listed shares (the
+		// repository's record pages) — same-tab way back to the listing.
+		$context->registerEventListener(\OCA\Files_Sharing\Event\BeforeTemplateRenderedEvent::class, CatalogBannerListener::class);
 		// Admin-overview warning if pretty URLs (/sites, /users) aren't rewritten to
 		// the app. Guarded: the silo stub IRegistrationContext lacks this method.
 		try {

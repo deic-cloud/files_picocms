@@ -1,0 +1,53 @@
+<?php
+
+declare(strict_types=1);
+
+namespace OCA\FilesPicoCMS\Listener;
+
+use OCA\Files_Sharing\Event\BeforeTemplateRenderedEvent;
+use OCP\AppFramework\Services\IInitialState;
+use OCP\EventDispatcher\Event;
+use OCP\EventDispatcher\IEventListener;
+use OCP\IConfig;
+use OCP\Util;
+
+/**
+ * Catalog top bar on PUBLIC SHARE pages of catalog-listed shares (the
+ * repository's "record pages"). Zenodo-style navigation (Frederik 2026-08-26):
+ * a record opens in the SAME tab and the persistent top bar is the way back —
+ * brand/name links to the catalog listing. Only injected when the rendered
+ * share carries the files_picocms:catalog_listed attribute; ordinary share
+ * pages are untouched.
+ *
+ * @implements IEventListener<BeforeTemplateRenderedEvent>
+ */
+class CatalogBannerListener implements IEventListener {
+	public function __construct(
+		private IInitialState $initialState,
+		private IConfig       $config,
+	) {
+	}
+
+	public function handle(Event $event): void {
+		if (!($event instanceof BeforeTemplateRenderedEvent)) {
+			return;
+		}
+		try {
+			$attrs = $event->getShare()->getAttributes();
+			if ($attrs === null || !$attrs->getAttribute('files_picocms', 'catalog_listed')) {
+				return;
+			}
+		} catch (\Throwable) {
+			return;
+		}
+		$sites = array_filter(array_map('trim',
+			explode(',', (string)$this->config->getSystemValue('files_picocms.repository_sites', 'repository'))));
+		$site = $sites !== [] ? reset($sites) : 'repository';
+		$this->initialState->provideInitialState('catalog_banner', [
+			'url'   => '/remote.php/sites/' . rawurlencode($site) . '/',
+			'brand' => (string)$this->config->getSystemValue('files_picocms.brand_name', 'Nextcloud'),
+			'label' => 'Public data',
+		]);
+		Util::addScript('files_picocms', 'catalog-banner');
+	}
+}
