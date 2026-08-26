@@ -435,6 +435,19 @@ $picoConfig['sd_login_url']    = $masterBase . '/index.php/login';
 // (configurable name, default "welcome"), cached so anonymous hits never run
 // these queries per request.
 $sdFrontpage = (string)$config->getSystemValue('files_picocms.frontpage_site', 'welcome');
+
+// Repository sites (minimal publishing surface): sites whose pages render the
+// public catalog listing — datasets AND notebooks — with owner/date/metadata.
+// Comma-separated site names in config files_picocms.repository_sites.
+$sdRepoSites = array_filter(array_map('trim',
+	explode(',', (string)$config->getSystemValue('files_picocms.repository_sites', 'repository'))));
+if ($siteName !== null && in_array($siteName, $sdRepoSites, true)) {
+	$picoConfig['sd_catalog']   = _pico_sd_catalog();
+	$picoConfig['sd_asset_ver'] = (string)(@filemtime($themesDir . 'repository/css/style.css') ?: '1');
+	$picoConfig['sd_theme_static'] = $webRoot . '/apps/files_picocms/themes/repository';
+	$brand = trim((string)$config->getSystemValue('files_picocms.brand_name', 'Nextcloud'));
+	$picoConfig['sd_brand_name'] = $brand !== '' ? $brand : 'Nextcloud';
+}
 if ($siteName !== null && $siteName === $sdFrontpage) {
 	// When reached via the bare-root rewrite (the web server sets SD_ROOT=1 for a
 	// request to "/"), send logged-in users straight to their files; anonymous
@@ -905,7 +918,7 @@ function _pico_sd_catalog(): array {
 		$q = $db->getQueryBuilder();
 		// share_type 3 = TYPE_LINK; narrow to rows carrying a files_picocms attribute
 		// (cheap prefilter) — the authoritative check is the JSON parse below.
-		$q->select('uid_owner', 'file_target', 'token', 'stime', 'label', 'attributes')
+		$q->select('uid_owner', 'file_source', 'file_target', 'token', 'stime', 'label', 'attributes')
 			->from('share')
 			->where($q->expr()->eq('share_type', $q->createNamedParameter(3, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)))
 			->andWhere($q->expr()->isNotNull('token'))
@@ -913,7 +926,55 @@ function _pico_sd_catalog(): array {
 			->orderBy('stime', 'DESC')
 			->setMaxResults(200);
 		$res = $q->executeQuery();
-		while (($row = $res->fetch()) !== false) {
+		$rows = $res->fetchAll();
+		$res->closeCursor();
+
+		// mimetype per shared node → kind (dataset folder / notebook / file)
+		$fileIds = array_values(array_filter(array_map(fn ($r) => (int)($r['file_source'] ?? 0), $rows)));
+		$mimes = [];
+		if ($fileIds !== []) {
+			try {
+				$mq = $db->getQueryBuilder();
+				$mq->select('fc.fileid', 'm.mimetype')
+					->from('filecache', 'fc')
+					->innerJoin('fc', 'mimetypes', 'm', $mq->expr()->eq('fc.mimetype', 'm.id'))
+					->where($mq->expr()->in('fc.fileid', $mq->createNamedParameter($fileIds, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT_ARRAY)));
+				$mr = $mq->executeQuery();
+				while (($m = $mr->fetch()) !== false) {
+					$mimes[(int)$m['fileid']] = (string)$m['mimetype'];
+				}
+				$mr->closeCursor();
+			} catch (\Throwable) {
+			}
+		}
+
+		// user-added metadata (meta_data app): key => value per fileid. Guarded —
+		// works without the app (tables absent → no metadata shown).
+		$meta = [];
+		if ($fileIds !== []) {
+			try {
+				$kq = $db->getQueryBuilder();
+				$kq->select('d.fileid', 'k.name', 'd.value')
+					->from('meta_data_docKeys', 'd')
+					->innerJoin('d', 'meta_data_keys', 'k', $kq->expr()->eq('d.keyid', 'k.id'))
+					->where($kq->expr()->in('d.fileid', $kq->createNamedParameter($fileIds, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT_ARRAY)))
+					->andWhere($kq->expr()->neq('d.value', $kq->createNamedParameter('')));
+				$kr = $kq->executeQuery();
+				while (($k = $kr->fetch()) !== false) {
+					$meta[(int)$k['fileid']][(string)$k['name']] = (string)$k['value'];
+				}
+				$kr->closeCursor();
+			} catch (\Throwable) {
+			}
+		}
+
+		$userManager = null;
+		try {
+			$userManager = \OC::$server->get(\OCP\IUserManager::class);
+		} catch (\Throwable) {
+		}
+
+		foreach ($rows as $row) {
 			if (!_pico_attr_listed((string)($row['attributes'] ?? ''))) {
 				continue;
 			}
@@ -928,14 +989,31 @@ function _pico_sd_catalog(): array {
 			}
 			$owner = (string)($row['uid_owner'] ?? '');
 			$at    = strrpos($owner, '@');
+			$ownerName = $owner;
+			if ($userManager !== null) {
+				try {
+					$u = $userManager->get($owner);
+					if ($u !== null) {
+						$ownerName = $u->getDisplayName() ?: $owner;
+					}
+				} catch (\Throwable) {
+				}
+			}
+			$fid  = (int)($row['file_source'] ?? 0);
+			$mime = $mimes[$fid] ?? '';
+			$kind = $mime === 'httpd/unix-directory' ? 'dataset'
+				: ($mime === 'application/x-ipynb+json' ? 'notebook' : 'file');
 			$out[] = [
 				'title'       => $title,
 				'url'         => $url->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $token]),
+				'owner'       => $owner,
+				'owner_name'  => $ownerName,
 				'institution' => $at !== false ? strtolower(substr($owner, $at + 1)) : '',
 				'stime'       => (int)($row['stime'] ?? 0),
+				'kind'        => $kind,
+				'meta'        => $meta[$fid] ?? [],
 			];
 		}
-		$res->closeCursor();
 	} catch (\Throwable $e) {
 		error_log('files_picocms _pico_sd_catalog: ' . $e->getMessage());
 	}
