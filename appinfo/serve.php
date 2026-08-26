@@ -968,6 +968,25 @@ function _pico_sd_catalog(): array {
 			}
 		}
 
+		// tags per fileid (meta_data rides NC systemtags)
+		$tags = [];
+		if ($fileIds !== []) {
+			try {
+				$tq = $db->getQueryBuilder();
+				$tq->select('om.objectid', 'st.name')
+					->from('systemtag_object_mapping', 'om')
+					->innerJoin('om', 'systemtag', 'st', $tq->expr()->eq('om.systemtagid', 'st.id'))
+					->where($tq->expr()->eq('om.objecttype', $tq->createNamedParameter('files')))
+					->andWhere($tq->expr()->in('om.objectid', $tq->createNamedParameter(array_map('strval', $fileIds), \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_STR_ARRAY)));
+				$tr = $tq->executeQuery();
+				while (($t = $tr->fetch()) !== false) {
+					$tags[(int)$t['objectid']][] = (string)$t['name'];
+				}
+				$tr->closeCursor();
+			} catch (\Throwable) {
+			}
+		}
+
 		$userManager = null;
 		try {
 			$userManager = \OC::$server->get(\OCP\IUserManager::class);
@@ -1011,6 +1030,7 @@ function _pico_sd_catalog(): array {
 				'institution' => $at !== false ? strtolower(substr($owner, $at + 1)) : '',
 				'stime'       => (int)($row['stime'] ?? 0),
 				'kind'        => $kind,
+				'tags'        => $tags[$fid] ?? [],
 				'meta'        => $meta[$fid] ?? [],
 			];
 		}

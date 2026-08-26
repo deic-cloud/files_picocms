@@ -30,6 +30,17 @@
 			border-radius: 999px; padding: 2px 10px; color: var(--ink); }
 		.repo-chip b { font-weight: 600; color: var(--muted); }
 		.repo-empty { color: var(--muted); font-style: italic; padding: 14px 4px; }
+		.repo-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+			margin: 26px 0 4px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+		.repo-search { flex: 1 1 220px; min-width: 180px; padding: 8px 12px;
+			border: 1px solid var(--line); border-radius: 8px; font-size: .95rem;
+			background: var(--bg); color: var(--ink); }
+		.repo-tagchip { font-size: .8rem; border: 1px solid var(--line); background: var(--bg-alt);
+			border-radius: 999px; padding: 4px 12px; cursor: pointer; color: var(--ink); user-select: none; }
+		.repo-tagchip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+		.repo-itemtag { font-size: .75rem; background: var(--accent); color: #fff;
+			border-radius: 999px; padding: 2px 10px; opacity: .85; }
+		.repo-item.hidden, .repo-section.hidden { display: none; }
 	</style>
 </head>
 <body>
@@ -52,6 +63,19 @@
 	<div class="repo-intro">{{ content }}</div>
 
 	{% set catalog = config.sd_catalog|default([]) %}
+	{% set alltags = [] %}
+	{% for e in catalog %}{% for tg in e.tags|default([]) %}
+		{% if tg not in alltags %}{% set alltags = alltags|merge([tg]) %}{% endif %}
+	{% endfor %}{% endfor %}
+	{% if catalog|length > 0 %}
+	<div class="repo-filter">
+		<input class="repo-search" id="repoSearch" type="search"
+			placeholder="Search title, owner, metadata…" aria-label="Search the catalog" />
+		{% for tg in alltags|sort %}
+		<span class="repo-tagchip" data-tag="{{ tg }}">{{ tg }}</span>
+		{% endfor %}
+	</div>
+	{% endif %}
 	{# Bundled Twig is v1: no arrow |filter, no loop.last under loop conditions —
 	   pre-group with merge, then render plain loops. #}
 	{% set ds = [] %}{% set nb = [] %}{% set fl = [] %}
@@ -71,14 +95,21 @@
 			<h2>{{ section.title }}</h2>
 			<ul class="repo-list">
 				{% for e in section.items %}
-				<li class="repo-item">
+				{% set hay = e.title ~ ' ' ~ e.owner_name ~ ' ' ~ e.institution %}
+				{% for k, v in e.meta %}{% set hay = hay ~ ' ' ~ k ~ ' ' ~ v %}{% endfor %}
+				{% for tg in e.tags|default([]) %}{% set hay = hay ~ ' ' ~ tg %}{% endfor %}
+				<li class="repo-item" data-search="{{ hay|lower }}"
+					data-tags="{{ e.tags|default([])|join('||') }}">
 					<h3><a href="{{ e.url }}">{{ e.title }}</a></h3>
 					<div class="repo-byline">
 						{{ e.owner_name }}{% if e.institution %} · {{ e.institution }}{% endif %}
 						{% if e.stime %} · shared {{ e.stime|date('j M Y') }}{% endif %}
 					</div>
-					{% if e.meta|length > 0 %}
+					{% if e.meta|length > 0 or e.tags|default([])|length > 0 %}
 					<div class="repo-meta">
+						{% for tg in e.tags|default([]) %}
+						<span class="repo-itemtag">{{ tg }}</span>
+						{% endfor %}
 						{% for k, v in e.meta %}
 						<span class="repo-chip"><b>{{ k }}:</b> {{ v }}</span>
 						{% endfor %}
@@ -94,6 +125,39 @@
 		<p class="repo-empty">Nothing has been listed yet.</p>
 	{% endif %}
 </main>
+
+<script>
+(function () {
+	'use strict'
+	var active = null
+	var search = document.getElementById('repoSearch')
+	function apply() {
+		var q = (search && search.value || '').toLowerCase().trim()
+		document.querySelectorAll('.repo-item').forEach(function (item) {
+			var tags = (item.getAttribute('data-tags') || '').split('||').filter(Boolean)
+			var okTag = !active || tags.indexOf(active) !== -1
+			var okQ = !q || (item.getAttribute('data-search') || '').indexOf(q) !== -1
+			item.classList.toggle('hidden', !(okTag && okQ))
+		})
+		// hide sections whose entries are all hidden
+		document.querySelectorAll('.repo-section').forEach(function (sec) {
+			var any = sec.querySelector('.repo-item:not(.hidden)')
+			sec.classList.toggle('hidden', !any)
+		})
+	}
+	if (search) { search.addEventListener('input', apply) }
+	document.querySelectorAll('.repo-tagchip').forEach(function (chip) {
+		chip.addEventListener('click', function () {
+			var tag = chip.getAttribute('data-tag')
+			active = (active === tag) ? null : tag
+			document.querySelectorAll('.repo-tagchip').forEach(function (c) {
+				c.classList.toggle('active', c.getAttribute('data-tag') === active)
+			})
+			apply()
+		})
+	})
+})()
+</script>
 
 </body>
 </html>
