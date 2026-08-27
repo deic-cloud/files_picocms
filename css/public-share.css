@@ -1,0 +1,7 @@
+/* Hide the stock footer on public share pages (theming slogan + link) —
+   visual noise under the content (Frederik 2026-08-27). The catalog banner
+   (top) carries the branding/navigation on record pages. */
+#body-public footer,
+#body-public .footer {
+	display: none !important;
+}

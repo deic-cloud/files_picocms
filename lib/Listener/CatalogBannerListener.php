@@ -32,6 +32,9 @@ class CatalogBannerListener implements IEventListener {
 		if (!($event instanceof BeforeTemplateRenderedEvent)) {
 			return;
 		}
+		// ALL public share pages: drop the stock footer (theming slogan + link) —
+		// clutter under the content; records carry branding in the top banner.
+		Util::addStyle('files_picocms', 'public-share');
 		try {
 			$attrs = $event->getShare()->getAttributes();
 			if ($attrs === null || !$attrs->getAttribute('files_picocms', 'catalog_listed')) {
