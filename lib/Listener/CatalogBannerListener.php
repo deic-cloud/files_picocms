@@ -35,6 +35,9 @@ class CatalogBannerListener implements IEventListener {
 		// ALL public share pages: drop the stock footer (theming slogan + link) —
 		// clutter under the content; records carry branding in the top banner.
 		Util::addStyle('files_picocms', 'public-share');
+		// …and harden mis-rooted public-DAV requests (username instead of the
+		// share token → 503; see js/public-share.js).
+		Util::addScript('files_picocms', 'public-share');
 		try {
 			$attrs = $event->getShare()->getAttributes();
 			if ($attrs === null || !$attrs->getAttribute('files_picocms', 'catalog_listed')) {
