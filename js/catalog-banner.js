@@ -15,7 +15,10 @@
 		if (document.getElementById('sdCatalogBanner')) { return }
 		var bar = document.createElement('div')
 		bar.id = 'sdCatalogBanner'
-		bar.style.cssText = 'position:fixed;top:0;left:0;right:0;height:36px;z-index:9999;'
+		// z-index BELOW NC modals (viewer overlay ~10000+): while a file viewer is
+		// open it covers the banner — proper modal semantics — and the viewer's own
+		// close X (top-right, which the 9999 banner used to swallow) is visible.
+		bar.style.cssText = 'position:fixed;top:0;left:0;right:0;height:36px;z-index:1500;'
 			+ 'display:flex;align-items:center;gap:10px;padding:0 16px;'
 			+ 'background:#1b456d;color:#fff;font-size:13px;'
 		// Breadcrumb (Zenodo-style): BRAND › LABEL — brand to the front page,
