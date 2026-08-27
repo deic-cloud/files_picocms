@@ -61,9 +61,10 @@ class CatalogBannerListener implements IEventListener {
 				$label = '';
 			}
 		}
+		$front = (string)$this->config->getSystemValue('files_picocms.frontpage_site', 'welcome');
 		$this->initialState->provideInitialState('catalog_banner', [
 			'url'        => '/remote.php/sites/' . rawurlencode($site) . '/',
-			'home'       => '/',
+			'home'       => '/remote.php/sites/' . rawurlencode($front) . '/',
 			'brand'      => (string)$this->config->getSystemValue('files_picocms.brand_name', 'Nextcloud'),
 			'label'      => (string)$this->config->getSystemValue('files_picocms.catalog_label', 'Public data'),
 			'share_name' => $label,

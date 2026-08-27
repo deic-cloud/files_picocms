@@ -55,7 +55,7 @@
 <body>
 
 <header class="site-head scrolled" id="siteHead">
-	<a class="brand" href="/">{{ config.sd_brand_html|default(brand)|raw }}</a>
+	<a class="brand" href="{{ config.sd_home_url|default('/') }}">{{ config.sd_brand_html|default(brand)|raw }}</a>
 	<nav class="site-nav">
 		<a href="/sites/blog">Blog</a>
 		<a href="/sites/documentation">Documentation</a>
