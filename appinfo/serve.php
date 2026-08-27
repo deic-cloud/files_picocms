@@ -918,134 +918,15 @@ function _pico_sd_catalog(): array {
 			return $hit;
 		}
 	}
-
+	// CLUSTER-WIDE: master aggregates the silos, a silo asks the master; falls
+	// back to node-local entries on any failure. Logic lives in CatalogService
+	// (shared with the internal/catalog endpoints).
 	$out = [];
 	try {
-		$db  = \OC::$server->get(\OCP\IDBConnection::class);
-		$url = \OC::$server->get(\OCP\IURLGenerator::class);
-		$q = $db->getQueryBuilder();
-		// share_type 3 = TYPE_LINK; narrow to rows carrying a files_picocms attribute
-		// (cheap prefilter) — the authoritative check is the JSON parse below.
-		$q->select('uid_owner', 'file_source', 'file_target', 'token', 'stime', 'label', 'attributes')
-			->from('share')
-			->where($q->expr()->eq('share_type', $q->createNamedParameter(3, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)))
-			->andWhere($q->expr()->isNotNull('token'))
-			->andWhere($q->expr()->like('attributes', $q->createNamedParameter('%files_picocms%')))
-			->orderBy('stime', 'DESC')
-			->setMaxResults(200);
-		$res = $q->executeQuery();
-		$rows = $res->fetchAll();
-		$res->closeCursor();
-
-		// mimetype per shared node → kind (dataset folder / notebook / file)
-		$fileIds = array_values(array_filter(array_map(fn ($r) => (int)($r['file_source'] ?? 0), $rows)));
-		$mimes = [];
-		if ($fileIds !== []) {
-			try {
-				$mq = $db->getQueryBuilder();
-				$mq->select('fc.fileid', 'm.mimetype')
-					->from('filecache', 'fc')
-					->innerJoin('fc', 'mimetypes', 'm', $mq->expr()->eq('fc.mimetype', 'm.id'))
-					->where($mq->expr()->in('fc.fileid', $mq->createNamedParameter($fileIds, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT_ARRAY)));
-				$mr = $mq->executeQuery();
-				while (($m = $mr->fetch()) !== false) {
-					$mimes[(int)$m['fileid']] = (string)$m['mimetype'];
-				}
-				$mr->closeCursor();
-			} catch (\Throwable) {
-			}
-		}
-
-		// user-added metadata (meta_data app): key => value per fileid. Guarded —
-		// works without the app (tables absent → no metadata shown).
-		$meta = [];
-		if ($fileIds !== []) {
-			try {
-				$kq = $db->getQueryBuilder();
-				$kq->select('d.fileid', 'k.name', 'd.value')
-					->from('meta_data_docKeys', 'd')
-					->innerJoin('d', 'meta_data_keys', 'k', $kq->expr()->eq('d.keyid', 'k.id'))
-					->where($kq->expr()->in('d.fileid', $kq->createNamedParameter($fileIds, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT_ARRAY)))
-					->andWhere($kq->expr()->neq('d.value', $kq->createNamedParameter('')));
-				$kr = $kq->executeQuery();
-				while (($k = $kr->fetch()) !== false) {
-					$meta[(int)$k['fileid']][(string)$k['name']] = (string)$k['value'];
-				}
-				$kr->closeCursor();
-			} catch (\Throwable) {
-			}
-		}
-
-		// tags per fileid (meta_data rides NC systemtags)
-		$tags = [];
-		if ($fileIds !== []) {
-			try {
-				$tq = $db->getQueryBuilder();
-				$tq->select('om.objectid', 'st.name')
-					->from('systemtag_object_mapping', 'om')
-					->innerJoin('om', 'systemtag', 'st', $tq->expr()->eq('om.systemtagid', 'st.id'))
-					->where($tq->expr()->eq('om.objecttype', $tq->createNamedParameter('files')))
-					->andWhere($tq->expr()->in('om.objectid', $tq->createNamedParameter(array_map('strval', $fileIds), \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_STR_ARRAY)));
-				$tr = $tq->executeQuery();
-				while (($t = $tr->fetch()) !== false) {
-					$tags[(int)$t['objectid']][] = (string)$t['name'];
-				}
-				$tr->closeCursor();
-			} catch (\Throwable) {
-			}
-		}
-
-		$userManager = null;
-		try {
-			$userManager = \OC::$server->get(\OCP\IUserManager::class);
-		} catch (\Throwable) {
-		}
-
-		foreach ($rows as $row) {
-			if (!_pico_attr_listed((string)($row['attributes'] ?? ''))) {
-				continue;
-			}
-			$token = (string)($row['token'] ?? '');
-			if ($token === '') {
-				continue;
-			}
-			$label = trim((string)($row['label'] ?? ''));
-			$title = $label !== '' ? $label : trim(basename((string)($row['file_target'] ?? '')), '/');
-			if ($title === '') {
-				$title = 'Shared folder';
-			}
-			$owner = (string)($row['uid_owner'] ?? '');
-			$at    = strrpos($owner, '@');
-			$ownerName = $owner;
-			if ($userManager !== null) {
-				try {
-					$u = $userManager->get($owner);
-					if ($u !== null) {
-						$ownerName = $u->getDisplayName() ?: $owner;
-					}
-				} catch (\Throwable) {
-				}
-			}
-			$fid  = (int)($row['file_source'] ?? 0);
-			$mime = $mimes[$fid] ?? '';
-			$kind = $mime === 'httpd/unix-directory' ? 'dataset'
-				: ($mime === 'application/x-ipynb+json' ? 'notebook' : 'file');
-			$out[] = [
-				'title'       => $title,
-				'url'         => $url->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $token]),
-				'owner'       => $owner,
-				'owner_name'  => $ownerName,
-				'institution' => $at !== false ? strtolower(substr($owner, $at + 1)) : '',
-				'stime'       => (int)($row['stime'] ?? 0),
-				'kind'        => $kind,
-				'tags'        => $tags[$fid] ?? [],
-				'meta'        => $meta[$fid] ?? [],
-			];
-		}
+		$out = \OCP\Server::get(\OCA\FilesPicoCMS\Service\CatalogService::class)->clusterEntries();
 	} catch (\Throwable $e) {
 		error_log('files_picocms _pico_sd_catalog: ' . $e->getMessage());
 	}
-
 	if ($cache !== null) {
 		$cache->set('catalog', $out, 600);
 	}

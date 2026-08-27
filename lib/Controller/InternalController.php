@@ -156,4 +156,24 @@ class InternalController extends Controller {
 		$uid = $this->siteService->getUserIdFromEmail($email);
 		return new JSONResponse(['uid' => $uid]);
 	}
+	/** This node's local catalog entries (share-secret gated; consumed by the master). */
+	#[\OCP\AppFramework\Http\Attribute\PublicPage]
+	#[\OCP\AppFramework\Http\Attribute\NoCSRFRequired]
+	public function catalog(): JSONResponse {
+		if (!$this->checkSecret()) {
+			return new JSONResponse(['message' => 'Unauthorized'], 401);
+		}
+		return new JSONResponse(['entries' => \OCP\Server::get(\OCA\FilesPicoCMS\Service\CatalogService::class)->localEntries()]);
+	}
+
+	/** MASTER: the cluster-wide aggregate (own + every silo's local entries). */
+	#[\OCP\AppFramework\Http\Attribute\PublicPage]
+	#[\OCP\AppFramework\Http\Attribute\NoCSRFRequired]
+	public function catalogAll(): JSONResponse {
+		if (!$this->checkSecret()) {
+			return new JSONResponse(['message' => 'Unauthorized'], 401);
+		}
+		return new JSONResponse(['entries' => \OCP\Server::get(\OCA\FilesPicoCMS\Service\CatalogService::class)->clusterEntries()]);
+	}
+
 }
