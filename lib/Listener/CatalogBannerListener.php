@@ -49,11 +49,25 @@ class CatalogBannerListener implements IEventListener {
 		$sites = array_filter(array_map('trim',
 			explode(',', (string)$this->config->getSystemValue('files_picocms.repository_sites', 'repository'))));
 		$site = $sites !== [] ? reset($sites) : 'repository';
+		// Record crumb: the share's presented name + its CLEAN page URL. Clicking
+		// it is the breadcrumb "up": closes an open file / returns from a
+		// subfolder (a plain navigation resets the public files view).
+		$share = $event->getShare();
+		$label = trim((string)$share->getLabel());
+		if ($label === '') {
+			try {
+				$label = $share->getNode()->getName();
+			} catch (\Throwable) {
+				$label = '';
+			}
+		}
 		$this->initialState->provideInitialState('catalog_banner', [
-			'url'   => '/remote.php/sites/' . rawurlencode($site) . '/',
-			'home'  => '/',
-			'brand' => (string)$this->config->getSystemValue('files_picocms.brand_name', 'Nextcloud'),
-			'label' => (string)$this->config->getSystemValue('files_picocms.catalog_label', 'Public data'),
+			'url'        => '/remote.php/sites/' . rawurlencode($site) . '/',
+			'home'       => '/',
+			'brand'      => (string)$this->config->getSystemValue('files_picocms.brand_name', 'Nextcloud'),
+			'label'      => (string)$this->config->getSystemValue('files_picocms.catalog_label', 'Public data'),
+			'share_name' => $label,
+			'share_url'  => '/index.php/s/' . rawurlencode($share->getToken()),
 		]);
 		Util::addScript('files_picocms', 'catalog-banner');
 	}

@@ -37,6 +37,19 @@
 		bar.appendChild(brand)
 		bar.appendChild(sep)
 		bar.appendChild(back)
+		// Third crumb: this record. Clicking navigates to the share's clean URL —
+		// the breadcrumb "up": closes an open file, returns from a subfolder.
+		if (state.share_name && state.share_url) {
+			var sep2 = document.createElement('span')
+			sep2.textContent = '›'
+			sep2.style.cssText = 'opacity:.6;'
+			var here = document.createElement('a')
+			here.href = state.share_url
+			here.textContent = state.share_name
+			here.style.cssText = 'color:#fff;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40vw;'
+			bar.appendChild(sep2)
+			bar.appendChild(here)
+		}
 		document.body.appendChild(bar)
 		// push the page down so the stock share header isn't covered
 		document.body.style.marginTop = '36px'
