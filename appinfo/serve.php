@@ -446,7 +446,15 @@ if ($siteName !== null && in_array($siteName, $sdRepoSites, true)) {
 	$picoConfig['sd_asset_ver'] = (string)(@filemtime($themesDir . 'repository/css/style.css') ?: '1');
 	$picoConfig['sd_theme_static'] = $webRoot . '/apps/files_picocms/themes/repository';
 	$brand = trim((string)$config->getSystemValue('files_picocms.brand_name', 'Nextcloud'));
-	$picoConfig['sd_brand_name'] = $brand !== '' ? $brand : 'Nextcloud';
+	$brand = $brand !== '' ? $brand : 'Nextcloud';
+	$picoConfig['sd_brand_name'] = $brand;
+	// Same wordmark as the frontpage: red dot over the first lowercase "i".
+	$ip = strpos($brand, 'i');
+	$picoConfig['sd_brand_html'] = $ip === false
+		? htmlspecialchars($brand, ENT_QUOTES)
+		: htmlspecialchars(substr($brand, 0, $ip), ENT_QUOTES)
+			. '<span class="sd-i">' . "\u{0131}" . '</span>'
+			. htmlspecialchars(substr($brand, $ip + 1), ENT_QUOTES);
 }
 if ($siteName !== null && $siteName === $sdFrontpage) {
 	// When reached via the bare-root rewrite (the web server sets SD_ROOT=1 for a

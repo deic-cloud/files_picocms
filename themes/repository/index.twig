@@ -14,8 +14,17 @@
 		body { background: var(--bg); }
 		.repo-main { max-width: 880px; margin: 0 auto; padding: 96px 20px 60px; }
 		.repo-main h1 { font-size: 2rem; margin: 0 0 6px; color: var(--ink); }
+		.repo-head { display: flex; gap: 28px; align-items: flex-start; }
+		.repo-head-main { flex: 1 1 auto; min-width: 0; }
 		.repo-intro { color: var(--muted); max-width: 65ch; }
 		.repo-intro a { color: var(--accent); }
+		.repo-aside { flex: 0 0 260px; background: var(--bg-alt); border: 1px solid var(--line);
+			border-radius: 10px; padding: 14px 16px; font-size: .88rem; color: var(--muted); }
+		.repo-aside a { color: var(--accent); }
+		@media (max-width: 760px) {
+			.repo-head { flex-direction: column; }
+			.repo-aside { flex: 1 1 auto; width: 100%; box-sizing: border-box; }
+		}
 		.repo-section { margin-top: 40px; }
 		.repo-section > h2 { font-size: 1.15rem; letter-spacing: .04em; text-transform: uppercase;
 			color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 8px; }
@@ -59,8 +68,15 @@
 </header>
 
 <main class="repo-main">
-	<h1>{{ meta.title|default('Public data') }}</h1>
-	<div class="repo-intro">{{ content }}</div>
+	<div class="repo-head">
+		<div class="repo-head-main">
+			<h1>{{ meta.title|default('Public data') }}</h1>
+			<div class="repo-intro">{{ content }}</div>
+		</div>
+		{% if meta.contribute %}
+		<aside class="repo-aside">{{ meta.contribute|markdown }}</aside>
+		{% endif %}
+	</div>
 
 	{% set catalog = config.sd_catalog|default([]) %}
 	{% set alltags = [] %}
@@ -86,7 +102,7 @@
 	{% endfor %}
 	{% set sections = [
 		{ 'title': 'Datasets',  'items': ds },
-		{ 'title': 'Notebooks', 'items': nb },
+		{ 'title': 'Jupyter notebooks', 'items': nb },
 		{ 'title': 'Files',     'items': fl },
 	] %}
 	{% for section in sections %}
@@ -125,6 +141,13 @@
 		<p class="repo-empty">Nothing has been listed yet.</p>
 	{% endif %}
 </main>
+
+<footer class="site-foot">
+	<div class="foot-inner">
+		<span>ScienceData — i2, Technical University of Denmark (DTU)</span>
+		<a href="mailto:support@sciencedata.dk">support@sciencedata.dk</a>
+	</div>
+</footer>
 
 <script>
 (function () {
