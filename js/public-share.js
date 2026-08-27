@@ -50,4 +50,30 @@
 		arguments[1] = fix(url)
 		return origOpen.apply(this, arguments)
 	}
+
+	// ── Back-button sanity for the viewer overlay ────────────────────────────
+	// Opening a file on a public page shows the Viewer WITHOUT pushing a
+	// history entry (it replaceState's the openfile marker in), so browser
+	// Back skips the share page entirely and leaves the site — a dead end.
+	// Promote viewer-opening replaceState calls to pushState, and close the
+	// viewer on popstate — Back then means "close the file", as users expect.
+	function hasOpenfile(u) {
+		try { return /[?&](openfile|opendetails)\b/.test(String(u)) } catch (e) { return false }
+	}
+	var origReplace = history.replaceState
+	history.replaceState = function (state, title, url) {
+		if (url && hasOpenfile(url) && !hasOpenfile(location.href)) {
+			return history.pushState(state, title, url)
+		}
+		return origReplace.apply(this, arguments)
+	}
+	window.addEventListener('popstate', function () {
+		if (!hasOpenfile(location.href)) {
+			try {
+				if (window.OCA && OCA.Viewer && typeof OCA.Viewer.close === 'function') {
+					OCA.Viewer.close()
+				}
+			} catch (e) { /* nothing to close */ }
+		}
+	})
 })()
