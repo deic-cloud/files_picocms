@@ -131,6 +131,13 @@
 	'use strict'
 	var active = null
 	var search = document.getElementById('repoSearch')
+	function writeHash() {
+		var parts = []
+		if (active) { parts.push('tag=' + encodeURIComponent(active)) }
+		if (search && search.value.trim()) { parts.push('q=' + encodeURIComponent(search.value.trim())) }
+		var h = parts.join('&')
+		history.replaceState(null, '', h ? '#' + h : location.pathname + location.search)
+	}
 	function apply() {
 		var q = (search && search.value || '').toLowerCase().trim()
 		document.querySelectorAll('.repo-item').forEach(function (item) {
@@ -145,7 +152,7 @@
 			sec.classList.toggle('hidden', !any)
 		})
 	}
-	if (search) { search.addEventListener('input', apply) }
+	if (search) { search.addEventListener('input', function () { writeHash(); apply() }) }
 	document.querySelectorAll('.repo-tagchip').forEach(function (chip) {
 		chip.addEventListener('click', function () {
 			var tag = chip.getAttribute('data-tag')
@@ -153,9 +160,26 @@
 			document.querySelectorAll('.repo-tagchip').forEach(function (c) {
 				c.classList.toggle('active', c.getAttribute('data-tag') === active)
 			})
+			writeHash()
 			apply()
 		})
 	})
+	// Restore filter state from the URL hash (kept across record round-trips).
+	try {
+		var params = {}
+		location.hash.replace(/^#/, '').split('&').forEach(function (kv) {
+			var i = kv.indexOf('=')
+			if (i > 0) { params[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)) }
+		})
+		if (params.q && search) { search.value = params.q }
+		if (params.tag) {
+			active = params.tag
+			document.querySelectorAll('.repo-tagchip').forEach(function (c) {
+				c.classList.toggle('active', c.getAttribute('data-tag') === active)
+			})
+		}
+		if (params.q || params.tag) { apply() }
+	} catch (e) { /* cosmetic */ }
 })()
 </script>
 

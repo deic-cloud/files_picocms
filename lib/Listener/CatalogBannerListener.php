@@ -45,8 +45,9 @@ class CatalogBannerListener implements IEventListener {
 		$site = $sites !== [] ? reset($sites) : 'repository';
 		$this->initialState->provideInitialState('catalog_banner', [
 			'url'   => '/remote.php/sites/' . rawurlencode($site) . '/',
+			'home'  => '/',
 			'brand' => (string)$this->config->getSystemValue('files_picocms.brand_name', 'Nextcloud'),
-			'label' => 'Public data',
+			'label' => (string)$this->config->getSystemValue('files_picocms.catalog_label', 'Public data'),
 		]);
 		Util::addScript('files_picocms', 'catalog-banner');
 	}
