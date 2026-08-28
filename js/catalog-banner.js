@@ -18,7 +18,7 @@
 		// z-index BELOW NC modals (viewer overlay ~10000+): while a file viewer is
 		// open it covers the banner — proper modal semantics — and the viewer's own
 		// close X (top-right, which the 9999 banner used to swallow) is visible.
-		bar.style.cssText = 'position:fixed;top:0;left:0;right:0;height:36px;z-index:1500;'
+		bar.style.cssText = 'position:fixed;top:0;left:0;right:0;height:40px;z-index:1500;'
 			+ 'display:flex;align-items:center;gap:10px;padding:0 16px;'
 			+ 'background:#1b456d;color:#fff;font-size:13px;'
 		// Breadcrumb (Zenodo-style): BRAND › LABEL — brand to the front page,
@@ -85,7 +85,7 @@
 		if (!state.is_owner && state.token) {
 			var addBtn = document.createElement('button')
 			addBtn.textContent = t('files_picocms', 'Add to my ScienceData')
-			addBtn.style.cssText = 'flex:0 0 auto;font-size:12px;padding:5px 14px;border-radius:999px;border:none;cursor:pointer;background:#fff;color:#1b456d;font-weight:600;'
+			addBtn.style.cssText = 'flex:0 0 auto;font-size:12px;line-height:1;padding:6px 10px;border-radius:3px;border:1px solid rgba(255,255,255,.55);cursor:pointer;background:rgba(255,255,255,.12);color:#fff;font-weight:600;white-space:nowrap;'
 			right.appendChild(addBtn)
 			function doAdd() {
 				addBtn.disabled = true
@@ -133,27 +133,34 @@
 			}
 		}
 
-		// Stock "Add to your Nextcloud" (OCM, for visitors from other services):
-		// clarify its scope next to our one-click. Text-matched (en locale).
+		// Stock OCM entry in the 3-dots menu ("Add to your Nextcloud" — for visitors
+		// from OTHER services): relabel to make its scope explicit next to our
+		// one-click. Targeted by its stable NcListItem anchor id, locale-independent.
+		function relabelExternal(root) {
+			try {
+				var a = null
+				if (root && root.id === 'save--link') { a = root }
+				else if (root && root.querySelector) { a = root.querySelector('#save--link') }
+				if (!a) { return }
+				var nm = a.querySelector('.list-item-content__name') || a
+				if (!nm.dataset.sdRelabeled) {
+					nm.dataset.sdRelabeled = '1'
+					nm.textContent = t('files_picocms', 'Add to external Nextcloud')
+				}
+			} catch (e) { /* cosmetic */ }
+		}
+		relabelExternal(document)
 		try {
 			new MutationObserver(function (muts) {
 				muts.forEach(function (m) {
-					m.addedNodes.forEach(function (n) {
-						if (n.nodeType !== 1 || !n.querySelectorAll) { return }
-						n.querySelectorAll('button span, a span, li span').forEach(function (sp) {
-							if (sp.textContent.trim() === 'Add to your Nextcloud' && !sp.dataset.sdRelabeled) {
-								sp.dataset.sdRelabeled = '1'
-								sp.textContent = 'Add to your Nextcloud (outside ScienceData)'
-							}
-						})
-					})
+					m.addedNodes.forEach(function (n) { if (n.nodeType === 1) { relabelExternal(n) } })
 				})
 			}).observe(document.body, { childList: true, subtree: true })
 		} catch (e) { /* cosmetic */ }
 
 		document.body.appendChild(bar)
 		// push the page down so the stock share header isn't covered
-		document.body.style.marginTop = '36px'
+		document.body.style.marginTop = '40px'
 	}
 	// decodeURIComponent anchor: keeps minifiers from dropping the block.
 	decodeURIComponent('')
