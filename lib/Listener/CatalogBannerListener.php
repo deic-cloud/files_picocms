@@ -51,8 +51,8 @@ class CatalogBannerListener implements IEventListener {
 			return;
 		}
 		$sites = array_filter(array_map('trim',
-			explode(',', (string)$this->config->getSystemValue('files_picocms.repository_sites', 'repository'))));
-		$site = $sites !== [] ? reset($sites) : 'repository';
+			explode(',', (string)$this->config->getSystemValue('files_picocms.repository_sites', 'public'))));
+		$site = $sites !== [] ? reset($sites) : 'public';
 		// Record crumb: the share's presented name + its CLEAN page URL. Clicking
 		// it is the breadcrumb "up": closes an open file / returns from a
 		// subfolder (a plain navigation resets the public files view).

@@ -440,11 +440,14 @@ $sdFrontpage = (string)$config->getSystemValue('files_picocms.frontpage_site', '
 // public catalog listing — datasets AND notebooks — with owner/date/metadata.
 // Comma-separated site names in config files_picocms.repository_sites.
 $sdRepoSites = array_filter(array_map('trim',
-	explode(',', (string)$config->getSystemValue('files_picocms.repository_sites', 'repository'))));
+	explode(',', (string)$config->getSystemValue('files_picocms.repository_sites', 'public'))));
 if ($siteName !== null && in_array($siteName, $sdRepoSites, true)) {
 	// Top-left brand links to the WELCOME page (like on the welcome page itself),
 	// not the bare root (whose handler bounces logged-in users to their files).
 	$picoConfig['sd_home_url']  = $webRoot . '/remote.php/sites/' . rawurlencode($sdFrontpage) . '/';
+	// Where the public catalog lives (first configured catalog site; default 'public')
+	$catSites = array_filter(array_map('trim', explode(',', (string)$config->getSystemValue('files_picocms.repository_sites', 'public'))));
+	$picoConfig['sd_catalog_url'] = $webRoot . '/remote.php/sites/' . rawurlencode($catSites !== [] ? reset($catSites) : 'public') . '/';
 	$picoConfig['sd_catalog']   = _pico_sd_catalog();
 	$picoConfig['sd_asset_ver'] = (string)(@filemtime($themesDir . 'repository/css/style.css') ?: '1');
 	$picoConfig['sd_theme_static'] = $webRoot . '/apps/files_picocms/themes/repository';

@@ -69,7 +69,7 @@
 		<div class="stat"><span class="num">{{ config.sd_stats.researchers }}</span><span class="label">researchers</span></div>
 		<div class="stat"><span class="num">{{ config.sd_stats.institutions }}</span><span class="label">institutions</span></div>
 		<div class="stat"><span class="num">{{ config.sd_stats.groups }}</span><span class="label">groups</span></div>
-		<div class="stat"><span class="num">{{ config.sd_stats.public_datasets }}</span><span class="label">public datasets</span></div>
+		<a class="stat stat-link" href="{{ config.sd_catalog_url|default('/remote.php/sites/public/') }}"><span class="num">{{ config.sd_stats.public_datasets }}</span><span class="label">public datasets</span></a>
 	</div>
 </section>
 {% endif %}
@@ -93,7 +93,7 @@
 {% if config.sd_catalog is not empty %}
 <section class="catalog">
 	<div class="catalog-inner">
-		<h2>Public datasets</h2>
+		<h2>Public datasets <a class="catalog-all" href="{{ config.sd_catalog_url|default('/remote.php/sites/public/') }}">See all →</a></h2>
 		<p class="catalog-sub">Folders their owners chose to share openly.</p>
 		<ul class="catalog-list">
 			{% for d in config.sd_catalog %}

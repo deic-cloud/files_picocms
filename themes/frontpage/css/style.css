@@ -138,6 +138,10 @@ a:hover { text-decoration: underline; }
 .stat { display: flex; flex-direction: column; gap: 0.15rem; }
 .stat .num { font-size: 2.1rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
 .stat .label { font-size: 0.82rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.stat-link { text-decoration: none; }
+.stat-link:hover .label { text-decoration: underline; color: var(--accent); }
+.catalog-all { font-size: 0.9rem; font-weight: 500; margin-left: 12px; color: var(--accent); text-decoration: none; }
+.catalog-all:hover { text-decoration: underline; }
 
 /* --- cards (3 → 1) --- */
 .cards {
