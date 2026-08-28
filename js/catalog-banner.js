@@ -156,7 +156,7 @@
 				var nm = a.querySelector('.list-item-content__name') || a
 				if (!nm.dataset.sdRelabeled) {
 					nm.dataset.sdRelabeled = '1'
-					nm.textContent = t('files_picocms', 'OCM export')
+					nm.textContent = t('files_picocms', 'Add via OCM to another service')
 				}
 			} catch (e) { /* cosmetic */ }
 		}
