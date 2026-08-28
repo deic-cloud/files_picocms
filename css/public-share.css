@@ -5,3 +5,7 @@
 #body-public .footer {
 	display: none !important;
 }
+
+/* The anonymous "?" user menu top-right adds nothing on a share page
+   (Frederik 2026-08-28) — hidden on all public pages. */
+#public-page-user-menu { display: none !important; }

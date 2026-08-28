@@ -82,55 +82,66 @@
 		}
 
 		// One-click mount into the visitor's own files (login detour if needed).
+		// Lives NEXT TO the stock Download button (old-service/sciencerepository
+		// pattern): a clone of that NcButton — inherits stock styling exactly —
+		// with a cloud-download icon and our label, secondary variant.
 		if (!state.is_owner && state.token) {
-			var addBtn = document.createElement('button')
-			addBtn.textContent = t('files_picocms', 'Add to my ScienceData')
-			addBtn.style.cssText = 'flex:0 0 auto;font-size:12px;line-height:1;padding:6px 10px;border-radius:3px;border:1px solid rgba(255,255,255,.55);cursor:pointer;background:rgba(255,255,255,.12);color:#fff;font-weight:600;white-space:nowrap;'
-			right.appendChild(addBtn)
-			function doAdd() {
-				addBtn.disabled = true
-				addBtn.textContent = t('files_picocms', 'Adding…')
-				fetch(OC.getRootPath() + '/ocs/v2.php/apps/files_sharding/api/v1/save-share?format=json', {
-					method: 'POST',
-					headers: {
-						'OCS-APIREQUEST': 'true',
-						'requesttoken': OC.requestToken,
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({ token: state.token }),
-				}).then(function (r) {
-					if (r.status === 401) {
-						// not logged in → login detour, then auto-add on return
-						var back = location.origin + location.pathname + '?sd_autoadd=1'
-						location.href = OC.getRootPath() + '/index.php/login?redirect_url=' + encodeURIComponent(back)
-						return null
-					}
-					return r.json()
-				}).then(function (res) {
-					if (!res) { return }
-					var st = res.ocs && res.ocs.data && res.ocs.data.status
-					if (st === 'added' || st === 'exists') {
-						addBtn.textContent = st === 'added'
-							? t('files_picocms', 'Added ✓ — see "Shared with you"')
-							: t('files_picocms', 'Already in your files ✓')
-					} else if (st === 'own') {
-						addBtn.textContent = t('files_picocms', 'This is your own share')
-					} else {
-						addBtn.disabled = false
-						addBtn.textContent = t('files_picocms', 'Add to my ScienceData')
-						OC.Notification && OC.Notification.showTemporary((res.ocs && res.ocs.data && res.ocs.data.message) || t('files_picocms', 'Adding failed'))
-					}
-				}).catch(function () {
-					addBtn.disabled = false
-					addBtn.textContent = t('files_picocms', 'Add to my ScienceData')
-				})
+			var CLOUD_DL = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96M17 13l-5 5-5-5h3V9h4v4h3z"/></svg>'
+			var installed = false
+			function installAddButton() {
+				if (installed) { return }
+				var primary = document.getElementById('public-page-menu--primary')
+				if (!primary) { return }
+				installed = true
+				var btn = primary.cloneNode(true)
+				btn.id = 'sd-add-to-my'
+				btn.removeAttribute('href')
+				btn.removeAttribute('download')
+				btn.className = primary.className.replace(/button-vue--vue-primary/g, 'button-vue--vue-secondary')
+				btn.style.marginRight = '4px'
+				var icon = btn.querySelector('.button-vue__icon') || btn.querySelector('[class*="icon"]')
+				if (icon) { icon.innerHTML = CLOUD_DL; icon.className = 'button-vue__icon' }
+				var txt = btn.querySelector('.button-vue__text')
+				var setText = function (v) { if (txt) { txt.textContent = v } else { btn.textContent = v } }
+				setText(t('files_picocms', 'Add to my ScienceData'))
+				btn.setAttribute('title', t('files_picocms', 'Mount this share into your own files (read-only; copy items out to keep a snapshot)'))
+				primary.parentNode.insertBefore(btn, primary.nextSibling)
+
+				function doAdd(ev) {
+					if (ev) { ev.preventDefault() }
+					btn.disabled = true
+					setText(t('files_picocms', 'Adding…'))
+					fetch(OC.getRootPath() + '/ocs/v2.php/apps/files_sharding/api/v1/save-share?format=json', {
+						method: 'POST',
+						headers: { 'OCS-APIREQUEST': 'true', 'requesttoken': OC.requestToken, 'Content-Type': 'application/json' },
+						body: JSON.stringify({ token: state.token }),
+					}).then(function (r) {
+						if (r.status === 401) {
+							var back = location.origin + location.pathname + '?sd_autoadd=1'
+							location.href = OC.getRootPath() + '/index.php/login?redirect_url=' + encodeURIComponent(back)
+							return null
+						}
+						return r.json()
+					}).then(function (res) {
+						if (!res) { return }
+						var st = res.ocs && res.ocs.data && res.ocs.data.status
+						if (st === 'added') { setText(t('files_picocms', 'Added ✓ — see "Shared with you"')) }
+						else if (st === 'exists') { setText(t('files_picocms', 'Already in your files ✓')) }
+						else if (st === 'own') { setText(t('files_picocms', 'This is your own share')) }
+						else {
+							btn.disabled = false
+							setText(t('files_picocms', 'Add to my ScienceData'))
+							OC.Notification && OC.Notification.showTemporary((res.ocs && res.ocs.data && res.ocs.data.message) || t('files_picocms', 'Adding failed'))
+						}
+					}).catch(function () { btn.disabled = false; setText(t('files_picocms', 'Add to my ScienceData')) })
+				}
+				btn.addEventListener('click', doAdd)
+				if (/[?&]sd_autoadd=1/.test(location.search) && state.logged_in) {
+					try { history.replaceState(null, '', location.pathname) } catch (e) { /* cosmetic */ }
+					doAdd()
+				}
 			}
-			addBtn.addEventListener('click', doAdd)
-			// returning from the login detour → complete the add automatically
-			if (/[?&]sd_autoadd=1/.test(location.search) && state.logged_in) {
-				try { history.replaceState(null, '', location.pathname) } catch (e) { /* cosmetic */ }
-				doAdd()
-			}
+			installAddButton()
 		}
 
 		// Stock OCM entry in the 3-dots menu ("Add to your Nextcloud" — for visitors
@@ -145,7 +156,7 @@
 				var nm = a.querySelector('.list-item-content__name') || a
 				if (!nm.dataset.sdRelabeled) {
 					nm.dataset.sdRelabeled = '1'
-					nm.textContent = t('files_picocms', 'Add to external Nextcloud')
+					nm.textContent = t('files_picocms', 'OCM export')
 				}
 			} catch (e) { /* cosmetic */ }
 		}
@@ -154,6 +165,7 @@
 			new MutationObserver(function (muts) {
 				muts.forEach(function (m) {
 					m.addedNodes.forEach(function (n) { if (n.nodeType === 1) { relabelExternal(n) } })
+					if (typeof installAddButton === 'function') { installAddButton() }
 				})
 			}).observe(document.body, { childList: true, subtree: true })
 		} catch (e) { /* cosmetic */ }
