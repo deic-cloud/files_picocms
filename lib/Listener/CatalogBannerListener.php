@@ -9,6 +9,8 @@ use OCP\AppFramework\Services\IInitialState;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\IConfig;
+use OCP\IUserManager;
+use OCP\IUserSession;
 use OCP\Util;
 
 /**
@@ -25,6 +27,8 @@ class CatalogBannerListener implements IEventListener {
 	public function __construct(
 		private IInitialState $initialState,
 		private IConfig       $config,
+		private IUserManager  $userManager,
+		private IUserSession  $userSession,
 	) {
 	}
 
@@ -61,6 +65,26 @@ class CatalogBannerListener implements IEventListener {
 				$label = '';
 			}
 		}
+		// Attribution (records are public claims): sharer display name, institution,
+		// share date, ORCID when connected (user_orcid pref, lives on this node —
+		// the record renders on the owner's node).
+		$owner = (string)$share->getShareOwner();
+		$ownerName = $owner;
+		try {
+			$u = $this->userManager->get($owner);
+			if ($u !== null) {
+				$ownerName = $u->getDisplayName() ?: $owner;
+			}
+		} catch (\Throwable) {
+		}
+		$at = strrpos($owner, '@');
+		$orcid = trim((string)$this->config->getUserValue($owner, 'user_orcid', 'orcid', ''));
+		$stime = 0;
+		try {
+			$stime = $share->getShareTime()?->getTimestamp() ?? 0;
+		} catch (\Throwable) {
+		}
+
 		$front = (string)$this->config->getSystemValue('files_picocms.frontpage_site', 'welcome');
 		$this->initialState->provideInitialState('catalog_banner', [
 			'url'        => '/remote.php/sites/' . rawurlencode($site) . '/',
@@ -69,6 +93,13 @@ class CatalogBannerListener implements IEventListener {
 			'label'      => (string)$this->config->getSystemValue('files_picocms.catalog_label', 'Public data'),
 			'share_name' => $label,
 			'share_url'  => '/index.php/s/' . rawurlencode($share->getToken()),
+			'owner_name'  => $ownerName,
+			'institution' => $at !== false ? strtolower(substr($owner, $at + 1)) : '',
+			'orcid'       => $orcid,
+			'stime'       => $stime,
+			'token'       => $share->getToken(),
+			'logged_in'   => $this->userSession->getUser() !== null,
+			'is_owner'    => $this->userSession->getUser()?->getUID() === $owner,
 		]);
 		Util::addScript('files_picocms', 'catalog-banner');
 	}
