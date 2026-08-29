@@ -72,7 +72,7 @@
 		<a class="stat stat-link" href="{{ config.sd_catalog_url|default('/remote.php/sites/public/') }}"><span class="num">{{ config.sd_stats.public_datasets }}</span><span class="label">public datasets <span class="stat-arrow">→</span></span></a>
 	</div>
 	{% if config.sd_stats.institution_top is not empty %}
-	<p class="pulse-note">Researchers from {{ config.sd_stats.institution_top|join(' · ') }}{% if config.sd_stats.institutions > config.sd_stats.institution_top|length %} and {{ config.sd_stats.institutions - config.sd_stats.institution_top|length }} more institutions{% endif %}</p>
+	<p class="pulse-note">Researchers from&nbsp;{{ config.sd_stats.institution_top|join(' · ') }}{% if config.sd_stats.institutions > config.sd_stats.institution_top|length %}&nbsp;and {{ config.sd_stats.institutions - config.sd_stats.institution_top|length }} more institutions{% endif %}</p>
 	{% endif %}
 </section>
 {% endif %}
