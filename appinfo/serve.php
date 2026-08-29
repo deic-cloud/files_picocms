@@ -823,6 +823,7 @@ function _pico_sd_stats(): array {
 		'researchers'      => 0,
 		'institutions'     => 0,
 		'institution_list' => [],
+		'institution_top'  => [],
 		'groups'           => 0,
 		'public_datasets'  => 0,
 	];
@@ -868,6 +869,28 @@ function _pico_sd_stats(): array {
 			sort($insts);
 			$out['institution_list'] = $insts;
 			$out['institutions']     = count($insts);
+			// Largest institutions by member count (top 5) — shown by name; the
+			// long tail is summarised as a number, never listed.
+			try {
+				$cq = $db->getQueryBuilder();
+				$cq->select('m.gid')
+					->selectAlias($cq->func()->count('m.uid'), 'n')
+					->from('uga_group_members', 'm')
+					->innerJoin('m', 'uga_groups', 'g', $cq->expr()->eq('g.gid', 'm.gid'))
+					->where($cq->expr()->eq('g.hidden', $cq->createNamedParameter(1, $intParam)))
+					->groupBy('m.gid')
+					->orderBy('n', 'DESC')
+					->setMaxResults(5);
+				$cr = $cq->executeQuery();
+				$top = [];
+				while (($row = $cr->fetch()) !== false) {
+					$top[] = (string)$row['gid'];
+				}
+				$cr->closeCursor();
+				$out['institution_top'] = $top;
+			} catch (\Throwable) {
+				$out['institution_top'] = array_slice($insts, 0, 5);
+			}
 		} catch (\Throwable) {
 		}
 

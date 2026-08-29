@@ -139,7 +139,11 @@ a:hover { text-decoration: underline; }
 .stat .num { font-size: 2.1rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
 .stat .label { font-size: 0.82rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
 .stat-link { text-decoration: none; }
-.stat-link:hover .label { text-decoration: underline; color: var(--accent); }
+.stat-link .label { color: var(--accent); }
+.stat-arrow { display: inline-block; transition: transform .15s ease; }
+.stat-link:hover .label { text-decoration: underline; }
+.stat-link:hover .stat-arrow { transform: translateX(3px); }
+.pulse-note { max-width: 900px; margin: -0.5rem auto 0; padding: 0 1.5rem 1.6rem; text-align: center; font-size: 0.9rem; color: var(--muted); }
 .catalog-all { font-size: 0.9rem; font-weight: 500; margin-left: 12px; color: var(--accent); text-decoration: none; }
 .catalog-all:hover { text-decoration: underline; }
 

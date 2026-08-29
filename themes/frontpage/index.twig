@@ -69,8 +69,11 @@
 		<div class="stat"><span class="num">{{ config.sd_stats.researchers }}</span><span class="label">researchers</span></div>
 		<div class="stat"><span class="num">{{ config.sd_stats.institutions }}</span><span class="label">institutions</span></div>
 		<div class="stat"><span class="num">{{ config.sd_stats.groups }}</span><span class="label">groups</span></div>
-		<a class="stat stat-link" href="{{ config.sd_catalog_url|default('/remote.php/sites/public/') }}"><span class="num">{{ config.sd_stats.public_datasets }}</span><span class="label">public datasets</span></a>
+		<a class="stat stat-link" href="{{ config.sd_catalog_url|default('/remote.php/sites/public/') }}"><span class="num">{{ config.sd_stats.public_datasets }}</span><span class="label">public datasets <span class="stat-arrow">→</span></span></a>
 	</div>
+	{% if config.sd_stats.institution_top is not empty %}
+	<p class="pulse-note">Researchers from {{ config.sd_stats.institution_top|join(' · ') }}{% if config.sd_stats.institutions > config.sd_stats.institution_top|length %} and {{ config.sd_stats.institutions - config.sd_stats.institution_top|length }} more institutions{% endif %}</p>
+	{% endif %}
 </section>
 {% endif %}
 
@@ -107,16 +110,7 @@
 </section>
 {% endif %}
 
-{% if config.sd_stats and config.sd_stats.institution_list is not empty %}
-<section class="institutions">
-	<div class="institutions-inner">
-		<h2>Researchers from</h2>
-		<ul class="inst-list">
-			{% for inst in config.sd_stats.institution_list %}<li>{{ inst }}</li>{% endfor %}
-		</ul>
-	</div>
-</section>
-{% endif %}
+
 
 <footer class="site-foot">
 	<div class="foot-inner">
