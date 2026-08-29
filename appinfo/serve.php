@@ -534,6 +534,17 @@ $currentUid = '';
 try {
 	$currentUser = \OC::$server->get(\OCP\IUserSession::class)->getUser();
 	$currentUid  = $currentUser ? $currentUser->getUID() : '';
+	// Personalisation vars (%email% / %orcid% / %username%) — the VIEWER's own
+	// details; empty for anonymous. Substituted in Pico::prepareFileContent.
+	if ($currentUser !== null) {
+		$pico->ocViewerEmail = (string)($currentUser->getEMailAddress() ?? '');
+		$pico->ocViewerName  = (string)$currentUser->getDisplayName();
+		try {
+			$pico->ocViewerOrcid = (string)$config->getUserValue($currentUid, 'user_orcid', 'orcid', '');
+		} catch (\Throwable) {
+			$pico->ocViewerOrcid = '';
+		}
+	}
 	if ($currentUid !== '') {
 		$filesRoot       = $dataDir . '/' . $uid . '/files';
 		$contentRelative = ltrim(substr($contentDir, strlen($filesRoot)), '/');

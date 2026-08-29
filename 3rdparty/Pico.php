@@ -268,6 +268,17 @@ class Pico
 	public $ocUser;
 
 	/**
+	 * The authenticated VIEWER's email / ORCID / display name, for %email%,
+	 * %orcid%, %username% content substitution (old-service personalisation
+	 * vars). Empty for anonymous visitors. Set by appinfo/serve.php.
+	 *
+	 * @var string
+	 */
+	public $ocViewerEmail = '';
+	public $ocViewerOrcid = '';
+	public $ocViewerName  = '';
+
+	/**
 	 * URL of the master in a sharded setup.
 	 * 
 	 * @var string
@@ -1455,6 +1466,12 @@ class Pico
 
 		// replace %site_title%
 		$content = str_replace('%site_title%', $this->getConfig('site_title'), $content);
+
+		// ScienceData personalisation vars — the authenticated viewer's own
+		// details (empty for anonymous). Old-service parity.
+		$content = str_replace('%email%',    (string)$this->ocViewerEmail, $content);
+		$content = str_replace('%orcid%',    (string)$this->ocViewerOrcid, $content);
+		$content = str_replace('%username%', (string)$this->ocViewerName,  $content);
 
 		// replace %base_url%
 		if ($this->isUrlRewritingEnabled()) {
