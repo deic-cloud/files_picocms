@@ -139,15 +139,18 @@ class CatalogService {
 					: ($mime === 'application/x-ipynb+json' ? 'notebook' : 'file');
 				$out[] = [
 					'title'       => $title,
-					// Humanized display title: many shared folders are named in
-					// lower_snake or kebab-case — readable in a catalog they are not.
-					'display_title' => (static function (string $t): string {
-						if (!str_contains($t, '_') && !str_contains($t, '-')) {
-							return $t;
+					// Display title: an explicit 'title' metadata value from ANY of
+					// the file's schemas wins; otherwise the actual file/folder name,
+					// verbatim (owners rename the file or set the metadata — no
+					// automatic prettifying, which only confuses).
+					'display_title' => (static function (array $m, string $t): string {
+						foreach ($m as $k => $v) {
+							if (strcasecmp((string)$k, 'title') === 0 && trim((string)$v) !== '') {
+								return trim((string)$v);
+							}
 						}
-						$h = str_replace(['_', '-'], ' ', $t);
-						return mb_strtoupper(mb_substr($h, 0, 1)) . mb_substr($h, 1);
-					})($title),
+						return $t;
+					})($meta[$fid] ?? [], $title),
 					'url'         => $this->urlGenerator->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $token]),
 					'owner'       => $owner,
 					'owner_name'  => $ownerName,
@@ -158,7 +161,7 @@ class CatalogService {
 					// 'summary' is presented as the record's summary line, not a chip
 					// ('abstract' accepted as a legacy alias).
 					'summary'     => (string)(($meta[$fid] ?? [])['summary'] ?? (($meta[$fid] ?? [])['abstract'] ?? '')),
-					'meta'        => array_diff_key($meta[$fid] ?? [], ['summary' => 1, 'abstract' => 1]),
+					'meta'        => array_filter($meta[$fid] ?? [], static fn ($k) => !in_array(strtolower((string)$k), ['summary', 'abstract', 'title'], true), ARRAY_FILTER_USE_KEY),
 				];
 			}
 		} catch (\Throwable $e) {

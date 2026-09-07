@@ -493,6 +493,12 @@ if ($siteName !== null && $siteName === $sdFrontpage) {
 	// (share attribute files_picocms:catalog_listed). Cached like the pulse; local to
 	// this node for now (cross-silo master aggregation is a later step).
 	$picoConfig['sd_catalog'] = _pico_sd_catalog();
+	// The stats line advertises DATASETS (folders) — count them from the same
+	// catalog the listing shows, so the two numbers can never disagree.
+	$picoConfig['sd_stats']['public_datasets'] = count(array_filter(
+		$picoConfig['sd_catalog'],
+		static fn ($e) => ($e['kind'] ?? '') === 'dataset'
+	));
 	// Cache-bust the theme CSS/JS by its mtime so redeploys take effect without a
 	// hard refresh (theme assets are served with a 1-day cache header).
 	$picoConfig['sd_asset_ver'] = (string)(@filemtime($themesDir . 'frontpage/css/style.css') ?: '1');
