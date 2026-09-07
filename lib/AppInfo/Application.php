@@ -25,6 +25,7 @@ class Application extends App implements IBootstrap {
 		$context->registerEventListener(LoadAdditionalScriptsEvent::class, LoadSidebarScriptsListener::class);
 		// One-time welcome + terms-consent modal on any logged-in page.
 		$context->registerEventListener(BeforeTemplateRenderedEvent::class, WelcomeListener::class);
+		$context->registerEventListener(BeforeTemplateRenderedEvent::class, \OCA\FilesPicoCMS\Listener\HelpPageScriptListener::class);
 		// Catalog top bar on public share pages of catalog-listed shares (the
 		// repository's record pages) — same-tab way back to the listing.
 		$context->registerEventListener(\OCA\Files_Sharing\Event\BeforeTemplateRenderedEvent::class, CatalogBannerListener::class);
