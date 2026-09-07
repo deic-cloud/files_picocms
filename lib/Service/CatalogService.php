@@ -155,9 +155,10 @@ class CatalogService {
 					'stime'       => (int)($row['stime'] ?? 0),
 					'kind'        => $kind,
 					'tags'        => $tags[$fid] ?? [],
-					// 'abstract' is presented as the record's summary line, not a chip.
-					'abstract'    => (string)(($meta[$fid] ?? [])['abstract'] ?? ''),
-					'meta'        => array_diff_key($meta[$fid] ?? [], ['abstract' => 1]),
+					// 'summary' is presented as the record's summary line, not a chip
+					// ('abstract' accepted as a legacy alias).
+					'summary'     => (string)(($meta[$fid] ?? [])['summary'] ?? (($meta[$fid] ?? [])['abstract'] ?? '')),
+					'meta'        => array_diff_key($meta[$fid] ?? [], ['summary' => 1, 'abstract' => 1]),
 				];
 			}
 		} catch (\Throwable $e) {
