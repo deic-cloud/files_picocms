@@ -441,6 +441,21 @@ $sdFrontpage = (string)$config->getSystemValue('files_picocms.frontpage_site', '
 // Comma-separated site names in config files_picocms.repository_sites.
 $sdRepoSites = array_filter(array_map('trim',
 	explode(',', (string)$config->getSystemValue('files_picocms.repository_sites', 'public'))));
+
+// Brand wordmark + service backlink — for EVERY site (the pages are standalone
+// now, not iframed by the frontpage, so each needs a top-left way home).
+// Brand identity stays in config (app-store-installable, no hardcoded name).
+$sdBrand = trim((string)$config->getSystemValue('files_picocms.brand_name', 'Nextcloud'));
+$sdBrand = $sdBrand !== '' ? $sdBrand : 'Nextcloud';
+$picoConfig['sd_home_url']   = $webRoot . '/remote.php/sites/' . rawurlencode($sdFrontpage) . '/';
+$picoConfig['sd_brand_name'] = $sdBrand;
+// Same wordmark as the frontpage: red dot over the first lowercase "i".
+$sdIp = strpos($sdBrand, 'i');
+$picoConfig['sd_brand_html'] = $sdIp === false
+	? htmlspecialchars($sdBrand, ENT_QUOTES)
+	: htmlspecialchars(substr($sdBrand, 0, $sdIp), ENT_QUOTES)
+		. '<span class="sd-i">' . "\u{0131}" . '</span>'
+		. htmlspecialchars(substr($sdBrand, $sdIp + 1), ENT_QUOTES);
 if ($siteName !== null && in_array($siteName, $sdRepoSites, true)) {
 	// Top-left brand links to the WELCOME page (like on the welcome page itself),
 	// not the bare root (whose handler bounces logged-in users to their files).
