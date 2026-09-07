@@ -139,6 +139,15 @@ class CatalogService {
 					: ($mime === 'application/x-ipynb+json' ? 'notebook' : 'file');
 				$out[] = [
 					'title'       => $title,
+					// Humanized display title: many shared folders are named in
+					// lower_snake or kebab-case — readable in a catalog they are not.
+					'display_title' => (static function (string $t): string {
+						if (!str_contains($t, '_') && !str_contains($t, '-')) {
+							return $t;
+						}
+						$h = str_replace(['_', '-'], ' ', $t);
+						return mb_strtoupper(mb_substr($h, 0, 1)) . mb_substr($h, 1);
+					})($title),
 					'url'         => $this->urlGenerator->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $token]),
 					'owner'       => $owner,
 					'owner_name'  => $ownerName,
@@ -146,7 +155,9 @@ class CatalogService {
 					'stime'       => (int)($row['stime'] ?? 0),
 					'kind'        => $kind,
 					'tags'        => $tags[$fid] ?? [],
-					'meta'        => $meta[$fid] ?? [],
+					// 'abstract' is presented as the record's summary line, not a chip.
+					'abstract'    => (string)(($meta[$fid] ?? [])['abstract'] ?? ''),
+					'meta'        => array_diff_key($meta[$fid] ?? [], ['abstract' => 1]),
 				];
 			}
 		} catch (\Throwable $e) {

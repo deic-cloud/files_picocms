@@ -50,6 +50,17 @@
 		.repo-itemtag { font-size: .75rem; background: var(--accent); color: #fff;
 			border-radius: 999px; padding: 2px 10px; opacity: .85; }
 		.repo-item.hidden, .repo-section.hidden { display: none; }
+		.repo-abstract { margin: 4px 0 0; font-size: .88rem; color: var(--ink);
+			display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+		.repo-itemtag { cursor: pointer; }
+		.repo-item.truncated { display: none; }
+		.repo-viewtoggle { margin: 22px 0 0; text-align: center; }
+		.repo-showall { font-size: .9rem; padding: 8px 18px; border-radius: 999px;
+			border: 1px solid var(--line); background: var(--bg-alt); color: var(--ink); cursor: pointer; }
+		.repo-showall:hover { border-color: var(--accent); color: var(--accent); }
+		.repo-showall.hidden { display: none; }
+		body.repo-flatmode .repo-section:not(#repoFlat) { display: none; }
+		body.repo-flatmode #repoFlat { display: block; }
 	</style>
 </head>
 <body>
@@ -104,7 +115,7 @@
 	{% set sections = [
 		{ 'title': 'Datasets',  'items': ds },
 		{ 'title': 'Jupyter notebooks', 'items': nb },
-		{ 'title': 'Files',     'items': fl },
+		{ 'title': 'Other files', 'items': fl },
 	] %}
 	{% for section in sections %}
 		{% if section.items|length > 0 %}
@@ -115,17 +126,19 @@
 				{% set hay = e.title ~ ' ' ~ e.owner_name ~ ' ' ~ e.institution %}
 				{% for k, v in e.meta %}{% set hay = hay ~ ' ' ~ k ~ ' ' ~ v %}{% endfor %}
 				{% for tg in e.tags|default([]) %}{% set hay = hay ~ ' ' ~ tg %}{% endfor %}
-				<li class="repo-item" data-search="{{ hay|lower }}"
+				<li class="repo-item" data-search="{{ hay|lower }}" data-stime="{{ e.stime|default(0) }}"
 					data-tags="{{ e.tags|default([])|join('||') }}">
-					<h3><a href="{{ e.url }}">{{ e.title }}</a></h3>
+					<h3><a href="{{ e.url }}">{{ e.display_title|default(e.title) }}</a></h3>
 					<div class="repo-byline">
-						{{ e.owner_name }}{% if e.institution %} · {{ e.institution }}{% endif %}
-						{% if e.stime %} · shared {{ e.stime|date('j M Y') }}{% endif %}
+						Shared by {{ e.owner_name }}{% if e.institution %} ({{ e.institution }}){% endif %}{% if e.stime %}, {{ e.stime|date('j M Y') }}{% endif %}
 					</div>
+					{% if e.abstract|default('') %}
+					<p class="repo-abstract">{{ e.abstract }}</p>
+					{% endif %}
 					{% if e.meta|length > 0 or e.tags|default([])|length > 0 %}
 					<div class="repo-meta">
 						{% for tg in e.tags|default([]) %}
-						<span class="repo-itemtag">{{ tg }}</span>
+						<span class="repo-itemtag" data-tag="{{ tg }}" role="button" tabindex="0">{{ tg }}</span>
 						{% endfor %}
 						{% for k, v in e.meta %}
 						<span class="repo-chip"><b>{{ k }}:</b> {{ v }}</span>
@@ -138,6 +151,17 @@
 		</section>
 		{% endif %}
 	{% endfor %}
+	{% if catalog|length > 10 %}
+	<div class="repo-viewtoggle">
+		<button type="button" id="repoShowAll" class="repo-showall">Show all {{ catalog|length }} records</button>
+		<button type="button" id="repoShowGroups" class="repo-showall hidden">Show grouped view</button>
+	</div>
+	{% endif %}
+	<section class="repo-section hidden" id="repoFlat">
+		<h2>All records</h2>
+		<ul class="repo-list" id="repoFlatList"></ul>
+		<div class="repo-viewtoggle"><button type="button" id="repoNextPage" class="repo-showall hidden">Next 30</button></div>
+	</section>
 	{% if catalog|length == 0 %}
 		<p class="repo-empty">Nothing has been listed yet.</p>
 	{% endif %}
@@ -164,12 +188,18 @@
 	}
 	function apply() {
 		var q = (search && search.value || '').toLowerCase().trim()
+		var filtering = !!(active || q)
 		document.querySelectorAll('.repo-item').forEach(function (item) {
 			var tags = (item.getAttribute('data-tags') || '').split('||').filter(Boolean)
 			var okTag = !active || tags.indexOf(active) !== -1
 			var okQ = !q || (item.getAttribute('data-search') || '').indexOf(q) !== -1
 			item.classList.toggle('hidden', !(okTag && okQ))
+			// while filtering, truncation gets out of the way (matches must show)
+			if (filtering) { item.classList.remove('truncated') }
 		})
+		if (!filtering) {
+			if (document.body.classList.contains('repo-flatmode')) { pageFlat() } else { truncateGroups() }
+		}
 		// hide sections whose entries are all hidden
 		document.querySelectorAll('.repo-section').forEach(function (sec) {
 			var any = sec.querySelector('.repo-item:not(.hidden)')
@@ -188,6 +218,77 @@
 			apply()
 		})
 	})
+	// ── Item tag chips act like the top filter chips ──────────────────────────
+	function setActive(tag) {
+		active = (active === tag) ? null : tag
+		document.querySelectorAll('.repo-tagchip').forEach(function (c) {
+			c.classList.toggle('active', c.getAttribute('data-tag') === active)
+		})
+		writeHash()
+		apply()
+	}
+	document.querySelectorAll('.repo-itemtag').forEach(function (chip) {
+		var go = function () { setActive(chip.getAttribute('data-tag')) }
+		chip.addEventListener('click', go)
+		chip.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go() } })
+	})
+
+	// ── Grouped view truncation + flat chronological view ────────────────────
+	var TRUNCATE = 10, PAGE = 30
+	function truncateGroups() {
+		document.querySelectorAll('.repo-section:not(#repoFlat)').forEach(function (sec) {
+			var items = sec.querySelectorAll('.repo-item')
+			items.forEach(function (it, i) { it.classList.toggle('truncated', i >= TRUNCATE) })
+			if (items.length > TRUNCATE && !sec.querySelector('.repo-more-note')) {
+				var note = document.createElement('div')
+				note.className = 'repo-byline repo-more-note'
+				note.style.padding = '10px 4px'
+				note.textContent = '… ' + (items.length - TRUNCATE) + ' more — use "Show all records" below.'
+				sec.appendChild(note)
+			}
+		})
+	}
+	var flat = document.getElementById('repoFlat')
+	var flatList = document.getElementById('repoFlatList')
+	var nextBtn = document.getElementById('repoNextPage')
+	var showAllBtn = document.getElementById('repoShowAll')
+	var showGroupsBtn = document.getElementById('repoShowGroups')
+	var flatShown = 0
+	function flatItems() {
+		return Array.prototype.slice.call(flatList.querySelectorAll('.repo-item'))
+	}
+	function pageFlat() {
+		var items = flatItems()
+		items.forEach(function (it, i) { it.classList.toggle('truncated', i >= flatShown) })
+		if (nextBtn) { nextBtn.classList.toggle('hidden', flatShown >= items.length) }
+	}
+	if (showAllBtn && flat && flatList) {
+		showAllBtn.addEventListener('click', function () {
+			if (flatList.children.length === 0) {
+				// move every record into one list, newest first
+				var all = Array.prototype.slice.call(document.querySelectorAll('.repo-section:not(#repoFlat) .repo-item'))
+				all.sort(function (a, b) { return (+b.getAttribute('data-stime') || 0) - (+a.getAttribute('data-stime') || 0) })
+				all.forEach(function (it) { it.classList.remove('truncated'); flatList.appendChild(it) })
+			}
+			document.body.classList.add('repo-flatmode')
+			flat.classList.remove('hidden')
+			showAllBtn.classList.add('hidden')
+			if (showGroupsBtn) { showGroupsBtn.classList.remove('hidden') }
+			flatShown = PAGE
+			pageFlat()
+		})
+	}
+	if (showGroupsBtn) {
+		showGroupsBtn.addEventListener('click', function () {
+			// move items back to their sections in original order
+			location.reload()
+		})
+	}
+	if (nextBtn) {
+		nextBtn.addEventListener('click', function () { flatShown += PAGE; pageFlat() })
+	}
+	truncateGroups()
+
 	// Restore filter state from the URL hash (kept across record round-trips).
 	try {
 		var params = {}
