@@ -348,7 +348,7 @@ article .container .row div {
   color: white;
 }
 .intro-header .site-heading {
-  padding: 6px 0 24px 0;
+  padding: 24px 0;
   color: white;
 }
 @media only screen and (min-width: 768px) {
@@ -929,6 +929,8 @@ code {
 .sd-brand-mobile { display: none; }
 @media only screen and (max-width: 1169px) {
 	.sd-brand-slot { display: none; }
+	/* The backlink sits directly above the headline here: less top padding. */
+	.intro-header .site-heading { padding: 6px 0 24px 0; }
 	/* In flow, on its own line at the top-left of the banner: the heading is
 	   pushed down instead of overlapped, at every width. */
 	.sd-brand-mobile { display: block; padding: 10px 14px 0;
