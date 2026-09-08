@@ -348,11 +348,10 @@ article .container .row div {
   color: white;
 }
 .intro-header .site-heading {
-  padding: 24px 0;
+  padding: 6px 0 24px 0;
   color: white;
 }
 @media only screen and (min-width: 768px) {
-  .intro-header .site-heading,
   .intro-header .post-heading,
   .intro-header .page-heading {
     padding: 24px 0;
@@ -924,11 +923,11 @@ code {
 .intro-header .subheading a, .intro-header .post-heading .meta a { color: #8fd4f5; }
 .intro-header .subheading a:hover, .intro-header .post-heading .meta a:hover { color: #b8e4fa; }
 
-/* Small screens: the navbar collapses, so the service backlink moves to the
-   top-left of the headline banner instead. Both instances are in the markup;
-   CSS shows exactly one. */
+/* Below the full-desktop navbar breakpoint (1170px) the navbar collapses into
+   the hamburger, so the service backlink moves to the top-left of the headline
+   banner instead. Both instances are in the markup; CSS shows exactly one. */
 .sd-brand-mobile { display: none; }
-@media only screen and (max-width: 767px) {
+@media only screen and (max-width: 1169px) {
 	.sd-brand-slot { display: none; }
 	/* In flow, on its own line at the top-left of the banner: the heading is
 	   pushed down instead of overlapped, at every width. */
