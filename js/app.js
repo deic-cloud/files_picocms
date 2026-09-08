@@ -19,7 +19,7 @@
 			},
 			body: new URLSearchParams(body).toString(),
 		});
-		return res.json();
+		return parseOcs(res);
 	}
 
 	async function ocsGet(path, params) {
@@ -27,7 +27,17 @@
 		const res = await fetch(OCS + path + '?' + p.toString(), {
 			headers: { 'OCS-APIREQUEST': 'true', 'requesttoken': OC.requestToken },
 		});
-		return res.json();
+		return parseOcs(res);
+	}
+
+	// Some failures (proxy/method errors) return HTML or an empty body —
+	// res.json() would throw an uncaught SyntaxError. Parse defensively and
+	// surface the HTTP status instead.
+	async function parseOcs(res) {
+		const text = await res.text();
+		try { return JSON.parse(text); } catch (e) {
+			return { ocs: { meta: { status: 'error', statuscode: res.status, message: 'HTTP ' + res.status } } };
+		}
 	}
 
 	async function ocsPut(path, params) {
@@ -36,7 +46,7 @@
 			headers: { 'OCS-APIREQUEST': 'true', 'requesttoken': OC.requestToken, 'Content-Type': 'application/json' },
 			body: JSON.stringify(params || {}),
 		});
-		return res.json();
+		return parseOcs(res);
 	}
 
 	async function ocsDelete(path, params) {
@@ -45,7 +55,7 @@
 			method: 'DELETE',
 			headers: { 'OCS-APIREQUEST': 'true', 'requesttoken': OC.requestToken },
 		});
-		return res.json();
+		return parseOcs(res);
 	}
 
 	// ── Row helpers ──────────────────────────────────────────────────────────────
@@ -99,7 +109,8 @@
 			const name = nameInput?.value.trim();
 			const data = await ocsPut('/sites', { name, folder: newPath });
 			if (data?.ocs?.meta?.status !== 'ok') {
-				alert(t('files_picocms', 'Could not move the site (folder already served by another site?)'));
+				const why = data?.ocs?.meta?.message || data?.ocs?.data?.error || '';
+				alert(t('files_picocms', 'Could not move the site') + (why ? ' — ' + why : ''));
 				if (pathInput) pathInput.value = tr.dataset.path;
 				return;
 			}
