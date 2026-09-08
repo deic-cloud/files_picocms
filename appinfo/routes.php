@@ -7,6 +7,7 @@ return [
 		// User-facing API
 		['name' => 'api#listSites',         'url' => '/api/v1/sites',         'verb' => 'GET'],
 		['name' => 'api#addSite',           'url' => '/api/v1/sites',         'verb' => 'POST'],
+		['name' => 'api#moveSite',          'url' => '/api/v1/sites',         'verb' => 'PUT'],
 		['name' => 'api#removeSite',        'url' => '/api/v1/sites',         'verb' => 'DELETE'],
 		['name' => 'api#createSite',        'url' => '/api/v1/create',        'verb' => 'POST'],
 		['name' => 'api#getHelp',           'url' => '/api/v1/help',          'verb' => 'GET'],

@@ -30,6 +30,15 @@
 		return res.json();
 	}
 
+	async function ocsPut(path, params) {
+		const res = await fetch(OCS + path + '?format=json', {
+			method: 'PUT',
+			headers: { 'OCS-APIREQUEST': 'true', 'requesttoken': OC.requestToken, 'Content-Type': 'application/json' },
+			body: JSON.stringify(params || {}),
+		});
+		return res.json();
+	}
+
 	async function ocsDelete(path, params) {
 		const p = new URLSearchParams({ ...(params || {}), format: 'json' });
 		const res = await fetch(OCS + path + '?' + p.toString(), {
@@ -47,7 +56,11 @@
 		tr.className = 'picoSiteRow';
 		tr.dataset.path = path;
 		tr.innerHTML = `
-			<td><a href="${root}/index.php/apps/files?dir=${encodeURIComponent(path)}" title="${t('files_picocms', 'Browse site files in Nextcloud')}">${path}</a></td>
+			<td class="picoFolderCell">
+				<input class="picoSitePath" type="text" value="${path}" title="${t('files_picocms', 'Folder served — edit or browse to move the site')}" />
+				<button class="picoPathBrowseRow button" title="${t('files_picocms', 'Choose folder')}">…</button>
+				<a class="picoFilesLink" href="${root}/index.php/apps/files?dir=${encodeURIComponent(path)}" target="_blank" rel="noopener" title="${t('files_picocms', 'Browse site files in Nextcloud')}">↗</a>
+			</td>
 			<td><input class="picoSiteName" type="text" value="${name}" title="${t('files_picocms', 'URL slug — edit to rename')}" /></td>
 			<td><a href="${LINK_BASE}${URL_PREFIX}/sites/${encodeURIComponent(name)}" target="_blank" rel="noopener" title="${t('files_picocms', 'Open the website in a new tab')}">${LINK_BASE}${URL_PREFIX}/sites/${name}</a></td>
 			<td class="picoActions">
@@ -60,12 +73,12 @@
 
 	function bindRow(tr) {
 		const nameInput = tr.querySelector('.picoSiteName');
-		const path      = tr.dataset.path;
+		const pathInput = tr.querySelector('.picoSitePath');
 
 		nameInput?.addEventListener('change', async function () {
 			const name = this.value.trim();
 			if (!name) return;
-			const data = await ocsPost('/sites', { folder: path, name, rename: 'yes' });
+			const data = await ocsPost('/sites', { folder: tr.dataset.path, name, rename: 'yes' });
 			if (data?.ocs?.meta?.status !== 'ok') {
 				alert(t('files_picocms', 'Could not rename site.'));
 				return;
@@ -79,11 +92,40 @@
 			}
 		});
 
+		// Editable folder: change or browse → move the site to another folder.
+		async function moveTo(newPath) {
+			newPath = (newPath || '').trim();
+			if (!newPath || newPath === tr.dataset.path) return;
+			const name = nameInput?.value.trim();
+			const data = await ocsPut('/sites', { name, folder: newPath });
+			if (data?.ocs?.meta?.status !== 'ok') {
+				alert(t('files_picocms', 'Could not move the site (folder already served by another site?)'));
+				if (pathInput) pathInput.value = tr.dataset.path;
+				return;
+			}
+			tr.dataset.path = newPath;
+			if (pathInput) pathInput.value = newPath;
+			const filesLink = tr.querySelector('.picoFilesLink');
+			if (filesLink) filesLink.href = `${OC.webroot || ''}/index.php/apps/files?dir=${encodeURIComponent(newPath)}`;
+			tr.querySelectorAll('[data-path]').forEach((el) => { el.dataset.path = newPath; });
+		}
+		pathInput?.addEventListener('change', function () { moveTo(this.value); });
+		tr.querySelector('.picoPathBrowseRow')?.addEventListener('click', function () {
+			if (!window.OC?.dialogs?.filepicker) return;
+			OC.dialogs.filepicker(
+				t('files_picocms', 'Choose folder'),
+				(p) => moveTo(p || '/'),
+				false, 'httpd/unix-directory', true,
+				OC.dialogs.FILEPICKER_TYPE_CHOOSE
+			);
+		});
+
 		tr.querySelector('.picoManageBtn')?.addEventListener('click', function () {
-			openConfigEditor(path);
+			openConfigEditor(tr.dataset.path);
 		});
 
 		tr.querySelector('.picoDeleteBtn')?.addEventListener('click', function () {
+			const path = tr.dataset.path;
 			OC.dialogs.confirm(
 				t('files_picocms', 'Stop serving folder: ') + path + '?',
 				t('files_picocms', 'Remove site'),
@@ -210,14 +252,27 @@
 		function updateServeBtn() {
 			if (addBtn) addBtn.disabled = !addPath?.value.trim() || !addName?.value.trim();
 		}
-		addPath?.addEventListener('input', updateServeBtn);
-		addName?.addEventListener('input', updateServeBtn);
+		// Default the site name to the chosen folder's name — unless the user
+		// typed one, or that name is already taken by a listed site.
+		let nameTouched = false;
+		function takenNames() {
+			return Array.prototype.map.call(document.querySelectorAll('.picoSiteName'), (i) => i.value.trim());
+		}
+		function suggestName() {
+			if (nameTouched || !addName) return;
+			const base = (addPath?.value.trim() || '').replace(/\/+$/, '').split('/').pop() || '';
+			addName.value = (base && takenNames().indexOf(base) === -1) ? base : '';
+			updateServeBtn();
+		}
+		addPath?.addEventListener('input', () => { suggestName(); updateServeBtn(); });
+		addPath?.addEventListener('change', () => { suggestName(); updateServeBtn(); });
+		addName?.addEventListener('input', function () { nameTouched = this.value.trim() !== ''; updateServeBtn(); });
 
 		document.getElementById('picoAddPathBrowse')?.addEventListener('click', () => {
 			if (!window.OC?.dialogs?.filepicker) return;
 			OC.dialogs.filepicker(
 				t('files_picocms', 'Choose folder'),
-				(path) => { if (addPath) addPath.value = path || '/'; updateServeBtn(); },
+				(path) => { if (addPath) addPath.value = path || '/'; suggestName(); updateServeBtn(); },
 				false, 'httpd/unix-directory', true,
 				OC.dialogs.FILEPICKER_TYPE_CHOOSE
 			);

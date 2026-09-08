@@ -222,3 +222,9 @@
 #picocms-app a:hover {
 	color: var(--color-primary-element-hover, #1f6ed4);
 }
+
+/* Editable folder column in the site list */
+.picoFolderCell { display: flex; align-items: center; gap: 4px; }
+.picoFolderCell .picoSitePath { flex: 1 1 auto; min-width: 140px; }
+.picoFolderCell .picoPathBrowseRow { flex: 0 0 auto; padding: 4px 8px; }
+.picoFolderCell .picoFilesLink { flex: 0 0 auto; text-decoration: none; padding: 0 4px; }

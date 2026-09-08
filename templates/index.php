@@ -30,11 +30,14 @@ $linkBase    = $_['link_base'] ?? '';
 		<tbody id="picoSiteList">
 			<?php foreach ($sites as $site): ?>
 			<tr class="picoSiteRow" data-path="<?php p($site['path']); ?>">
-				<td>
-					<a href="<?php p($serverRoot); ?>/index.php/apps/files?dir=<?php p($site['path']); ?>"
-					   title="<?php p($l->t('Browse site files in Nextcloud')); ?>">
-						<?php p($site['path']); ?>
-					</a>
+				<td class="picoFolderCell">
+					<input class="picoSitePath" type="text" value="<?php p($site['path']); ?>"
+					       title="<?php p($l->t('Folder served — edit or browse to move the site')); ?>" />
+					<button class="picoPathBrowseRow button" title="<?php p($l->t('Choose folder')); ?>">…</button>
+					<a class="picoFilesLink"
+					   href="<?php p($serverRoot); ?>/index.php/apps/files?dir=<?php p($site['path']); ?>"
+					   target="_blank" rel="noopener"
+					   title="<?php p($l->t('Browse site files in Nextcloud')); ?>">↗</a>
 				</td>
 				<td>
 					<input class="picoSiteName" type="text"

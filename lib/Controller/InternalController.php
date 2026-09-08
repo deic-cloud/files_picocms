@@ -57,7 +57,10 @@ class InternalController extends Controller {
 		if (!$this->checkSecret()) {
 			return new JSONResponse(['error' => 'Unauthorized'], 401);
 		}
-		$ok = $this->siteService->addSite($uid, $folder, $name, $group, $rename === 'yes');
+		$move = ($this->request->getParam('move') ?? 'no') === 'yes';
+		$ok = $move
+			? $this->siteService->moveSite($uid, $name, $folder)
+			: $this->siteService->addSite($uid, $folder, $name, $group, $rename === 'yes');
 		return new JSONResponse($ok ? ['msg' => 'Added'] : ['error' => 'Name taken'], $ok ? 200 : 400);
 	}
 

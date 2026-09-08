@@ -91,6 +91,36 @@ class SiteService {
 		return true;
 	}
 
+	/**
+	 * Point an existing site (identified by its name) at a different folder.
+	 * The site name, group and config stay; only the served path changes.
+	 */
+	public function moveSite(string $uid, string $name, string $newPath): bool {
+		$newPath = '/' . trim($newPath, '/');
+		$rows = $this->mapper->findByUid($uid);
+		$site = null;
+		foreach ($rows as $r) {
+			if ($r->getSite() === $name) {
+				$site = $r;
+			}
+		}
+		if ($site === null) {
+			return false;
+		}
+		// Refuse if another of the user's sites already serves that folder.
+		foreach ($rows as $r) {
+			if ($r->getSite() !== $name && $r->getPath() === $newPath) {
+				return false;
+			}
+		}
+		$site->setPath($newPath);
+		$this->mapper->update($site);
+		$this->syncToMaster('internal/sites', [
+			'uid' => $uid, 'folder' => $newPath, 'name' => $name, 'move' => 'yes',
+		]);
+		return true;
+	}
+
 	public function removeSite(string $uid, string $path): bool {
 		$removed = $this->mapper->deleteByUidAndPath($uid, $path) > 0;
 		if ($removed) {

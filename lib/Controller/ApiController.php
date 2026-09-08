@@ -117,6 +117,16 @@ class ApiController extends OCSController {
 	}
 
 	#[NoAdminRequired]
+	public function moveSite(string $name, string $folder): DataResponse {
+		$uid = $this->userSession->getUser()?->getUID() ?? '';
+		$ok  = $this->siteService->moveSite($uid, $name, $folder);
+		if (!$ok) {
+			return new DataResponse(['error' => 'Unknown site or folder already served'], 400);
+		}
+		return new DataResponse(['msg' => 'Moved']);
+	}
+
+	#[NoAdminRequired]
 	public function removeSite(string $folder): DataResponse {
 		$uid = $this->userSession->getUser()?->getUID() ?? '';
 		$ok  = $this->siteService->removeSite($uid, $folder);
