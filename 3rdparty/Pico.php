@@ -598,7 +598,7 @@ class Pico
 		if(!$this->notFound){
 			if(!$this->checkReadPermission($this->requestFile, $this->meta['access'] ?? '',
 					$this->getConfig('user'), $this->getConfig('group'))){
-				pico_log('files_picocms', 'Not allowed '.$this->requestFile.':'.$this->meta['access'].':'.$this->rawContent, \OC_Log::WARN);
+				pico_log('files_picocms', 'Not allowed '.$this->requestFile.' (access='.($this->meta['access'] ?? '').', user='.$this->ocUser.')', \OC_Log::WARN);
 				//header($_SERVER['SERVER_PROTOCOL'] . ' 403 Forbidden');
 				$this->rawContent = $this->loadStatusContent($this->requestFile, 403);
 				$this->forbidden = true;
@@ -1174,12 +1174,21 @@ class Pico
 		else{
 			// Non-owner. serve.php granted neither write ($this->writable) nor read
 			// ($this->readTrusted) access above — so there is no valid ownership or
-			// share for this user. Deny. (The old \OC\Files share-walk that used to
-			// live here fail-opened, and its checkAccess is a no-op in NC34 since
-			// \OCA\FilesSharding\Lib was removed — serve.php is authoritative now.)
+			// share for this user: no edit rights. (The old \OC\Files share-walk that
+			// used to live here fail-opened, and its checkAccess is a no-op in NC34
+			// since \OCA\FilesSharding\Lib was removed — serve.php is authoritative.)
 			if($setPermissions){
 				$this->shareType = self::$SHARE_TYPE_NONE;
 				$this->permissions = 0;
+			}
+			// 'shared' = readable by anyone, editable by sharees. Anonymous visitors are
+			// let through above; being logged in must never make a page LESS visible.
+			// Only 'private' is owner/sharee-only.
+			if(trim(strtolower($access))=='shared'){
+				if($setPermissions){
+					$this->readable = true;
+				}
+				return true;
 			}
 			return false;
 		}
@@ -1650,7 +1659,7 @@ class Pico
 			$folder = preg_replace("|^".$this->getConfig('content_dir')."|", "", dirname($file)."/");
 			$filename = basename($file);
 			
-			$readable = $this->checkReadPermission($file, $meta['access'],
+			$readable = $this->checkReadPermission($file, $meta['access'] ?? '',
 					$this->getConfig('user'), $this->getConfig('group'));
 			pico_log('files_picocms', 'Readable: '.$readable.':'.$absfolder.':'.$file, \OC_Log::INFO);
 			// To generate a contents listing of files, contents must be 'yes' in the
@@ -2110,6 +2119,9 @@ class Pico
 			'oc_master_url' => $this->ocMasterUrl,
 			'oc_support_email' => $this->ocSupportEmail,
 			'oc_user_home_url' => $this->ocUserHomeUrl,
+			// Themes build NC URLs (avatars) from this — was undefined before, so the
+			// avatar src ended up site-relative and 404ed.
+			'nc_root'      => $this->ocUserHomeUrl,
 			'oc_cms_base' => $this->ocCmsBase,
 			'orcid' => $this->orcid,
 			'oc_email' => $this->ocEmail,

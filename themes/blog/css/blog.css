@@ -923,12 +923,13 @@ code {
 .intro-header .subheading a, .intro-header .post-heading .meta a { color: #8fd4f5; }
 .intro-header .subheading a:hover, .intro-header .post-heading .meta a:hover { color: #b8e4fa; }
 
-/* Below the full-desktop navbar breakpoint (1170px) the navbar collapses into
-   the hamburger, so the service backlink moves to the top-left of the headline
-   banner instead. Both instances are in the markup; CSS shows exactly one. */
+/* Index page only: below the full-desktop navbar breakpoint (1170px) the
+   service backlink moves from the navbar to the top-left of the headline banner.
+   Both instances are in the index markup; CSS shows exactly one. Post/profile/
+   search pages keep the navbar slot at every width (their navbar never crowds). */
 .sd-brand-mobile { display: none; }
 @media only screen and (max-width: 1169px) {
-	.sd-brand-slot { display: none; }
+	.sd-nav-index .sd-brand-slot { display: none; }
 	/* The backlink sits directly above the headline here: less top padding. */
 	.intro-header .site-heading { padding: 6px 0 24px 0; }
 	/* In flow, on its own line at the top-left of the banner: the heading is

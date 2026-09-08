@@ -48,7 +48,7 @@
 <body>
 
 	<!-- Navigation -->
-    <nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+    <nav class="navbar navbar-default navbar-custom navbar-fixed-top sd-nav-index">
         <div class="container-fluid">
             <!-- Brand and toggle get grouped for better mobile display -->
             <div class="navbar-header sd-brand-slot">
@@ -137,7 +137,7 @@
                     {% if page.meta.labels and has_search_page %}
                     <div class="labels">
                     	{% set labels = page.meta.labels is iterable ? page.meta.labels : page.meta.labels|split(',') %}
-                    	{% for label in labels %}
+                    	{% for label in labels %}{% set label = label|trim %}
    									 		<a href="{{ base_url }}/search/labels:{{ label }}"><span class="label">{{ label }}</span></a>
 											{% endfor %}
                     </div>

@@ -30,7 +30,6 @@
 
     <header class="intro-header navbar-custom" style="{% if meta.img %}background-image:  url({{ meta.img }})
     {% else %}background: #006286;{% endif %};">
-        {% if config.sd_backlink|default('') %}{% else %}<a class="sd-brand-mobile" href="{{ config.sd_home_url|default('/') }}">{{ config.sd_brand_html|default(config.sd_brand_name|default('Home'))|raw }}</a>{% endif %}
 			<div class="span2 navigation">
 				<form id="search_form" action="{{ base_url  }}/search">
 					<input type="search" id="search_input" name="q" placeholder="Search" />

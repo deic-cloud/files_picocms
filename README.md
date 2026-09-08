@@ -91,7 +91,7 @@ Recognised front-matter keys:
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `access` | `public` | `public` — anyone; `private` — NC session required |
+| `access` | `public` | `public` — anyone; `shared` — readable by anyone, editable by users the folder is shared with; `private` — owner and sharees only |
 | `theme` | `blog` | Theme directory name under `themes/` |
 | `title` | site name | Overrides the DB-registered site name |
 | `description` | — | Passed to Pico; used by the theme |

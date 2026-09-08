@@ -142,7 +142,7 @@
 			{% if meta.labels and has_search_page %}
 				<div class="labels">
 					{% set mylabels = meta.labels|split(',') %}
-					{% for label in mylabels %}
+					{% for label in mylabels %}{% set label = label|trim %}
 						{% set label = label|trim %}
 							<a href="{{ base_url }}/search/labels:{{ label }}"><span class="label">{{ label }}</span></a>
 					{% endfor %}
@@ -193,7 +193,7 @@
 						{% if page.meta.labels and has_search_page %}
 							<div class="labels">
 								{% set mylabels = page.meta.labels|split(',') %}
-								{% for label in mylabels %}
+								{% for label in mylabels %}{% set label = label|trim %}
 										<a href="{{ base_url }}/search/labels:{{ label }}"><span class="label">{{ label }}</span></a>
 								{% endfor %}
 							</div>
