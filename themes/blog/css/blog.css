@@ -919,10 +919,10 @@ code {
 .sd-brand .sd-i::after { content: ""; position: absolute; left: 50%; bottom: 0.76em;
 	transform: translateX(-50%); width: 0.16em; height: 0.16em; border-radius: 50%; background: #c00; }
 
-/* Links inside the intro header must be visible on the dark banner: light blue. */
-.intro-header .subheading a, .intro-header .site-heading a:not(.sd-brand-mobile),
-.intro-header .post-heading a { color: #8fd4f5; }
-.intro-header .subheading a:hover { color: #b8e4fa; }
+/* Non-headline links inside the dark banners must be visible: light blue.
+   Headline anchors (the h1 site/post title) keep their own color. */
+.intro-header .subheading a, .intro-header .post-heading .meta a { color: #8fd4f5; }
+.intro-header .subheading a:hover, .intro-header .post-heading .meta a:hover { color: #b8e4fa; }
 
 /* Small screens: the navbar collapses, so the service backlink moves to the
    top-left of the headline banner instead. Both instances are in the markup;
@@ -930,11 +930,12 @@ code {
 .sd-brand-mobile { display: none; }
 @media only screen and (max-width: 767px) {
 	.sd-brand-slot { display: none; }
-	.sd-brand-mobile { display: block; position: absolute; top: 64px; left: 14px;
+	/* In flow, on its own line at the top-left of the banner: the heading is
+	   pushed down instead of overlapped, at every width. */
+	.sd-brand-mobile { display: block; padding: 10px 14px 0;
 		color: #fff; font-weight: 800; letter-spacing: .2px; text-decoration: none;
-		text-shadow: 0 1px 3px rgba(0,0,0,.5); z-index: 10; }
+		text-shadow: 0 1px 3px rgba(0,0,0,.5); }
 	.sd-brand-mobile .sd-i { position: relative; display: inline-block; line-height: 1; }
 	.sd-brand-mobile .sd-i::after { content: ""; position: absolute; left: 50%; bottom: 0.76em;
 		transform: translateX(-50%); width: 0.16em; height: 0.16em; border-radius: 50%; background: #c00; }
-	.intro-header, .post-header { position: relative; }
 }
