@@ -96,15 +96,26 @@
 {% if config.sd_catalog is not empty %}
 <section class="catalog">
 	<div class="catalog-inner">
-		<h2>Public datasets <a class="catalog-all" href="{{ config.sd_catalog_url|default('/remote.php/sites/public/') }}">See all →</a></h2>
+		<h2>Public datasets <a class="catalog-all" href="{{ config.sd_catalog_url|default('/remote.php/sites/public/') }}">More →</a></h2>
 		<p class="catalog-sub">Folders their owners chose to share openly.</p>
 		<ul class="catalog-list">
+			{# newest 10 only — the full list lives on the catalog page #}
+			{% set shown = 0 %}
 			{% for d in config.sd_catalog %}
+			{% if shown < 10 %}
+			{% set shown = shown + 1 %}
 			<li class="dataset">
 				<a class="dataset-link" href="{{ d.url }}">{{ d.display_title|default(d.title) }}</a>
 				{% if d.institution %}<span class="dataset-inst">{{ d.institution }}</span>{% endif %}
+				{% if d.summary|default('') %}<p class="dataset-summary">{{ d.summary }}</p>{% endif %}
 			</li>
+			{% endif %}
 			{% endfor %}
+			{% if config.sd_catalog|length > 10 %}
+			<li class="dataset dataset-more">
+				<a class="dataset-link" href="{{ config.sd_catalog_url|default('/remote.php/sites/public/') }}">{{ 'More — all ' ~ (config.sd_catalog|length) ~ ' records →' }}</a>
+			</li>
+			{% endif %}
 		</ul>
 	</div>
 </section>
