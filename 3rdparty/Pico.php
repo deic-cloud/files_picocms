@@ -1065,6 +1065,14 @@ class Pico
 	public function checkReadPermission($file, $access, $owner, $group=null)
 	{
 		session_write_close();
+		// 'shared' is the OLD service's value and is not supported here: the NC34
+		// way of honouring the viewer's share permissions is 'private' (owner +
+		// users the folder is shared with, via serve.php's share detection).
+		// Content migrated from the old service must be re-headed public/private;
+		// until then a stray 'shared' behaves as 'private' rather than fail-open.
+		if(trim(strtolower((string)$access))=='shared'){
+			$access = 'private';
+		}
 		// Only if we're checking the request file, set $this->permissions etc.
 		$setPermissions = false;
 		if($file==$this->requestFile){
@@ -1180,15 +1188,6 @@ class Pico
 			if($setPermissions){
 				$this->shareType = self::$SHARE_TYPE_NONE;
 				$this->permissions = 0;
-			}
-			// 'shared' = readable by anyone, editable by sharees. Anonymous visitors are
-			// let through above; being logged in must never make a page LESS visible.
-			// Only 'private' is owner/sharee-only.
-			if(trim(strtolower($access))=='shared'){
-				if($setPermissions){
-					$this->readable = true;
-				}
-				return true;
 			}
 			return false;
 		}

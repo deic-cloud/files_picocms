@@ -91,7 +91,7 @@ Recognised front-matter keys:
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `access` | `public` | `public` — anyone; `shared` — readable by anyone, editable by users the folder is shared with; `private` — owner and sharees only |
+| `access` | `public` | `public` — anyone; `private` — owner and users the folder is shared with (NC share permissions honoured). The old service's `shared` is not supported and is treated as `private` — re-head migrated content. |
 | `theme` | `blog` | Theme directory name under `themes/` |
 | `title` | site name | Overrides the DB-registered site name |
 | `description` | — | Passed to Pico; used by the theme |
