@@ -99,6 +99,7 @@ Recognised front-matter keys:
 | `EditLinks` | — | `yes` to show per-post Edit buttons |
 | `icon` | — | Nav-bar icon, path relative to site root; also used as favicon if no `favicon` is set |
 | `favicon` | — | Path to favicon relative to site root |
+| `Backlink` | brand wordmark | Text/HTML blob rendered as the top-left service backlink; unset, themes render the standard wordmark (`files_picocms.brand_name`) linking the frontpage site |
 
 When a site is created through the wizard (`POST /create`), a commented
 default `_config.md` is written to the site root, pre-populated with the
