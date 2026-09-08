@@ -918,3 +918,23 @@ code {
 .sd-brand .sd-i { position: relative; display: inline-block; line-height: 1; }
 .sd-brand .sd-i::after { content: ""; position: absolute; left: 50%; bottom: 0.76em;
 	transform: translateX(-50%); width: 0.16em; height: 0.16em; border-radius: 50%; background: #c00; }
+
+/* Links inside the intro header must be visible on the dark banner: light blue. */
+.intro-header .subheading a, .intro-header .site-heading a:not(.sd-brand-mobile),
+.intro-header .post-heading a { color: #8fd4f5; }
+.intro-header .subheading a:hover { color: #b8e4fa; }
+
+/* Small screens: the navbar collapses, so the service backlink moves to the
+   top-left of the headline banner instead. Both instances are in the markup;
+   CSS shows exactly one. */
+.sd-brand-mobile { display: none; }
+@media only screen and (max-width: 767px) {
+	.sd-brand-slot { display: none; }
+	.sd-brand-mobile { display: block; position: absolute; top: 64px; left: 14px;
+		color: #fff; font-weight: 800; letter-spacing: .2px; text-decoration: none;
+		text-shadow: 0 1px 3px rgba(0,0,0,.5); z-index: 10; }
+	.sd-brand-mobile .sd-i { position: relative; display: inline-block; line-height: 1; }
+	.sd-brand-mobile .sd-i::after { content: ""; position: absolute; left: 50%; bottom: 0.76em;
+		transform: translateX(-50%); width: 0.16em; height: 0.16em; border-radius: 50%; background: #c00; }
+	.intro-header, .post-header { position: relative; }
+}

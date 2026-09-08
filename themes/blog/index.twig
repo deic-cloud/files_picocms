@@ -81,6 +81,7 @@
     <header class="intro-header" style="{% if meta.img %}background-image: url({{ meta.img }});
     {% else %}background: #006286;{% endif %}">
         <div class="container">
+        {% if config.sd_backlink|default('') %}{% else %}<a class="sd-brand-mobile" href="{{ config.sd_home_url|default('/') }}">{{ config.sd_brand_html|default(config.sd_brand_name|default('Home'))|raw }}</a>{% endif %}
             <div class="row">
                 <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
                     <div class="site-heading">

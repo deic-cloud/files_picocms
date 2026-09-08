@@ -73,6 +73,7 @@
     <!-- Page Header -->
     <!-- Set your background image for this header on the line below. -->
     <header class="post-header">
+        {% if config.sd_backlink|default('') %}{% else %}<a class="sd-brand-mobile" href="{{ config.sd_home_url|default('/') }}">{{ config.sd_brand_html|default(config.sd_brand_name|default('Home'))|raw }}</a>{% endif %}
         <div class="container">
             <div class="row">
                 <div class="col-lg-10 col-lg-offset-1 col-md-10 col-md-offset-1">
