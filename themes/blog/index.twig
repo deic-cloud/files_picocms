@@ -53,11 +53,6 @@
             <div class="navbar-header sd-brand-slot">
                 {% if config.sd_backlink|default('') %}{{ config.sd_backlink|raw }}{% else %}<a class="navbar-brand sd-brand" href="{{ config.sd_home_url|default('/') }}">{{ config.sd_brand_html|default(config.sd_brand_name|default('Home'))|raw }}</a>{% endif %}
             </div>
-						{% if page_number > 1 %}
-							<div class="navbar-header page-scroll">
-									<a class="navbar-brand" href="{{ base_url }}">Home</a>
-							</div>
-						{% endif %}
             <!-- /.navbar-collapse -->
             {% if has_search_page %}
 							<form class = "navbar-search" id="search_form" action="{{ base_url  }}/search">
