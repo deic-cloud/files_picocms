@@ -111,14 +111,40 @@ site name, chosen theme, and a detected or copied `img/data_icon.png`.
 
 ### Who can write
 
-- **Site owner** — the NC user whose files contain the site directory.
-- **Collaborator (write)** — any user or group granted *update*-permission
-  share access to the site folder (see *Share detection* below).
+Terms, as the code uses them:
 
-Read access to a `private` site uses the **same** detection: the owner, plus any
-user or group the site folder is shared with — **read or write**, local, group,
-or cross-silo federated. Everyone else, including a logged-in user with no share,
-is denied (fail-closed). So read-only sharing works for confidential material.
+- **Owner** — the NC account whose home the site folder lives in: the `uid` of
+  the site's registry row, and the NC owner of every file in it. It is *not* the
+  `Author:` header. Files a collaborator saves through the site's editor are still
+  owned by this account (the write proxy writes as the site owner).
+- **Scope** — the registered site folder and everything below it. Access is
+  computed **once per request for the site folder as a whole**, never per page:
+  `serve.php` looks up the current user's share on the site folder's node, and
+  Pico's content directory is that folder, read recursively. Subfolders inherit;
+  there is no per-file or per-subfolder permission. (`Site:` headers are display
+  titles only and carry no permission meaning.)
+- **Collaborator** — a logged-in user holding an NC share **of the site folder**
+  with *update* permission (local user, group, or cross-silo federated share —
+  see *Share detection* below). A read-only share gives reading of a `private`
+  site and nothing more.
+
+| Right | Owner | Collaborator (update share) | Everyone else |
+|---|---|---|---|
+| read a `public` site | ✓ | ✓ | ✓ |
+| read a `private` site | ✓ | ✓ (any share, read or write) | – |
+| create a new page anywhere in the site folder | ✓ | ✓ | – |
+| edit any page, subfolders included | ✓ | – | – |
+| edit a page whose `Author:` header equals their own uid | ✓ | ✓ | – |
+
+Themes receive this as two Twig variables and must gate their controls
+consistently: `writable` (owner **or** collaborator) shows the create/"Write"/
+"Show files" control; `editable` (owner only) — or `writable` together with
+`oc_user == meta.author` — shows "edit this page". The blog, team, default and
+briefing themes follow this; the documentation theme is a plain viewer with no
+edit UI.
+
+Everyone without a share, including a logged-in user, is denied on a `private`
+site (fail-closed), so read-only sharing works for confidential material.
 
 ### Share detection
 
