@@ -399,6 +399,14 @@ if (!empty($siteConfig['description'])) {
 if (isset($siteConfig['EditLinks'])) {
 	$picoConfig['edit_links'] = (strtolower((string)$siteConfig['EditLinks']) === 'yes');
 }
+// Optional per-site service backlink override: a text/html blob from the site's
+// front matter ('Backlink: <a href="…">…</a>'). Themes render it where their
+// layout has a natural brand slot; when unset they fall back to the standard
+// wordmark (sd_brand_html → sd_home_url).
+$blVal = $siteConfig['backlink'] ?? $siteConfig['Backlink'] ?? null;
+if (!empty($blVal)) {
+	$picoConfig['sd_backlink'] = (string)$blVal;
+}
 $iconVal = $siteConfig['icon'] ?? $siteConfig['Icon'] ?? null;
 if (!empty($iconVal)) {
 	$picoConfig['icon']    = $iconVal;

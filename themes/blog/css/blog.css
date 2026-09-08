@@ -912,3 +912,9 @@ code {
 	opacity: 0.8;
 }
 
+
+/* ScienceData service backlink in the navbar (standalone pages, no iframe) */
+.sd-brand { font-weight: 800; letter-spacing: .2px; }
+.sd-brand .sd-i { position: relative; display: inline-block; line-height: 1; }
+.sd-brand .sd-i::after { content: ""; position: absolute; left: 50%; bottom: 0.76em;
+	transform: translateX(-50%); width: 0.16em; height: 0.16em; border-radius: 50%; background: #c00; }

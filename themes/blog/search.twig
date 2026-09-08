@@ -24,19 +24,6 @@
 </head>
 
  <body>
-	<a class="sd-backlink" href="{{ config.sd_home_url|default('/') }}" title="{{ config.sd_brand_name|default('Home') }}">{{ config.sd_brand_html|default('Home')|raw }}</a>
-	<style>
-	.sd-backlink { position: absolute; top: 8px; left: 12px; z-index: 1000;
-		font: 700 15px/1.2 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-		color: inherit; text-decoration: none; opacity: .85; letter-spacing: .2px; }
-	.sd-backlink:hover { opacity: 1; text-decoration: none; }
-	.sd-backlink .sd-i { position: relative; display: inline-block; line-height: 1; }
-	.sd-backlink .sd-i::after { content: ""; position: absolute; left: 50%;
-		bottom: 0.76em; transform: translateX(-50%); width: 0.16em; height: 0.16em;
-		border-radius: 50%; background: #c00; }
-	.sd-backlink { color: #fff; }
-	body { padding-top: 26px; }
-	</style>
 
 
      <!-- Navigation -->
@@ -57,6 +44,7 @@
 						});
 				</script>
 			</div>
+			{% if config.sd_backlink|default('') %}{{ config.sd_backlink|raw }}{% else %}<a class="navbar-brand search-home sd-brand" href="{{ config.sd_home_url|default('/') }}">{{ config.sd_brand_html|default(config.sd_brand_name|default('Home'))|raw }}</a>{% endif %}
 			<a class="navbar-brand search-home" href="{{ base_url }}">Home</a>
     </header>
 
