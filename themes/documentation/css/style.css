@@ -448,3 +448,27 @@ section#content div.inner li input[type=checkbox] { margin: 0; }
   .navigation { display: none !important; }
   .main       { margin-left: 4% !important; }
 }
+
+/* Service backlink: first line of the blue sidebar header, above the site title
+   (in flow — an absolutely positioned one sat on top of the title). Own colour
+   rules incl. :visited: `a, a:visited { color: #006b93 }` (0,1,1) otherwise wins. */
+#search_form .sd-backlink,
+#search_form .sd-backlink:visited,
+#search_form .sd-backlink:hover {
+  display: block;
+  margin: 0 0 10px 2px;
+  font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: .2px;
+  color: #fff;
+  text-decoration: none;
+}
+#search_form .sd-backlink:hover { color: rgba(255, 255, 255, 0.8); }
+.sd-backlink .sd-i { position: relative; display: inline-block; line-height: 1; }
+.sd-backlink .sd-i::after {
+  content: ""; position: absolute; left: 50%; bottom: 0.76em;
+  transform: translateX(-50%); width: 0.16em; height: 0.16em;
+  border-radius: 50%; background: #c00;
+}
