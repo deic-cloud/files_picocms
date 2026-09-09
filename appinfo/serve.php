@@ -409,8 +409,9 @@ if (!empty($blVal)) {
 }
 $iconVal = $siteConfig['icon'] ?? $siteConfig['Icon'] ?? null;
 if (!empty($iconVal)) {
-	$picoConfig['icon']    = $iconVal;
-	$picoConfig['favicon'] = $picoConfig['favicon'] ?? $iconVal;
+	// Nav-bar / headline icon only — it no longer doubles as the favicon; sites
+	// without an explicit favicon share the service default (sd_favicon_url).
+	$picoConfig['icon'] = $iconVal;
 }
 if (!empty($siteConfig['favicon'])) {
 	$picoConfig['favicon'] = $siteConfig['favicon'];
