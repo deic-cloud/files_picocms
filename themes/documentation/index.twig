@@ -43,7 +43,8 @@
 	.sd-backlink .sd-i::after { content: ""; position: absolute; left: 50%;
 		bottom: 0.76em; transform: translateX(-50%); width: 0.16em; height: 0.16em;
 		border-radius: 50%; background: #c00; }
-	.sd-backlink { color: #fff; }
+	/* incl. :visited — the theme's a, a:visited rule (0,1,1) otherwise wins and hides it */
+	.sd-backlink, .sd-backlink:visited, .sd-backlink:hover { color: #fff; }
 	.doc-container { padding-top: 26px; }
 	</style>
 
