@@ -467,7 +467,7 @@ $picoConfig['sd_footer_html'] = trim((string)$config->getSystemValue('files_pico
 $sdFavicon = trim((string)$config->getSystemValue('files_picocms.favicon', ''));
 $sdNcRoot  = rtrim($scheme . '://' . $_SERVER['HTTP_HOST'] . $webRoot, '/');
 if ($sdFavicon === '') {
-	$sdFavicon = \OC::$server->getAppManager()->isEnabledForUser('theming')
+	$sdFavicon = \OCP\Server::get(\OCP\App\IAppManager::class)->isEnabledForAnyone('theming')
 		? $sdNcRoot . '/index.php/apps/theming/favicon/core'
 		: $sdNcRoot . '/core/img/favicon.ico';
 } elseif (str_starts_with($sdFavicon, '/')) {
