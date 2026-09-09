@@ -99,13 +99,36 @@ Recognised front-matter keys:
 | `EditLinks` | — | `yes` to show per-post Edit buttons |
 | `icon` | — | Nav-bar icon, path relative to site root; also used as favicon if no `favicon` is set |
 | `favicon` | — | Path to favicon relative to site root |
-| `Tagline` | — | Subtitle under the site title (blog, default themes); set in `index.md` |
-| `Footer` | shared footer | Footer HTML for this site (default theme). Unset, the theme renders the shared footer from `config.php` `files_picocms.footer_html` — the same line the frontpage shows |
 | `Backlink` | brand wordmark | Text/HTML blob rendered as the top-left service backlink; unset, themes render the standard wordmark (`files_picocms.brand_name`) linking the frontpage site |
 
 When a site is created through the wizard (`POST /create`), a commented
 default `_config.md` is written to the site root, pre-populated with the
 site name, chosen theme, and a detected or copied `img/data_icon.png`.
+
+### Page front matter (`index.md` and every page)
+
+Keys in a page's own front matter arrive in the templates as `meta.*` — a
+different namespace from `_config.md` (`config.*`), and some names exist in
+both with different meanings. `Icon` is the notorious one: in `_config.md` it
+is the nav-bar icon (and favicon fallback), in `index.md` it is the headline
+image. Keys the bundled themes read:
+
+| Key | Where | Themes | Description |
+|-----|-------|--------|-------------|
+| `Title`, `Description`, `Author`, `Date` | any page | all | Standard Pico page data; `Description` doubles as the post subtitle (blog) |
+| `Site` | `index.md` | blog | Site title shown in the headline (overrides the registered name) |
+| `Tagline` | `index.md` | blog, default | Subtitle under the site title |
+| `Icon` | `index.md` | blog | Image shown next to the headline (`header-icon`) |
+| `Img` | any page | blog | Banner background image of the page/post header |
+| `IndexImage` | post | blog | Thumbnail shown under the post preview on the index |
+| `Labels` | post | blog, team | Comma-separated labels → clickable chips + `search/labels:<label>` |
+| `Access` | any page | all | `public` / `private`, see *Who can write* — a page-level override of the site default |
+| `Template` | any page | all | Template name (`post`, `search`, `profile`, …) |
+| `Theme` | `index.md` | all | Theme for this site (same as `_config.md` `theme`) |
+| `Toc` | any page | default, briefing | `true` → table of contents |
+| `Social` | `index.md` | blog, default | Map of `url: icon` rendered as footer icons |
+| `Footer` | `index.md` | default | Footer HTML for this site; unset → the shared footer from `config.php` `files_picocms.footer_html` (the frontpage's line) |
+| `Robots` | any page | all | `<meta name="robots">` content |
 
 ---
 
