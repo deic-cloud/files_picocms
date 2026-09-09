@@ -99,6 +99,8 @@ Recognised front-matter keys:
 | `EditLinks` | — | `yes` to show per-post Edit buttons |
 | `icon` | — | Nav-bar icon, path relative to site root; also used as favicon if no `favicon` is set |
 | `favicon` | — | Path to favicon relative to site root |
+| `Tagline` | — | Subtitle under the site title (blog, default themes); set in `index.md` |
+| `Footer` | shared footer | Footer HTML for this site (default theme). Unset, the theme renders the shared footer from `config.php` `files_picocms.footer_html` — the same line the frontpage shows |
 | `Backlink` | brand wordmark | Text/HTML blob rendered as the top-left service backlink; unset, themes render the standard wordmark (`files_picocms.brand_name`) linking the frontpage site |
 
 When a site is created through the wizard (`POST /create`), a commented

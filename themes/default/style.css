@@ -561,26 +561,29 @@ pagebreak, .pagebreak {
 }
 
 
-/* ScienceData service backlink, top-left over the header. Own colour rules incl.
-   :visited — the theme's `a, a:visited { color: #006b93 }` (0,1,1) otherwise beats
-   the class and paints it in the header's own colour, i.e. invisible. */
+/* Service backlink, top-left over the header — same look as the blog theme's
+   navbar brand (Open Sans 800 / 20px, white). Own colour rules incl. :visited —
+   the theme's `a, a:visited { color: #006b93 }` (0,1,1) otherwise beats the class
+   and paints it in the header's own colour, i.e. invisible. */
 .sd-backlink,
 .sd-backlink:visited,
 .sd-backlink:hover,
 .sd-backlink:active {
     position: absolute;
-    top: 12px;
-    left: 12px;
+    top: 18px;
+    left: 32px;
     z-index: 1000;
-    font: 700 15px/1.2 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: #fff;
-    text-shadow: 0 1px 2px rgba(0,0,0,.4);
-    text-decoration: none;
+    font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.2;
     letter-spacing: .2px;
-    opacity: .85;
+    color: #fff;
+    text-decoration: none;
 }
-.sd-backlink:hover {
-    opacity: 1;
+.sd-backlink:hover,
+.sd-backlink:focus {
+    color: rgba(255, 255, 255, 0.8);
 }
 .sd-backlink .sd-i {
     position: relative;

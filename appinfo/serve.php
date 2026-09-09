@@ -457,6 +457,10 @@ $sdBrand = trim((string)$config->getSystemValue('files_picocms.brand_name', 'Nex
 $sdBrand = $sdBrand !== '' ? $sdBrand : 'Nextcloud';
 $picoConfig['sd_home_url']   = $webRoot . '/remote.php/sites/' . rawurlencode($sdFrontpage) . '/';
 $picoConfig['sd_brand_name'] = $sdBrand;
+// Shared footer line (HTML allowed), e.g. operator + support address — set once in
+// config.php (files_picocms.footer_html) and rendered by every theme that has a
+// footer, so all sites carry the same footer as the frontpage.
+$picoConfig['sd_footer_html'] = trim((string)$config->getSystemValue('files_picocms.footer_html', ''));
 // Same wordmark as the frontpage: red dot over the first lowercase "i".
 $sdIp = strpos($sdBrand, 'i');
 $picoConfig['sd_brand_html'] = $sdIp === false
