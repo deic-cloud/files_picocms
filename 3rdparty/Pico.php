@@ -2052,9 +2052,16 @@ class Pico
 			return (int)($b['time'] ?? 0) - (int)($a['time'] ?? 0);
 		});
 
-		// Filter blog pages for search result views
+		// Filter blog pages for search result views. Typed queries are
+		// 'author:<uid>' / 'labels:<label>' (theme links) and 'q:<term>' (the index
+		// navbar form, ?q=); the search page's own form navigates to search/<term>
+		// with no prefix — anything that isn't a known type is a full-text term.
 		if ($this->searchQuery !== '') {
 			[$searchType, $searchValue] = explode(':', $this->searchQuery, 2) + [0 => '', 1 => ''];
+			if (!in_array($searchType, ['author', 'labels', 'q'], true)) {
+				$searchType  = 'q';
+				$searchValue = $this->searchQuery;
+			}
 			if ($searchType === 'author') {
 				$blogPages = array_values(array_filter($blogPages, fn($p) =>
 					strtolower(trim($p['author'] ?? '')) === strtolower(trim($searchValue))
@@ -2068,10 +2075,20 @@ class Pico
 					return in_array(trim($searchValue), $labels, true);
 				}));
 			} else {
-				// 'q:term' — full-text search on title and description
-				$blogPages = array_values(array_filter($blogPages, function($p) use ($searchValue) {
-					return stripos($p['title'] ?? '', $searchValue) !== false
-						|| stripos($p['description'] ?? '', $searchValue) !== false;
+				// 'q:term' — full-text: title, description and the post BODY (raw
+				// Markdown with the front matter stripped, so header keys like
+				// 'Template: post' don't produce false hits).
+				$term = trim($searchValue);
+				$blogPages = $term === '' ? [] : array_values(array_filter($blogPages, function($p) use ($term) {
+					if (stripos($p['title'] ?? '', $term) !== false
+						|| stripos($p['description'] ?? '', $term) !== false) {
+						return true;
+					}
+					$body = (string)($p['raw_content'] ?? '');
+					if (preg_match('/\A---\s*\n.*?\n---\s*\n(.*)\z/s', $body, $m)) {
+						$body = $m[1];
+					}
+					return stripos($body, $term) !== false;
 				}));
 			}
 		}
