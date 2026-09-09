@@ -8,6 +8,7 @@
     {% if meta.robots %}<meta name="robots" content="{{ meta.robots }}">{% endif %}
     <link rel="stylesheet" href="{{ theme_url }}/style.css" type="text/css" />
     {% if writable is not empty or meta.toc %}<script src="{{ theme_url }}/scripts/briefing.js"></script>{% endif %}
+    {% if config.icon %}<link rel="icon" href="{{ base_url }}/{{ config.icon }}" />{% elseif config.favicon %}<link rel="icon" href="{{ base_url }}/{{ config.favicon }}" />{% elseif meta.favicon %}<link rel="icon" href="{{ base_url }}/{{ meta.favicon }}" />{% else %}<link rel="icon" href="{{ config.sd_favicon_url }}" />{% endif %}
 </head>
 <body>
 	<a class="sd-backlink" href="{{ config.sd_home_url|default('/') }}" title="{{ config.sd_brand_name|default('Home') }}">{{ config.sd_brand_html|default('Home')|raw }}</a>

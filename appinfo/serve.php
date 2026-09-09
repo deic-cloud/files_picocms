@@ -461,6 +461,19 @@ $picoConfig['sd_brand_name'] = $sdBrand;
 // config.php (files_picocms.footer_html) and rendered by every theme that has a
 // footer, so all sites carry the same footer as the frontpage.
 $picoConfig['sd_footer_html'] = trim((string)$config->getSystemValue('files_picocms.footer_html', ''));
+// Fallback favicon for sites that set none (config.php files_picocms.favicon, absolute
+// or root-relative). Default: this node's own Nextcloud favicon via the theming
+// app's route, so an admin-uploaded favicon (Theming settings) reaches every site.
+$sdFavicon = trim((string)$config->getSystemValue('files_picocms.favicon', ''));
+$sdNcRoot  = rtrim($scheme . '://' . $_SERVER['HTTP_HOST'] . $webRoot, '/');
+if ($sdFavicon === '') {
+	$sdFavicon = \OC::$server->getAppManager()->isEnabledForUser('theming')
+		? $sdNcRoot . '/index.php/apps/theming/favicon/core'
+		: $sdNcRoot . '/core/img/favicon.ico';
+} elseif (str_starts_with($sdFavicon, '/')) {
+	$sdFavicon = $sdNcRoot . $sdFavicon;
+}
+$picoConfig['sd_favicon_url'] = $sdFavicon;
 // Same wordmark as the frontpage: red dot over the first lowercase "i".
 $sdIp = strpos($sdBrand, 'i');
 $picoConfig['sd_brand_html'] = $sdIp === false

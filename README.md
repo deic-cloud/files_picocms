@@ -98,7 +98,7 @@ Recognised front-matter keys:
 | `author` | — | Author name, available to themes |
 | `EditLinks` | — | `yes` to show per-post Edit buttons |
 | `icon` | — | Nav-bar icon, path relative to site root; also used as favicon if no `favicon` is set |
-| `favicon` | — | Path to favicon relative to site root |
+| `favicon` | NC favicon | Path to favicon relative to site root. Unset (and no `icon`), themes fall back to `config.php` `files_picocms.favicon`, else this node's own Nextcloud favicon (theming route — an admin-uploaded favicon reaches every site). The frontpage and repository themes keep their designed SVG icon. |
 | `Backlink` | brand wordmark | Text/HTML blob rendered as the top-left service backlink; unset, themes render the standard wordmark (`files_picocms.brand_name`) linking the frontpage site |
 
 When a site is created through the wizard (`POST /create`), a commented
