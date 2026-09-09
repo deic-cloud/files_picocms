@@ -8,7 +8,7 @@
 	{% if meta.description %}<meta name="description" content="{{ meta.description|striptags }}">{% endif %}
 	{% set static_base = config.sd_theme_static|default(theme_url) %}
 	<link rel="stylesheet" href="{{ static_base }}/css/style.css?v={{ config.sd_asset_ver|default('1') }}" />
-	{% if config.icon %}<link rel="icon" href="{{ base_url }}/{{ config.icon }}" />{% else %}<link rel="icon" href="{{ static_base }}/img/favicon.svg" type="image/svg+xml" />{% endif %}
+	{% if config.favicon %}<link rel="icon" href="{{ base_url }}/{{ config.favicon }}" />{% elseif meta.favicon %}<link rel="icon" href="{{ base_url }}/{{ meta.favicon }}" />{% else %}<link rel="icon" href="{{ config.sd_favicon_url }}" />{% endif %}
 </head>
 <body>
 

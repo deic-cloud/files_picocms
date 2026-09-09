@@ -41,7 +41,7 @@
     <script src="{{ theme_url }}/js/bootstrap.js"></script>
     <script src="{{ theme_url }}/js/easymde.js"></script>
     <script src="{{ theme_url }}/js/blog.js"></script>
-    {% if config.icon %}<link rel="shortcut icon" href="{{ base_url }}/{{ config.icon }}" />{% elseif config.favicon %}<link rel="shortcut icon" href="{{ base_url }}/{{ config.favicon }}" />{% else %}<link rel="shortcut icon" href="{{ config.sd_favicon_url }}" />{% endif %}
+    {% if config.favicon %}<link rel="icon" href="{{ base_url }}/{{ config.favicon }}" />{% elseif meta.favicon %}<link rel="icon" href="{{ base_url }}/{{ meta.favicon }}" />{% else %}<link rel="icon" href="{{ config.sd_favicon_url }}" />{% endif %}
 </head>
 
 <body>

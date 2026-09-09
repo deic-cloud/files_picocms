@@ -97,8 +97,8 @@ Recognised front-matter keys:
 | `description` | — | Passed to Pico; used by the theme |
 | `author` | — | Author name, available to themes |
 | `EditLinks` | — | `yes` to show per-post Edit buttons |
-| `icon` | — | Nav-bar icon, path relative to site root; also used as favicon if no `favicon` is set |
-| `favicon` | NC favicon | Path to favicon relative to site root. Unset (and no `icon`), themes fall back to `config.php` `files_picocms.favicon`, else the frontpage theme's `favicon.svg` — the welcome page's icon, so all sites share one tab icon. |
+| `icon` | — | Nav-bar icon, path relative to site root (no longer doubles as favicon) |
+| `favicon` | NC favicon | Path to favicon relative to site root. Unset, a page-level `Favicon:` applies, else `config.php` `files_picocms.favicon`, else the frontpage theme's `favicon.svg` — the welcome page's icon, so all sites share one tab icon. |
 | `Backlink` | brand wordmark | Text/HTML blob rendered as the top-left service backlink; unset, themes render the standard wordmark (`files_picocms.brand_name`) linking the frontpage site |
 
 When a site is created through the wizard (`POST /create`), a commented

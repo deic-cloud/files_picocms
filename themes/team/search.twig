@@ -21,7 +21,7 @@
     <link href="{{ theme_url }}/css/font-awesome.css" rel="stylesheet" type="text/css">
     <link href="{{ theme_url }}/css/fonts.css" rel="stylesheet" type="text/css">
     
-    {% if config.favicon %}<link id="favicon" rel="shortcut icon" type="image/png" href="{{ base_url }}/{{ config.favicon }}" />{% elseif config.icon %}<link id="favicon" rel="shortcut icon" type="image/png" href="{{ base_url }}/{{ config.icon }}" />{% else %}<link id="favicon" rel="shortcut icon" type="image/png" href="{{ config.sd_favicon_url }}" />{% endif %}
+    {% if config.favicon %}<link rel="icon" href="{{ base_url }}/{{ config.favicon }}" />{% elseif meta.favicon %}<link rel="icon" href="{{ base_url }}/{{ meta.favicon }}" />{% else %}<link rel="icon" href="{{ config.sd_favicon_url }}" />{% endif %}
   </head>
   
  <body>

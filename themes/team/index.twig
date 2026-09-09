@@ -36,7 +36,7 @@
 	<script src="{{ theme_url }}/js/easymde.js"></script>
 	<script src="{{ theme_url }}/js/team.js"></script>
 
-	{% if config.favicon %}<link id="favicon" rel="shortcut icon" type="image/png" href="{{ base_url }}/{{ config.favicon }}" />{% elseif config.icon %}<link id="favicon" rel="shortcut icon" type="image/png" href="{{ base_url }}/{{ config.icon }}" />{% else %}<link id="favicon" rel="shortcut icon" type="image/png" href="{{ config.sd_favicon_url }}" />{% endif %}
+	{% if config.favicon %}<link rel="icon" href="{{ base_url }}/{{ config.favicon }}" />{% elseif meta.favicon %}<link rel="icon" href="{{ base_url }}/{{ meta.favicon }}" />{% else %}<link rel="icon" href="{{ config.sd_favicon_url }}" />{% endif %}
 </head>
 
 <body>
