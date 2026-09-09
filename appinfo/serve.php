@@ -462,14 +462,13 @@ $picoConfig['sd_brand_name'] = $sdBrand;
 // footer, so all sites carry the same footer as the frontpage.
 $picoConfig['sd_footer_html'] = trim((string)$config->getSystemValue('files_picocms.footer_html', ''));
 // Fallback favicon for sites that set none (config.php files_picocms.favicon, absolute
-// or root-relative). Default: this node's own Nextcloud favicon via the theming
-// app's route, so an admin-uploaded favicon (Theming settings) reaches every site.
+// or root-relative). Default: the frontpage theme's favicon — the same icon the
+// welcome page shows — so every site of the service shares one tab icon.
 $sdFavicon = trim((string)$config->getSystemValue('files_picocms.favicon', ''));
 $sdNcRoot  = rtrim($scheme . '://' . $_SERVER['HTTP_HOST'] . $webRoot, '/');
 if ($sdFavicon === '') {
-	$sdFavicon = \OCP\Server::get(\OCP\App\IAppManager::class)->isEnabledForAnyone('theming')
-		? $sdNcRoot . '/index.php/apps/theming/favicon/core'
-		: $sdNcRoot . '/core/img/favicon.ico';
+	$sdFavicon = $sdNcRoot . \OCP\Server::get(\OCP\App\IAppManager::class)->getAppWebPath('files_picocms')
+		. '/themes/frontpage/img/favicon.svg';
 } elseif (str_starts_with($sdFavicon, '/')) {
 	$sdFavicon = $sdNcRoot . $sdFavicon;
 }
