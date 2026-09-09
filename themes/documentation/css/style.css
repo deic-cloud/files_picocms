@@ -456,7 +456,9 @@ section#content div.inner li input[type=checkbox] { margin: 0; }
 #search_form .sd-backlink:visited,
 #search_form .sd-backlink:hover {
   display: block;
-  margin: 0 0 10px 2px;
+  margin: 0 0 10px;
+  width: 244px;              /* #search_form inner width (264 - 2×10 padding) */
+  text-align: center;
   font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 17px;
   font-weight: 800;
