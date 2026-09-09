@@ -43,7 +43,7 @@
 				<form id="search_form" action="{{ base_url  }}/search">
 					<a class="sd-backlink" href="{{ config.sd_home_url|default('/') }}" title="{{ config.sd_brand_name|default('Home') }}">{{ config.sd_brand_html|default('Home')|raw }}</a>
 					<label id="search_label" for="search_input"><a href="{{ base_url  }}">
-					<i class="icon icon-home icon-white"></i>{{ meta.site }}</a></label>
+					{{ meta.site }}</a></label>
 					<input type="search" id="search_input" name="q" placeholder="Search the docs" value="{{ search_terms }}"/>
 					<!--<input type="submit" id="search_submit" value="Search" />-->
 				</form>
