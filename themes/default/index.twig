@@ -120,7 +120,7 @@
                     <a href="{{ social.url }}" title="{{ social.title }}"><span class="icon-{{ social.icon }}"></span></a>
                 {% endfor %}
             </div>
-            {% if meta.footer %}{{ meta.footer|raw }}{% else %}{{ config.sd_footer_html|default('')|raw }}{% endif %}
+            <div class="foot-line">{% if meta.footer %}{{ meta.footer|raw }}{% else %}{{ config.sd_footer_html|default('')|raw }}{% endif %}</div>
         </div>
     </footer>
 

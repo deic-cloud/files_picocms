@@ -285,6 +285,14 @@ dd {
     font-size: 200%;
 }
 #footer a { color: #ddd; }
+/* Footer line laid out like the frontpage's: text left, address flushed right. */
+#footer .foot-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
 #footer a:hover { color: #fff; }
 
 /* Misc Styles
