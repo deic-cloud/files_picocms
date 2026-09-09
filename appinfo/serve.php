@@ -784,24 +784,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['picocms_list_images']))
 	exit;
 }
 
-// Cross-silo SSO: if the visitor has an NC session on the master (same cookie domain) but no
-// session on this silo, redirect them through the sudoConfirm→exchange flow so they get a
-// local silo session.  After exchange they land back here with $currentUid set.
-// This only fires on silos (not on master itself) to avoid redirect loops.
-$isMaster = (bool)$config->getSystemValue('files_sharding_master', false);
-if ($currentUid === '' && !$isMaster && ($masterBase !== '') &&
-	rtrim($masterBase, '/') !== rtrim($scheme . '://' . $_SERVER['HTTP_HOST'] . $webRoot, '/') &&
-	!empty($_COOKIE['nc_username'])
-) {
-	$siloBase    = rtrim($scheme . '://' . $_SERVER['HTTP_HOST'] . $webRoot, '/');
-	$exchangeUrl = $siloBase . '/index.php/apps/files_sharding/login'
-		. '?return=' . urlencode($_SERVER['REQUEST_URI']);
-	$redirectUrl = rtrim($masterBase, '/') . '/index.php/apps/files_sharding/sudo/confirm'
-		. '?silo='     . urlencode($siloBase)
-		. '&callback=' . urlencode($exchangeUrl);
-	header('Location: ' . $redirectUrl);
-	http_response_code(302);
-	exit;
+// Cluster SSO hop (master-hosted sites): the visitor has no session HERE, but
+// files_sharding's cluster marker cookie (SsoCookie, set by the user's home node
+// at login on the shared parent domain) says they are logged in on another
+// node. Send the browser to that node's sso/issue endpoint; it obtains a
+// one-time master token and bounces back to our /login exchange, which creates
+// a master session for the user's directory account and returns to this URL.
+// Then share detection sees the visitor's shares (edit buttons, private sites).
+// A stale marker just comes straight back (anonymous). A short-lived host-only
+// cookie stops the hop from repeating within a minute — no loops, and no query
+// parameter (Pico derives its request URL from the query string).
+// Master only: the master holds an account for every cluster user, so the
+// exchange never has to create one; silo-hosted sites keep the old limits.
+if ($currentUid === '' && empty($_COOKIE['files_sharding_sso_tried'])
+	&& class_exists(\OCA\FilesSharding\Service\SsoCookie::class)) {
+	try {
+		$ssoCookie       = \OCP\Server::get(\OCA\FilesSharding\Service\SsoCookie::class);
+		$shardingService = \OCP\Server::get(\OCA\FilesSharding\Service\ShardingService::class);
+		$thisBase        = rtrim($scheme . '://' . $_SERVER['HTTP_HOST'] . $webRoot, '/');
+		$home            = $ssoCookie->homeElsewhere();
+		if ($home !== null && $shardingService->isMaster() && $thisBase === $shardingService->masterUrl()) {
+			setcookie('files_sharding_sso_tried', '1', [
+				'expires' => time() + 60, 'path' => '/', 'secure' => $scheme === 'https',
+				'httponly' => true, 'samesite' => 'Lax',
+			]);
+			header('Location: ' . $home . '/index.php/apps/files_sharding/sso/issue'
+				. '?target=' . urlencode($thisBase)
+				. '&return=' . urlencode($_SERVER['REQUEST_URI']));
+			http_response_code(302);
+			exit;
+		}
+	} catch (\Throwable $e) {
+		error_log('files_picocms sso hop: ' . $e->getMessage());
+	}
 }
 
 $pico->loginToEditUrl = ''; // no longer needed; kept for theme compatibility

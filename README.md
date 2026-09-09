@@ -248,26 +248,34 @@ proxy above.
 
 ---
 
-## Cross-silo SSO
+## Cluster SSO (silo-homed visitors on master-hosted sites)
 
-When a visitor lands on a site served from silo2 without a local silo2
-session, but they do have an NC session on the master (detected via the
-`nc_username` cookie, which is scoped to the shared parent domain so all
-nodes see it), `serve.php` redirects them through the `files_sharding`
-SSO flow:
+Sessions are per node. A visitor who is logged in on their home silo but opens a
+site served by the **master** (all `cloud`-owned sites, for instance) has no
+master session, so `serve.php` would see them as anonymous — no edit controls,
+and no access to a `private` site — even when the folder is shared with them.
+
+`serve.php` therefore hops through `files_sharding`'s cluster SSO when it finds
+no session but the cluster marker cookie (`files_sharding_home`, set by the
+user's home node at login on the shared parent domain) names another node:
 
 ```
-serve.php → master/sudo/confirm?silo=…&callback=…
-         → silo2/apps/files_sharding/login?return=…    (exchange endpoint)
-         → back to the original page URL on silo2
+serve.php (master, no session, marker → silo8)
+  → silo8/index.php/apps/files_sharding/sso/issue?target=<master>&return=<path>
+  → master/index.php/apps/files_sharding/login?token=…&user=…&return=<path>
+  → back to the page, now with a master session for the user's directory account
 ```
 
-After the exchange, the visitor has a silo2 session and `$currentUid` is set.
-This means alice's collaborators never need to know they are on silo2 — they
-just log in at master and are transparently redirected.
+Share detection then finds the visitor's share of the site folder as usual
+(the federated share to `user@master` is mounted for the directory account on
+the master), so Write/Edit appear and `private` sites open.
 
-This redirect only fires on silos (not on master itself) and only when the
-visitor is not already authenticated on the silo.
+A stale marker (no session at the home node either) comes straight back and the
+page renders anonymously; a 60 s host-only cookie (`files_sharding_sso_tried`)
+prevents the hop from repeating. The hop fires only on the master (see the
+files_sharding README, *Cluster SSO hop*, for why the target is restricted).
+Cross-node collaborators on **silo**-hosted sites still need a session on that
+silo — a known limitation.
 
 ---
 
