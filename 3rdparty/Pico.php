@@ -1047,8 +1047,9 @@ class Pico
 			return $this->loadFileContent($this->getConfig('content_dir') . '404' . $this->getConfig('content_ext'));
 		}
 
-		$errorFile = $this->getConfig('content_dir') . '404' . $this->getConfig('content_ext');
-		throw new RuntimeException('Required "' . $errorFile . '" not found');
+		// No 404.md anywhere in the site — a missing page must still be a 404,
+		// not a 500. Same built-in text loadStatusContent() uses.
+		return "---\ntitle: Not found\nrobots: noindex,nofollow\n---\n\n# Not found\n\nThis page does not exist.\n";
 	}
 
 	/**
@@ -1963,11 +1964,12 @@ class Pico
 		$toc = '';
 		if (!empty($this->content) && !$this->notFound) {
 			$tocItems = [];
-			// Front-matter `TocDepth: N` = deepest heading level to LIST (2–4,
-			// matching ##/###/####); default 4 = list all. Anchor id=s are still
-			// added to every h2–h4 so deep-linking works regardless of depth.
+			// Front-matter `TocDepth: N` = deepest heading level to LIST: 2–4 match
+			// ##/###/####, 1 (or 0) lists no headings at all — the sidebar shows
+			// just the page. Default 4 = list all. Anchor id=s are still added to
+			// every h2–h4 so deep-linking works regardless of depth.
 			$tocDepth = isset($this->meta['tocdepth'])
-				? max(2, min(4, (int)$this->meta['tocdepth']))
+				? max(1, min(4, (int)$this->meta['tocdepth']))
 				: 4;
 			$this->content = preg_replace_callback(
 				'/<h([2-4])([^>]*?)>(.*?)<\/h\1>/is',

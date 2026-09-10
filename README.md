@@ -376,7 +376,8 @@ out of scope; author the Markdown in Files, or use the `team`/`blog` theme when
 inline editing is wanted. Front-matter keys it reads: `eyebrow`, `tag`, `date`,
 `footer` (alongside the usual `Title` / `description`). Set `Toc: true` for the
 upper-right table of contents (all themes support it); `TocDepth: N` caps the
-deepest heading level listed (`2`–`4`, i.e. `##`/`###`/`####`; default lists all).
+deepest heading level listed (`2`–`4`, i.e. `##`/`###`/`####`; `1` lists no headings,
+just the page; default lists all).
 
 Theme files (`themes/…`) are served directly without running Pico, so CSS/JS
 assets load even before the page is rendered.
