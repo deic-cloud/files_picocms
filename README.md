@@ -82,6 +82,24 @@ forgot the rewrite is flagged rather than silently serving unstyled pages.
 
 ---
 
+## Deployment settings (`config.php`)
+
+All optional; unset, the app behaves like a plain app-store install.
+
+| Key | Description |
+|-----|-------------|
+| `files_picocms.url_prefix` | URL prefix for generated site links; `''` together with the web-server rewrite gives pretty `/sites/{name}` URLs (default `/remote.php`, see *Pretty URLs*) |
+| `files_picocms.brand_name` | Service name used in the welcome dialog, the themes' backlink wordmark and the help page (default `Nextcloud`) |
+| `files_picocms.brand_blurb` | One-line service description shown in the welcome dialog |
+| `files_picocms.frontpage_site` | Site served at the bare root `/` (default `welcome`) |
+| `files_picocms.catalog_label` | Label of the public-data catalog listing |
+| `files_picocms.footer_html` | Shared footer line (HTML) rendered by every theme with a footer |
+| `files_picocms.favicon` | Shared favicon for sites that set none (absolute or root-relative; default: the frontpage theme's `favicon.svg`) |
+| `files_picocms.help_docs_url` | Own documentation URL; makes the stock `/settings/help` page lead with it (see `HelpPageScriptListener`) |
+| `files_picocms.hide_dev_notice` | `true` hides the stock "Reasons to use Nextcloud in your organization" block and social buttons at the bottom of Settings → Personal info (CSS only, no core change) |
+
+---
+
 ## Site configuration
 
 Place a `_config.md` file at the site root (or in any subdirectory for

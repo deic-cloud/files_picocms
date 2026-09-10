@@ -1,0 +1,8 @@
+/* Settings → Personal info: the stock "Reasons to use Nextcloud in your
+   organization" block + Nextcloud social buttons (ServerDevNotice). Loaded only
+   when config.php files_picocms.hide_dev_notice is true — see
+   DevNoticeHideListener. */
+#personal-settings .section.development-notice,
+.section.development-notice {
+	display: none;
+}
