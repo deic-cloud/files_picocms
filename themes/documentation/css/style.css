@@ -353,6 +353,7 @@ form#search_form input#search_submit { margin-bottom: 10px; }
   padding-left: 12px;
   width: 200px;
   margin-left: 16px;
+  margin-bottom: 6px;
 }
 
 /* ── Forms ──────────────────────────────────────────────────────────────────── */
