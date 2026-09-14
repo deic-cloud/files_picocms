@@ -238,10 +238,7 @@ class ApiController extends OCSController {
 	private function publicLinkUrl(string $token): string {
 		if (class_exists(\OCA\FilesSharding\Service\ShardingService::class)) {
 			try {
-				$master = rtrim(\OCP\Server::get(\OCA\FilesSharding\Service\ShardingService::class)->masterUrl(), '/');
-				if ($master !== '') {
-					return $master . '/index.php/s/' . rawurlencode($token);
-				}
+				return \OCP\Server::get(\OCA\FilesSharding\Service\ShardingService::class)->publicLinkUrl($token);
 			} catch (\Throwable) {
 			}
 		}
