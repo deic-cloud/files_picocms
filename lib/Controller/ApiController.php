@@ -80,7 +80,7 @@ class ApiController extends OCSController {
 			'status' => 'ok',
 			'listed' => $listed,
 			'token'  => $share->getToken(),
-			'url'    => $this->urlGenerator->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $share->getToken()]),
+			'url'    => $this->publicLinkUrl($share->getToken()),
 		]);
 	}
 
@@ -230,4 +230,22 @@ class ApiController extends OCSController {
 		$this->config->setAppValue('files_picocms', 'content_user', trim($user));
 		return new DataResponse(['msg' => 'Saved']);
 	}
+
+	/**
+	 * Public links carry the master's address in a sharded deployment (persistent
+	 * identifiers; the master forwards to the data's node), else this node's.
+	 */
+	private function publicLinkUrl(string $token): string {
+		if (class_exists(\OCA\FilesSharding\Service\ShardingService::class)) {
+			try {
+				$master = rtrim(\OCP\Server::get(\OCA\FilesSharding\Service\ShardingService::class)->masterUrl(), '/');
+				if ($master !== '') {
+					return $master . '/index.php/s/' . rawurlencode($token);
+				}
+			} catch (\Throwable) {
+			}
+		}
+		return $this->urlGenerator->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $token]);
+	}
+
 }

@@ -151,7 +151,7 @@ class CatalogService {
 						}
 						return $t;
 					})($meta[$fid] ?? [], $title),
-					'url'         => $this->urlGenerator->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $token]),
+					'url'         => $this->publicLinkUrl($token),
 					'owner'       => $owner,
 					'owner_name'  => $ownerName,
 					'institution' => $at !== false ? strtolower(substr($owner, $at + 1)) : '',
@@ -255,4 +255,22 @@ class CatalogService {
 		}
 		return false;
 	}
+
+	/**
+	 * Public links carry the master's address in a sharded deployment (persistent
+	 * identifiers; the master forwards to the data's node), else this node's.
+	 */
+	private function publicLinkUrl(string $token): string {
+		if (class_exists(\OCA\FilesSharding\Service\ShardingService::class)) {
+			try {
+				$master = rtrim(\OCP\Server::get(\OCA\FilesSharding\Service\ShardingService::class)->masterUrl(), '/');
+				if ($master !== '') {
+					return $master . '/index.php/s/' . rawurlencode($token);
+				}
+			} catch (\Throwable) {
+			}
+		}
+		return $this->urlGenerator->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $token]);
+	}
+
 }
