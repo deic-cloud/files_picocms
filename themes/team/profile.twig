@@ -38,7 +38,7 @@
 	<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
 	<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
 	<link href="{{ theme_url }}/css/easymde.css" rel="stylesheet">
-	<script>window.MathJax = { tex: { inlineMath: [['$','$'], ['\\(','\\)']] } };</script>
+	<script>window.MathJax = { loader: { load: ['[tex]/mhchem'] }, tex: { packages: { '[+]': ['mhchem'] }, inlineMath: [['$','$'], ['\\(','\\)']] } };</script>
 	<script src="{{ base_url }}/mathjax/tex-mml-chtml.js" async></script>
 	<script src="{{ theme_url }}/js/jquery.js"></script>
 	<script src="{{ theme_url }}/js/bootstrap.js"></script>

@@ -91,10 +91,11 @@
 
 	<script>
 		MathJax = {
-			tex: { inlineMath: [['$','$'], ['\\(','\\)']] },
+			loader: { load: ['[tex]/mhchem'] },
+			tex: { packages: { '[+]': ['mhchem'] }, inlineMath: [['$','$'], ['\\(','\\)']] },
 			options: { ignoreHtmlClass: 'ace_content' }
 		};
 	</script>
-	<script src="{{ theme_url }}/js/tex-chtml.js"></script>
+	<script src="{{ base_url }}/mathjax/tex-mml-chtml.js"></script>
 </body>
 </html>

@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="{{ theme_url }}/style.css" type="text/css" />
     <link rel="stylesheet" href="{{ theme_url }}/fontello.css" type="text/css" />
     {% if config.favicon %}<link rel="icon" href="{{ base_url }}/{{ config.favicon }}" />{% elseif meta.favicon %}<link rel="icon" href="{{ base_url }}/{{ meta.favicon }}" />{% else %}<link rel="icon" href="{{ config.sd_favicon_url }}" />{% endif %}
-    <script>window.MathJax = { tex: { inlineMath: [['$','$'], ['\\(','\\)']] } };</script>
+    <script>window.MathJax = { loader: { load: ['[tex]/mhchem'] }, tex: { packages: { '[+]': ['mhchem'] }, inlineMath: [['$','$'], ['\\(','\\)']] } };</script>
     <script src="{{ base_url }}/mathjax/tex-mml-chtml.js" async></script>
     <script src="{{ theme_url }}/scripts/jquery.js"></script>
     <script src="{{ theme_url }}/scripts/modernizr-2.6.1.js"></script>
