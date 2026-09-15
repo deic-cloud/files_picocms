@@ -160,7 +160,11 @@ class Twig_Lexer implements Twig_LexerInterface
 
         // push the template text first
         $text = $textContent = substr($this->code, $this->cursor, $position[1] - $this->cursor);
-        if (isset($this->positions[2][$this->position][0])) {
+        // [sciencedata] PHP 8: preg_match_all fills the unmatched optional "-"
+        // group with "" (offset -1), so isset() alone was always true and EVERY
+        // text before a tag got rtrim()ed ("Shared by {{ n }}" → "Shared byX").
+        // Trim only when the whitespace-control modifier is really present.
+        if (isset($this->positions[2][$this->position][0]) && '' !== $this->positions[2][$this->position][0]) {
             $text = rtrim($text);
         }
         $this->pushToken(Twig_Token::TEXT_TYPE, $text);
