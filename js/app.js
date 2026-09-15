@@ -204,6 +204,10 @@
 			}
 			const browse = document.getElementById('picoWizardFolderBrowse');
 			if (browse) browse.disabled = locked;
+			// The profile page is the personal public page (/users/<email>), not a
+			// registered site — say so, since it will not show up in the list.
+			const hint = document.getElementById('picoWizardHint');
+			if (hint) hint.style.display = locked ? '' : 'none';
 		};
 		document.querySelectorAll('input[name="pico_type"]').forEach(radio => {
 			radio.addEventListener('change', function () { applyTypeToFolder(this); });
@@ -242,6 +246,15 @@
 				dialog.style.display = 'none';
 				if (msg) msg.textContent = '';
 
+				if (selected.value === 'blog-profile') {
+					// Not a registered site: the server enabled the personal public
+					// page instead. Reload so the "Personal public page" section shows
+					// the live link (a table row here would be a phantom: unrenamable,
+					// gone on reload).
+					window.location.hash = 'picoPublicSection';
+					window.location.reload();
+					return;
+				}
 				// Add row to table
 				const tbody = document.getElementById('picoSiteList');
 				if (tbody) tbody.appendChild(buildSiteRow(folder, siteName));

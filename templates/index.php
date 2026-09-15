@@ -165,6 +165,7 @@ $linkBase    = $_['link_base'] ?? '';
 				<input type="text" id="picoWizardFolder" value="/public" />
 				<button id="picoWizardFolderBrowse" class="button"><?php p($l->t('Browse')); ?></button>
 			</div>
+			<p id="picoWizardHint" class="picoHint" style="display:none;"><?php p($l->t('This creates your personal public page: it is served from your /public folder at the address shown under "Personal public page" below, and does not appear in the list of websites.')); ?></p>
 
 			<div class="picoWizardActions">
 				<button id="picoWizardCreate" class="primary"><?php p($l->t('Create')); ?></button>
