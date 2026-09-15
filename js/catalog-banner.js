@@ -104,7 +104,7 @@
 				var txt = btn.querySelector('.button-vue__text')
 				var setText = function (v) { if (txt) { txt.textContent = v } else { btn.textContent = v } }
 				setText(t('files_picocms', 'Add to my ScienceData'))
-				btn.setAttribute('title', t('files_picocms', 'Mount this share into your own files (read-only; copy items out to keep a snapshot)'))
+				btn.setAttribute('title', t('files_picocms', 'Have this shared to your own account'))
 				primary.parentNode.insertBefore(btn, primary.nextSibling)
 
 				function doAdd(ev) {
