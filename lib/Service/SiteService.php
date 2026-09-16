@@ -397,12 +397,30 @@ class SiteService {
 			}
 		}
 
-		$this->writeDefaultConfig($uid, $folder, $theme === 'default' ? 'My website' : $name, $theme ?? 'default');
+		// Personal public page: the browser-tab icon is an ordinary file in the
+		// folder, favicon.png, named by the page header (Favicon: favicon.png in
+		// profile.md) — replace the file or edit the line. _config.md therefore
+		// leaves favicon unset (a site-level favicon would override the header).
+		$pageFavicon = false;
+		if ($folder === '/public') {
+			try {
+				$src = $appDir . '/sample-content/blog/img/profile_favicon.png';
+				$png = is_file($src) ? file_get_contents($src) : false;
+				if ($png !== false && !$userFolder->nodeExists($folder . '/favicon.png')) {
+					$userFolder->newFile($folder . '/favicon.png', $png);
+				}
+				$pageFavicon = $userFolder->nodeExists($folder . '/favicon.png');
+			} catch (\Throwable $e) {
+				$this->logger->warning('files_picocms: could not place favicon.png for the personal page: ' . $e->getMessage());
+			}
+		}
+		$this->writeDefaultConfig($uid, $folder, $theme === 'default' ? 'My website' : $name, $theme ?? 'default', $pageFavicon);
 
 		return self::OK;
 	}
 
-	private function writeDefaultConfig(string $uid, string $folder, string $name, string $theme): void {
+	/** @param bool $pageFavicon true when the page header names the favicon — keep the site-level one unset */
+	private function writeDefaultConfig(string $uid, string $folder, string $name, string $theme, bool $pageFavicon = false): void {
 		$appDir      = dirname(__DIR__, 2);
 		$displayName = $this->userManager->get($uid)?->getDisplayName() ?? $uid;
 		$userFolder  = null;
@@ -455,7 +473,7 @@ class SiteService {
 
 		$iconSet    = $iconRelPath !== null;
 		$iconLine   = $iconSet    ? "icon: {$navIconPath}\n"    : "#icon: {$navIconPath}\n";
-		$faviconLine= $iconSet    ? "favicon: {$faviconPath}\n" : "#favicon: {$faviconPath}\n";
+		$faviconLine= ($iconSet && !$pageFavicon) ? "favicon: {$faviconPath}\n" : "#favicon: {$faviconPath}\n";
 
 		$content = "---\n"
 			. "# Site title shown in the browser tab and page header\n"

@@ -6,6 +6,7 @@ Template: profile
 Access: public
 Theme: blog
 Comments: on
+Favicon: favicon.png
 
 ---
 
