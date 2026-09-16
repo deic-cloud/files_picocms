@@ -7,6 +7,7 @@ Template: post
 Access: private
 Theme: blog
 Comments: on
+
 ---
 
 This is an example of a post.

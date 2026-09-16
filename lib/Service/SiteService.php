@@ -481,6 +481,7 @@ class SiteService {
 			. "\n"
 			. "# Show inline edit links when viewing pages while logged in to Nextcloud\n"
 			. "#EditLinks: yes\n"
+			. "\n"
 			. "---\n";
 
 		try {
