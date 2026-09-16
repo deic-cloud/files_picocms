@@ -77,7 +77,7 @@
    			{% if editable is not empty or (writable is not empty and oc_user is not empty and oc_user == meta.author) %}
 	        <button class="edit-button btn btn-primary btn-flat" path="{{ oc_path }}"
 	        dir_id="{{ oc_parent_id }}" id="{{ oc_id }}" user="{{ oc_user }}" owner="{{ oc_owner }}"
-	        group="{{ oc_group }}" host="{{ oc_user_home_url }}">Edit</button>
+	        group="{{ oc_group }}" host="{{ oc_cms_base }}">Edit</button>
     		{% endif %}
         
         {% if num_pages > 1 %}
@@ -111,7 +111,7 @@
     <div class="container">
 	    <div class="col-lg-offset-1">
 		    <div class="form-group col-xs-5 comment-post"
-		    share="{{  oc_share }}" path="{{  oc_path }}" owner="{{  oc_owner }}" user="{{  oc_user }}" host="{{ oc_user_home_url }}"
+		    share="{{  oc_share }}" path="{{  oc_path }}" owner="{{  oc_owner }}" user="{{  oc_user }}" host="{{ oc_cms_base }}"
 		    group="{{  oc_group }}">
 		     <input placeholder="Your name" type="text" class="form-control" id="name" size="64" value="{{ oc_full_name }}" />
 		     <textarea placeholder="Your comment" class="form-control" rows="3" id="comment"></textarea>
