@@ -6,6 +6,7 @@ Description: What this is and where to start
 Author: 
 Access: public
 Theme: documentation
+Favicon: favicon.png
 date: 2001-01-01
 
 ---

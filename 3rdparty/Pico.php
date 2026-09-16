@@ -644,6 +644,11 @@ class Pico
 				$this->meta['theme'] = $this->pages['index']['meta']['theme'];
 			}
 		}
+		// Likewise the favicon: declared once in index.md's header (Favicon: …),
+		// it applies to every page of the site unless a page sets its own.
+		if(empty($this->meta['favicon']) && !empty($this->pages['index']['meta']['favicon'])){
+			$this->meta['favicon'] = $this->pages['index']['meta']['favicon'];
+		}
 
 		// register twig
 		$this->triggerEvent('onTwigRegistration');

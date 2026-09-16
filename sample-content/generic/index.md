@@ -4,6 +4,7 @@ Title: Home
 Site: Sample Site
 Access: public
 Theme: default
+Favicon: favicon.png
 
 ---
 

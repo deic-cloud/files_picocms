@@ -3,6 +3,7 @@
 Title: Service Briefing
 Site: Sample Briefing
 Theme: briefing
+Favicon: favicon.png
 Access: public
 eyebrow: Infrastructure Review
 tag: Draft

@@ -4,6 +4,7 @@ Title: Home
 Site: Sample Site
 Theme: team
 Access: public
+Favicon: favicon.png
 Social:
   https://github.com/your-group: github
   https://www.linkedin.com/company/your-group: linkedin

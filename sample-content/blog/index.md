@@ -1,7 +1,11 @@
 ---
 Title: Blog
+Site: Blog
+Tagline: [What this blog is about - one line]
 Theme: blog
 Description: News and updates.
+Icon: img/data_icon.png
+Favicon: favicon.png
 
 ---
 

@@ -397,22 +397,39 @@ class SiteService {
 			}
 		}
 
-		// Personal public page: the browser-tab icon is an ordinary file in the
-		// folder, favicon.png, named by the page header (Favicon: favicon.png in
-		// profile.md) — replace the file or edit the line. _config.md therefore
-		// leaves favicon unset (a site-level favicon would override the header).
+		// The browser-tab icon is an ordinary file in the site folder, named by the
+		// front page's header (Favicon: favicon.png in the sample index.md; Pico
+		// applies it to every page) — so users see at once how to change it:
+		// replace the file or edit the line. Place the default file, and let
+		// _config.md leave favicon unset (a site-level one would override the header).
 		$pageFavicon = false;
-		if ($folder === '/public') {
-			try {
-				$src = $appDir . '/sample-content/blog/img/profile_favicon.png';
-				$png = is_file($src) ? file_get_contents($src) : false;
-				if ($png !== false && !$userFolder->nodeExists($folder . '/favicon.png')) {
-					$userFolder->newFile($folder . '/favicon.png', $png);
+		try {
+			$indexRel = $folder . '/' . ($destination !== null && $destination !== '' ? $destination : 'index.md');
+			if ($userFolder->nodeExists($indexRel)) {
+				$head = substr((string)$userFolder->get($indexRel)->getContent(), 0, 4000);
+				if (preg_match('/^Favicon:\s*(\S+)\s*$/mi', $head, $fm)) {
+					$favRel = $folder . '/' . ltrim($fm[1], '/');
+					if (!$userFolder->nodeExists($favRel)) {
+						$candidates = $folder === '/public'
+							? [$appDir . '/sample-content/blog/img/profile_favicon.png']
+							: [];
+						foreach ([$theme ?? '', 'team', 'blog'] as $t) {
+							if ($t !== '') {
+								$candidates[] = $appDir . '/themes/' . $t . '/img/data_icon.png';
+							}
+						}
+						foreach ($candidates as $src) {
+							if (is_file($src) && ($png = file_get_contents($src)) !== false) {
+								$userFolder->newFile($favRel, $png);
+								break;
+							}
+						}
+					}
+					$pageFavicon = $userFolder->nodeExists($favRel);
 				}
-				$pageFavicon = $userFolder->nodeExists($folder . '/favicon.png');
-			} catch (\Throwable $e) {
-				$this->logger->warning('files_picocms: could not place favicon.png for the personal page: ' . $e->getMessage());
 			}
+		} catch (\Throwable $e) {
+			$this->logger->warning('files_picocms: could not place the favicon named by the front page: ' . $e->getMessage());
 		}
 		$this->writeDefaultConfig($uid, $folder, $theme === 'default' ? 'My website' : $name, $theme ?? 'default', $pageFavicon);
 
