@@ -82,7 +82,7 @@
         
         {% if num_pages > 1 %}
 	        <div class="home-link">
-	                {% if config.sd_backlink|default('') %}{{ config.sd_backlink|raw }}{% else %}<a class="navbar-brand-post sd-brand" href="{{ config.sd_home_url|default('/') }}">{{ config.sd_brand_html|default(config.sd_brand_name|default('Home'))|raw }}</a>{% endif %}
+	                {% if config.sd_backlink|default('') %}{{ config.sd_backlink|raw }}{% elseif config.sd_show_backlink|default(false) %}<a class="navbar-brand-post sd-brand" href="{{ config.sd_home_url|default('/') }}">{{ config.sd_brand_html|default(config.sd_brand_name|default('Home'))|raw }}</a>{% endif %}
 	                <a class="navbar-brand-post" href="{{ base_url }}">Home</a>
 	        </div>
         {% endif %}

@@ -11,6 +11,8 @@
     {% if config.favicon %}<link rel="icon" href="{{ base_url }}/{{ config.favicon }}" />{% elseif meta.favicon %}<link rel="icon" href="{{ base_url }}/{{ meta.favicon }}" />{% else %}<link rel="icon" href="{{ config.sd_favicon_url }}" />{% endif %}
 </head>
 <body>
+{% if config.sd_backlink|default('') %}{{ config.sd_backlink|raw }}
+{% elseif config.sd_show_backlink|default(false) %}
 	<a class="sd-backlink" href="{{ config.sd_home_url|default('/') }}" title="{{ config.sd_brand_name|default('Home') }}">{{ config.sd_brand_html|default('Home')|raw }}</a>
 	<style>
 	.sd-backlink { position: absolute; top: 8px; left: 12px; z-index: 1000;
@@ -23,6 +25,7 @@
 		border-radius: 50%; background: #c00; }
 	body { padding-top: 24px; }
 	</style>
+{% endif %}
 
 <div class="wrap">
 

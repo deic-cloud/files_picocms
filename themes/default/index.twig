@@ -21,7 +21,10 @@
     <script src="{{ theme_url }}/scripts/edit.js"></script>
 </head>
 <body>
+{% if config.sd_backlink|default('') %}{{ config.sd_backlink|raw }}
+{% elseif config.sd_show_backlink|default(false) %}
 	<a class="sd-backlink" href="{{ config.sd_home_url|default('/') }}" title="{{ config.sd_brand_name|default('Home') }}">{{ config.sd_brand_html|default('Home')|raw }}</a>
+{% endif %}
 
 
     <header id="header" class="noprint">

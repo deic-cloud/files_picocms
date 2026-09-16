@@ -89,7 +89,7 @@ All optional; unset, the app behaves like a plain app-store install.
 | Key | Description |
 |-----|-------------|
 | `files_picocms.url_prefix` | URL prefix for generated site links; `''` together with the web-server rewrite gives pretty `/sites/{name}` URLs (default `/remote.php`, see *Pretty URLs*) |
-| `files_picocms.brand_name` | Service name used in the welcome dialog, the themes' backlink wordmark and the help page (default `Nextcloud`) |
+| `files_picocms.brand_name` | Service name used in the welcome dialog, the help page and the wordmark backlink on the service's own sites (default `Nextcloud`) |
 | `files_picocms.brand_blurb` | One-line service description shown in the welcome dialog |
 | `files_picocms.frontpage_site` | Site served at the bare root `/` (default `welcome`) |
 | `files_picocms.catalog_label` | Label of the public-data catalog listing |
@@ -118,7 +118,7 @@ Recognised front-matter keys:
 | `EditLinks` | — | `yes` to show per-post Edit buttons |
 | `icon` | — | Nav-bar icon, path relative to site root (no longer doubles as favicon) |
 | `favicon` | NC favicon | Path to favicon relative to site root. Unset, a page-level `Favicon:` applies, else `config.php` `files_picocms.favicon`, else the frontpage theme's `favicon.svg` — the welcome page's icon, so all sites share one tab icon. |
-| `Backlink` | brand wordmark | Text/HTML blob rendered as the top-left service backlink; unset, themes render the standard wordmark (`files_picocms.brand_name`) linking the frontpage site |
+| `Backlink` | none on user sites | Text/HTML blob rendered as the service backlink in the theme's brand slot. The standard wordmark (`files_picocms.brand_name` → frontpage) is shown **only on the service's own sites**: the frontpage, the repository/catalog sites and sites owned by the content account (app config `content_user`). User-created sites carry no wordmark unless they set `Backlink`. The team theme has no brand slot at all. |
 
 When a site is created through the wizard (`POST /create`), a commented
 default `_config.md` is written to the site root, pre-populated with the

@@ -37,7 +37,9 @@
 		<div class="row-fluid">
 			<div class="span2 navigation">
 				<form id="search_form" action="{{ base_url  }}/search">
+{% if config.sd_backlink|default('') %}{{ config.sd_backlink|raw }}{% elseif config.sd_show_backlink|default(false) %}
 					<a class="sd-backlink" href="{{ config.sd_home_url|default('/') }}" title="{{ config.sd_brand_name|default('Home') }}">{{ config.sd_brand_html|default('Home')|raw }}</a>
+{% endif %}
 					<label id="search_label" for="search_input"><a href="{{ base_url  }}">
 					{{ meta.site }}</a></label>
 					<input type="search" id="search_input" name="q" placeholder="Search the docs" value="{{ search_terms }}"/>

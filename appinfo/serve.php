@@ -481,6 +481,15 @@ $picoConfig['sd_brand_html'] = $sdIp === false
 	: htmlspecialchars(substr($sdBrand, 0, $sdIp), ENT_QUOTES)
 		. '<span class="sd-i">' . "\u{0131}" . '</span>'
 		. htmlspecialchars(substr($sdBrand, $sdIp + 1), ENT_QUOTES);
+// Whose site is it? The service's own sites (frontpage, repository/catalog
+// sites, everything owned by the content account) carry the wordmark backlink;
+// user-created sites do NOT (Frederik, 2026-09-16: it is our branding on their
+// page, and nobody discovers a _config.md switch). A site can opt in with
+// `Backlink:` in _config.md.
+$sdContentUser = trim((string)\OCP\Server::get(\OCP\IAppConfig::class)->getValueString('files_picocms', 'content_user', ''));
+$sdServiceSite = ($siteName !== null && ($siteName === $sdFrontpage || in_array($siteName, $sdRepoSites, true)))
+	|| ($sdContentUser !== '' && isset($uid) && $uid === $sdContentUser);
+$picoConfig['sd_show_backlink'] = $sdServiceSite || !empty($blVal);
 if ($siteName !== null && in_array($siteName, $sdRepoSites, true)) {
 	// Top-left brand links to the WELCOME page (like on the welcome page itself),
 	// not the bare root (whose handler bounces logged-in users to their files).

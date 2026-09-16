@@ -51,7 +51,7 @@
         <div class="container-fluid">
             <!-- Brand and toggle get grouped for better mobile display -->
             <div class="navbar-header sd-brand-slot">
-                {% if config.sd_backlink|default('') %}{{ config.sd_backlink|raw }}{% else %}<a class="navbar-brand sd-brand" href="{{ config.sd_home_url|default('/') }}">{{ config.sd_brand_html|default(config.sd_brand_name|default('Home'))|raw }}</a>{% endif %}
+                {% if config.sd_backlink|default('') %}{{ config.sd_backlink|raw }}{% elseif config.sd_show_backlink|default(false) %}<a class="navbar-brand sd-brand" href="{{ config.sd_home_url|default('/') }}">{{ config.sd_brand_html|default(config.sd_brand_name|default('Home'))|raw }}</a>{% endif %}
             </div>
             <!-- /.navbar-collapse -->
             {% if has_search_page %}
@@ -75,7 +75,7 @@
     <header class="intro-header" style="{% if meta.img %}background-image: url({{ meta.img }});
     {% else %}background: #006286;{% endif %}">
         <div class="container">
-        {% if config.sd_backlink|default('') %}{% else %}<a class="sd-brand-mobile" href="{{ config.sd_home_url|default('/') }}">{{ config.sd_brand_html|default(config.sd_brand_name|default('Home'))|raw }}</a>{% endif %}
+        {% if not config.sd_backlink|default('') and config.sd_show_backlink|default(false) %}<a class="sd-brand-mobile" href="{{ config.sd_home_url|default('/') }}">{{ config.sd_brand_html|default(config.sd_brand_name|default('Home'))|raw }}</a>{% endif %}
             <div class="row">
                 <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
                     <div class="site-heading">
