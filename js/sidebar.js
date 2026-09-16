@@ -199,11 +199,11 @@
 			tagName:       SIDEBAR_TAG,
 
 			enabled: function(arg) {
-				// NC34 calls this either with a context object
-				// {nodes:[source], folder, view} (file/folder details) or with a
-				// node/folder directly (current-folder sidebar). Show the tab
-				// only for folders — picocms sites are folders, never files.
-				var node = (arg && arg.nodes) ? arg.nodes[0] : arg;
+				// NC34 (@nextcloud/files 4) passes an ISidebarContext {node, folder,
+				// view}; older builds passed {nodes:[…]} or the node itself. Show the
+				// tab only for folders — picocms sites are folders, never files.
+				var node = arg && arg.node ? arg.node
+					: (arg && arg.nodes ? arg.nodes[0] : arg);
 				if (!node) return false;
 				return isDir(node);
 			},
@@ -254,15 +254,17 @@
 			return;
 		}
 
+		// NC34: @nextcloud/files keeps its registries in window._nc_files_scope.<version>
+		// (e.g. v4_0).filesSidebarTabs, a Map keyed by tab id — the same object the
+		// library's registerSidebarTab() writes to, so adding to it is equivalent.
 		if (window._nc_files_scope) {
 			var keys = Object.keys(window._nc_files_scope);
 			for (var i = 0; i < keys.length; i++) {
-				var candidate = window._nc_files_scope[keys[i]];
-				if (candidate && typeof candidate === 'object') {
+				var scope = window._nc_files_scope[keys[i]];
+				if (scope && typeof scope === 'object' && !(scope instanceof Map)) {
 					defineCustomElement();
-					var tabs = new Map(candidate.filesSidebarTabs || []);
-					tabs.set('picocms', makeTabDef());
-					candidate.filesSidebarTabs = tabs;
+					if (!(scope.filesSidebarTabs instanceof Map)) scope.filesSidebarTabs = new Map();
+					if (!scope.filesSidebarTabs.has('picocms')) scope.filesSidebarTabs.set('picocms', makeTabDef());
 					_registered = true;
 					return;
 				}
