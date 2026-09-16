@@ -317,6 +317,13 @@ class SiteService {
 			return self::COPY_CONTENT_FAILED;
 		}
 
+		// The personal public page is served at /users/<email>: without an e-mail
+		// address there is no address to serve it at — refuse instead of creating
+		// content that nobody can reach.
+		if ($folder === '/public' && trim((string)($this->userManager->get($uid)?->getEMailAddress() ?? '')) === '') {
+			return self::NO_EMAIL;
+		}
+
 		// Never copy sample content into a folder that already has files in it
 		// (e.g. a pre-existing /public) — the user must pick another folder or
 		// rename the existing one.
@@ -325,13 +332,6 @@ class SiteService {
 			if (!($node instanceof \OCP\Files\Folder) || count($node->getDirectoryListing()) > 0) {
 				return self::FOLDER_NOT_EMPTY;
 			}
-		}
-
-		// The personal public page is served at /users/<email>: without an e-mail
-		// address there is no address to serve it at — refuse instead of creating
-		// content that nobody can reach.
-		if ($folder === '/public' && trim((string)($this->userManager->get($uid)?->getEMailAddress() ?? '')) === '') {
-			return self::NO_EMAIL;
 		}
 
 		// Register the site (skip for /public which is the implicit personal page)
