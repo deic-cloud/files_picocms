@@ -23,6 +23,8 @@ class Application extends App implements IBootstrap {
 
 	public function register(IRegistrationContext $context): void {
 		$context->registerEventListener(LoadAdditionalScriptsEvent::class, LoadSidebarScriptsListener::class);
+		// A deleted account's site registrations go with it (local + master registry).
+		$context->registerEventListener(\OCP\User\Events\UserDeletedEvent::class, \OCA\FilesPicoCMS\Listener\UserDeletedListener::class);
 		// One-time welcome + terms-consent modal on any logged-in page.
 		$context->registerEventListener(BeforeTemplateRenderedEvent::class, WelcomeListener::class);
 		$context->registerEventListener(BeforeTemplateRenderedEvent::class, \OCA\FilesPicoCMS\Listener\HelpPageScriptListener::class);
