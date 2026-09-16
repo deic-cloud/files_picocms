@@ -251,6 +251,7 @@
 					// page instead. Reload so the "Personal public page" section shows
 					// the live link (a table row here would be a phantom: unrenamable,
 					// gone on reload).
+					try { sessionStorage.setItem('picoPublicCreated', '1'); } catch (e) { /* ignore */ }
 					window.location.hash = 'picoPublicSection';
 					window.location.reload();
 					return;
@@ -324,6 +325,15 @@
 	// ── Public page toggle ───────────────────────────────────────────────────────
 
 	function initPublicToggle() {
+		// Confirmation after the wizard created the personal public page (the
+		// page reloads to show the live link, so the message must survive it).
+		try {
+			if (sessionStorage.getItem('picoPublicCreated') === '1') {
+				sessionStorage.removeItem('picoPublicCreated');
+				const created = document.getElementById('picoPublicCreated');
+				if (created) created.style.display = '';
+			}
+		} catch (e) { /* ignore */ }
 		document.getElementById('picoServePublic')?.addEventListener('change', async function () {
 			const serve = this.checked ? 'yes' : 'no';
 			await ocsPost('/serve-public', { serve });

@@ -74,6 +74,7 @@ $linkBase    = $_['link_base'] ?? '';
 	<!-- Public page section -->
 	<div id="picoPublicSection">
 		<h3><?php p($l->t('Personal public page')); ?></h3>
+		<p id="picoPublicCreated" class="picoHint" style="display:none;"><?php p($l->t('Your personal public page has been created and is served at the address below.')); ?></p>
 		<?php if ($email): ?>
 		<?php $publicUrl = $linkBase . $urlPrefix . '/users/' . $email; ?>
 		<label>
@@ -121,7 +122,7 @@ $linkBase    = $_['link_base'] ?? '';
 					       data-folder="/public" data-content="/sample-content/blog/profile.md"
 					       data-destination="index.md" data-theme="blog"
 					       data-copy-themes="no" checked />
-					<?php p($l->t('Public profile page')); ?>
+					<?php p($l->t('Personal public page')); ?>
 				</label>
 				<label>
 					<input type="radio" name="pico_type" value="blog"

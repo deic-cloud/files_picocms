@@ -17,6 +17,8 @@ class SiteService {
 	public const SITE_NAME_EXISTS   = 1;
 	public const COPY_CONTENT_FAILED = 2;
 	public const FOLDER_NOT_EMPTY   = 3;
+	/** Personal public page requested, but the account has no e-mail address (the page's URL is /users/<email>). */
+	public const NO_EMAIL           = 4;
 
 	public function __construct(
 		private SiteMapper    $mapper,
@@ -323,6 +325,13 @@ class SiteService {
 			if (!($node instanceof \OCP\Files\Folder) || count($node->getDirectoryListing()) > 0) {
 				return self::FOLDER_NOT_EMPTY;
 			}
+		}
+
+		// The personal public page is served at /users/<email>: without an e-mail
+		// address there is no address to serve it at — refuse instead of creating
+		// content that nobody can reach.
+		if ($folder === '/public' && trim((string)($this->userManager->get($uid)?->getEMailAddress() ?? '')) === '') {
+			return self::NO_EMAIL;
 		}
 
 		// Register the site (skip for /public which is the implicit personal page)
