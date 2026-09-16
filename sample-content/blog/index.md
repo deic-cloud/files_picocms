@@ -1,7 +1,7 @@
 ---
 Title: Blog
 Site: Blog
-Tagline: [What this blog is about - one line]
+Tagline: What this blog is about, in one line
 Theme: blog
 Description: News and updates.
 Icon: img/data_icon.png
