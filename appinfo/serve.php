@@ -326,13 +326,33 @@ $extension = $sitePath !== '' ? strtolower(pathinfo($sitePath, PATHINFO_EXTENSIO
 // paths must fall through to the write/delete proxies below)
 $isReadRequest = in_array($_SERVER['REQUEST_METHOD'], ['GET', 'HEAD'], true);
 $rawExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'eot', 'pdf', 'nb', 'mp4', 'webm'];
+// Any OTHER file that exists in the site folder is served as it is too — the
+// docs promise "images, PDFs, data files … served as they are", and pages
+// link sound, video, data and downloads (e.g. a client profile). Pages (.md)
+// and html/css/js are handled below; a missing file of another type falls
+// through to Pico, so a page name with a dot in it still works.
+if ($isReadRequest && $sitePath !== '' && $extension !== '' && !in_array($extension, $rawExtensions, true)
+	&& !in_array($extension, ['md', 'html', 'css', 'js', 'php'], true)) {
+	foreach ([$siteFsPath . '/' . $sitePath, $contentDir . '/' . $sitePath] as $candidate) {
+		if (is_file($candidate) && !str_contains($sitePath, '..')) {
+			$rawExtensions[] = $extension;
+			break;
+		}
+	}
+}
 if ($isReadRequest && $sitePath !== '' && in_array($extension, $rawExtensions, true)) {
 	$filePath = $siteFsPath . '/' . $sitePath;
 	if (!file_exists($filePath)) {
 		$filePath = $contentDir . '/' . $sitePath;
 	}
 	if (file_exists($filePath)) {
-		header('Content-Type: ' . _pico_mime($extension));
+		$mime = _pico_mime($extension);
+		header('Content-Type: ' . $mime);
+		header('X-Content-Type-Options: nosniff');
+		if ($mime === 'application/octet-stream') {
+			// Not something a browser should render: offer it as a download.
+			header('Content-Disposition: attachment; filename="' . str_replace(['"', "\r", "\n"], '', basename($filePath)) . '"');
+		}
 		$ttl = in_array($extension, ['woff', 'woff2', 'ttf', 'eot'], true) ? 604800 : 3600;
 		_pico_cache_headers($filePath, $ttl);
 		readfile($filePath);
@@ -1244,6 +1264,23 @@ function _pico_mime(string $ext): string {
 		'ttf'   => 'font/ttf',
 		'eot'   => 'application/vnd.ms-fontobject',
 		'nb'    => 'application/vnd.wolfram.mathematica',
+		'webp'  => 'image/webp',
+		'avif'  => 'image/avif',
+		'bmp'   => 'image/bmp',
+		'mp4', 'm4v' => 'video/mp4',
+		'webm'  => 'video/webm',
+		'ogv'   => 'video/ogg',
+		'mov'   => 'video/quicktime',
+		'mp3'   => 'audio/mpeg',
+		'ogg', 'oga' => 'audio/ogg',
+		'wav'   => 'audio/wav',
+		'flac'  => 'audio/flac',
+		'm4a'   => 'audio/mp4',
+		'aac'   => 'audio/aac',
+		'txt', 'csv', 'tsv', 'py', 'r', 'sh', 'tex', 'bib', 'log', 'dat' => 'text/plain; charset=utf-8',
+		'json', 'ipynb' => 'application/json',
+		'xml'   => 'application/xml',
+		'zip'   => 'application/zip',
 		default => 'application/octet-stream',
 	};
 }
