@@ -848,8 +848,23 @@ if ($currentUid === '' && empty($_COOKIE['files_sharding_sso_tried'])
 $pico->loginToEditUrl = ''; // no longer needed; kept for theme compatibility
 $pico->setConfig($picoConfig);
 
+// Image and media classes (.tiny/.small/.medium/.large-image, .modal-image) are
+// the same on every site: one stylesheet and script from the app, added after
+// the theme's own head so the sizes are uniform across themes.
+$sdAppWeb = $sdNcRoot . \OCP\Server::get(\OCP\App\IAppManager::class)->getAppWebPath('files_picocms');
+$sdAssetV = substr(md5((string)\OCP\Server::get(\OCP\App\IAppManager::class)->getAppVersion('files_picocms')), 0, 8);
+$sdImagesHead = '<link rel="stylesheet" href="' . htmlspecialchars($sdAppWeb, ENT_QUOTES) . '/css/site-images.css?v=' . $sdAssetV . '">';
+$sdImagesTail = '<script src="' . htmlspecialchars($sdAppWeb, ENT_QUOTES) . '/js/site-images.js?v=' . $sdAssetV . '" defer></script>';
+
 try {
-	echo $pico->run();
+	$sdHtml = $pico->run();
+	if (is_string($sdHtml) && stripos($sdHtml, '</head>') !== false) {
+		$sdHtml = preg_replace('~</head>~i', $sdImagesHead . '</head>', $sdHtml, 1);
+		$sdHtml = stripos($sdHtml, '</body>') !== false
+			? preg_replace('~</body>~i', $sdImagesTail . '</body>', $sdHtml, 1)
+			: $sdHtml . $sdImagesTail;
+	}
+	echo $sdHtml;
 } catch (\Throwable $e) {
 	http_response_code(500);
 	header('Content-Type: text/html; charset=utf-8');

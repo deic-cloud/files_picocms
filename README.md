@@ -655,3 +655,25 @@ In a single-node (non-sharded) installation just the one copy is needed.
   lookup-through fallback keep the site URLs working on the new silo without
   any local rows, but a stale row on the old silo would make direct URLs to
   that silo serve a 404 instead of redirecting.
+
+## Image and media classes (every theme)
+
+`serve.php` adds `css/site-images.css` (end of `<head>`) and `js/site-images.js`
+(end of `<body>`) to every page, whatever the theme, so these work the same on
+all sites — Markdown `![Plot](plot.png){.modal-image .small-image}` or HTML
+`<video controls class="medium-image" src="clip.mp4">`:
+
+| Class | Effect |
+|---|---|
+| `.tiny-image` | at most 120 px |
+| `.small-image` | at most 320 px (the Markdown editor's default for inserted images) |
+| `.medium-image` | at most 640 px, centred on its own line |
+| `.large-image` | the full width of the text |
+| `.modal-image` | click opens the image full size (Escape or click closes) |
+
+Being added after the theme's stylesheets, the sizes override a theme's own
+definitions of the same names. The click-to-enlarge steps aside where a theme
+has its own viewer: blog and team (a `.modal` element after each `.modal-image`)
+and documentation (ekko-lightbox, which opens every image). Theme files are
+untouched. Older class names some themes define (`.smaller-image`,
+`.narrow-image`, …) keep working in those themes.

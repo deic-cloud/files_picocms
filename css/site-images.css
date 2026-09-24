@@ -1,0 +1,29 @@
+/*
+ * Image and media classes, the same on every site whatever its theme — added
+ * by serve.php after the theme's own stylesheets, so these sizes win.
+ * Markdown:  ![Plot](plot.png){.modal-image .small-image}
+ * HTML:      <video controls class="medium-image" src="clip.mp4"></video>
+ *
+ *   .tiny-image    at most 120 px     (icons, thumbnails in text)
+ *   .small-image   at most 320 px     (the default for inserted images)
+ *   .medium-image  at most 640 px, centred on its own line
+ *   .large-image   the full width of the text
+ *   .modal-image   click to see it full size (js/site-images.js)
+ */
+img.tiny-image, video.tiny-image, .tiny-image img { max-width: 120px; max-height: 120px; width: auto; height: auto; }
+img.small-image, video.small-image, .small-image img { max-width: min(320px, 100%); max-height: 320px; width: auto; height: auto; }
+img.medium-image, video.medium-image, .medium-image img { display: block; margin: 1em auto; max-width: min(640px, 100%); max-height: none; width: auto; height: auto; }
+img.large-image, video.large-image, .large-image img { display: block; max-width: 100%; max-height: none; width: 100%; height: auto; }
+.tiny-image, .small-image, .medium-image, .large-image { border-radius: 4px; }
+img.modal-image, .modal-image img { cursor: zoom-in; transition: opacity .2s; }
+img.modal-image:hover, .modal-image img:hover { opacity: .85; }
+
+/* The full-size view */
+.sd-lightbox { position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; background: rgba(0, 0, 0, .88); cursor: zoom-out; }
+.sd-lightbox img { max-width: 94vw; max-height: 86vh; width: auto; height: auto; border-radius: 4px; box-shadow: 0 4px 24px rgba(0, 0, 0, .5); }
+.sd-lightbox .sd-lightbox-caption { color: #ddd; font-size: .95em; max-width: 80vw; text-align: center; }
+.sd-lightbox .sd-lightbox-close { position: absolute; top: 12px; right: 18px; color: #eee; font-size: 32px; line-height: 1; background: none; border: 0; cursor: pointer; }
+@media (prefers-reduced-motion: no-preference) {
+	.sd-lightbox img { animation: sd-lightbox-in .18s ease-out; }
+	@keyframes sd-lightbox-in { from { transform: scale(.94); opacity: .4; } to { transform: none; opacity: 1; } }
+}
