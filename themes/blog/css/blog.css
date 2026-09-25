@@ -942,3 +942,26 @@ code {
 	.sd-brand-mobile .sd-i::after { content: ""; position: absolute; left: 50%; bottom: 0.76em;
 		transform: translateX(-50%); width: 0.16em; height: 0.16em; border-radius: 50%; background: #c00; }
 }
+
+/* Tables in posts: Markdown tables carry no class, and Bootstrap styles only
+   .table — so cells had no padding ("GroupAdditive") and no borders. */
+article table {
+	border-collapse: collapse;
+	margin: 1em 0 1.4em;
+	max-width: 100%;
+	display: block;           /* scroll sideways on narrow screens instead of overflowing */
+	overflow-x: auto;
+}
+article table th,
+article table td {
+	border: 1px solid #ddd;
+	padding: 6px 12px;
+	line-height: 1.4;
+	vertical-align: top;
+}
+article table th {
+	background: #f5f5f5;
+	font-weight: bold;
+	text-align: left;
+}
+article table tr:nth-child(even) td { background: #fafafa; }
