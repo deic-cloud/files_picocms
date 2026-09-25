@@ -947,7 +947,8 @@ code {
    .table — so cells had no padding ("GroupAdditive") and no borders. */
 article table {
 	border-collapse: collapse;
-	margin: 1em 0 1.4em;
+	margin: 1em auto 1.4em;   /* centred */
+	width: fit-content;
 	max-width: 100%;
 	display: block;           /* scroll sideways on narrow screens instead of overflowing */
 	overflow-x: auto;
