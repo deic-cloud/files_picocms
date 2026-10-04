@@ -72,6 +72,37 @@ class CatalogService {
 				}
 			}
 
+			// A shared folder with Jupyter notebooks in it (at any depth) is a
+			// notebook collection, not a dataset - even if it holds data files too.
+			$notebookFolders = [];
+			$folderIds = array_keys(array_filter($mimes, static fn ($m) => $m === 'httpd/unix-directory'));
+			if ($folderIds !== []) {
+				try {
+					$fq = $this->db->getQueryBuilder();
+					$fq->select('fileid', 'storage', 'path')
+						->from('filecache')
+						->where($fq->expr()->in('fileid', $fq->createNamedParameter($folderIds, IQueryBuilder::PARAM_INT_ARRAY)));
+					$fr = $fq->executeQuery();
+					$folders = $fr->fetchAll();
+					$fr->closeCursor();
+					foreach ($folders as $f) {
+						$nq = $this->db->getQueryBuilder();
+						$nq->select('fileid')
+							->from('filecache')
+							->where($nq->expr()->eq('storage', $nq->createNamedParameter((int)$f['storage'], IQueryBuilder::PARAM_INT)))
+							->andWhere($nq->expr()->like('path', $nq->createNamedParameter($this->db->escapeLikeParameter((string)$f['path']) . '/%')))
+							->andWhere($nq->expr()->like('name', $nq->createNamedParameter('%.ipynb')))
+							->setMaxResults(1);
+						$nr = $nq->executeQuery();
+						if ($nr->fetch() !== false) {
+							$notebookFolders[(int)$f['fileid']] = true;
+						}
+						$nr->closeCursor();
+					}
+				} catch (\Throwable) {
+				}
+			}
+
 			// user metadata (meta_data app; guarded)
 			$meta = [];
 			if ($fileIds !== []) {
@@ -135,7 +166,7 @@ class CatalogService {
 				}
 				$fid  = (int)($row['file_source'] ?? 0);
 				$mime = $mimes[$fid] ?? '';
-				$kind = $mime === 'httpd/unix-directory' ? 'dataset'
+				$kind = $mime === 'httpd/unix-directory' ? (isset($notebookFolders[$fid]) ? 'notebook' : 'dataset')
 					: ($mime === 'application/x-ipynb+json' ? 'notebook' : 'file');
 				$out[] = [
 					'title'       => $title,

@@ -549,10 +549,16 @@ if ($siteName !== null && $siteName === $sdFrontpage) {
 	$picoConfig['sd_catalog'] = _pico_sd_catalog();
 	// The stats line advertises DATASETS (folders) — count them from the same
 	// catalog the listing shows, so the two numbers can never disagree.
-	$picoConfig['sd_stats']['public_datasets'] = count(array_filter(
+	$picoConfig['sd_catalog_datasets'] = array_values(array_filter(
 		$picoConfig['sd_catalog'],
 		static fn ($e) => ($e['kind'] ?? '') === 'dataset'
 	));
+	// Notebooks (single .ipynb, or folders holding notebooks) get their own list.
+	$picoConfig['sd_catalog_notebooks'] = array_values(array_filter(
+		$picoConfig['sd_catalog'],
+		static fn ($e) => ($e['kind'] ?? '') === 'notebook'
+	));
+	$picoConfig['sd_stats']['public_datasets'] = count($picoConfig['sd_catalog_datasets']);
 	// Cache-bust the theme CSS/JS by its mtime so redeploys take effect without a
 	// hard refresh (theme assets are served with a 1-day cache header).
 	$picoConfig['sd_asset_ver'] = (string)(@filemtime($themesDir . 'frontpage/css/style.css') ?: '1');
