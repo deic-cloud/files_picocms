@@ -69,7 +69,10 @@
 		<div class="stat"><span class="num">{{ config.sd_stats.researchers }}</span><span class="label">researchers</span></div>
 		<div class="stat"><span class="num">{{ config.sd_stats.institutions }}</span><span class="label">institutions</span></div>
 		<div class="stat"><span class="num">{{ config.sd_stats.groups }}</span><span class="label">groups</span></div>
+		{# not shown while there are none: "0 public datasets" is not worth advertising #}
+		{% if config.sd_stats.public_datasets > 0 %}
 		<a class="stat stat-link" href="{{ config.sd_catalog_url|default('/remote.php/sites/public/') }}"><span class="num">{{ config.sd_stats.public_datasets }}</span><span class="label">public datasets <span class="stat-arrow">→</span></span></a>
+		{% endif %}
 	</div>
 	{% if config.sd_stats.institution_top is not empty %}
 	<p class="pulse-note">Researchers from&nbsp;{{ config.sd_stats.institution_top|join(' · ') }}{% if config.sd_stats.institutions > config.sd_stats.institution_top|length %}&nbsp;and {{ config.sd_stats.institutions - config.sd_stats.institution_top|length }} more institutions{% endif %}</p>

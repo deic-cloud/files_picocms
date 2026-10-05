@@ -133,7 +133,8 @@ a:hover { text-decoration: underline; }
 .pulse { border-bottom: 1px solid var(--line); }
 .pulse-inner {
 	max-width: 900px; margin: 0 auto; padding: 4.5rem 1.5rem 2.25rem;
-	display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; text-align: center;
+	/* one column per stat shown (3 or 4) */
+	display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 1rem; text-align: center;
 }
 .stat { display: flex; flex-direction: column; gap: 0.15rem; }
 .stat .num { font-size: 2.1rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
@@ -195,7 +196,9 @@ a:hover { text-decoration: underline; }
 	.cards { grid-template-columns: 1fr; gap: 1rem; max-width: 560px; }
 }
 @media (max-width: 640px) {
-	.pulse-inner { grid-template-columns: repeat(2, 1fr); gap: 1.5rem 1rem; }
+	.pulse-inner { grid-auto-flow: row; grid-template-columns: repeat(2, 1fr); gap: 1.5rem 1rem; }
+	/* three stats (no dataset count yet) fit on one row */
+	.pulse-inner:not(:has(> :nth-child(4))) { grid-auto-flow: column; grid-template-columns: none; }
 	.hero-inner h1 { font-size: 2.2rem; }
 	.hero .tagline { font-size: 1.15rem; }
 }
