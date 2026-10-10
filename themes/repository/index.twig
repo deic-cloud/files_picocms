@@ -4,8 +4,16 @@
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	{% set brand = config.sd_brand_name|default('Nextcloud') %}
+	{% set ds = config.sd_dataset|default(null) %}
+	{% if ds %}
+	<title>{{ ds.display_title|default(ds.title) }} — {{ brand }}</title>
+	{% if ds.description %}<meta name="description" content="{{ ds.description|striptags|slice(0, 300) }}">{% endif %}
+	<link rel="canonical" href="{{ ds.landing_url }}" />
+	<script type="application/ld+json">{{ ds.jsonld|raw }}</script>
+	{% else %}
 	<title>{{ meta.title ? brand ~ ' — ' ~ meta.title : brand }}</title>
 	{% if meta.description %}<meta name="description" content="{{ meta.description|striptags }}">{% endif %}
+	{% endif %}
 	{% set static_base = config.sd_theme_static|default(theme_url) %}
 	<link rel="stylesheet" href="{{ static_base }}/css/style.css?v={{ config.sd_asset_ver|default('1') }}" />
 	{% if config.favicon %}<link rel="icon" href="{{ base_url }}/{{ config.favicon }}" />{% elseif meta.favicon %}<link rel="icon" href="{{ base_url }}/{{ meta.favicon }}" />{% else %}<link rel="icon" href="{{ config.sd_favicon_url }}" />{% endif %}
@@ -61,6 +69,34 @@
 		.repo-showall.hidden { display: none; }
 		body.repo-flatmode .repo-section:not(#repoFlat) { display: none; }
 		body.repo-flatmode #repoFlat { display: block; }
+		/* Landing page of one record */
+		.ds-back { display: inline-block; margin-bottom: 18px; color: var(--accent); text-decoration: none; }
+		.ds-back:hover { text-decoration: underline; }
+		.ds-kind { display: block; font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+		.ds-byline { color: var(--muted); margin: 0 0 18px; }
+		.ds-desc { max-width: 70ch; line-height: 1.6; margin: 0 0 22px; white-space: pre-line; }
+		.ds-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 28px; }
+		.ds-btn { display: inline-block; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--line); color: var(--ink); text-decoration: none; background: #fff; }
+		.ds-btn:hover { border-color: var(--accent); color: var(--accent); }
+		.ds-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+		.ds-btn.primary:hover { filter: brightness(1.08); color: #fff; }
+		.ds-facts { display: grid; grid-template-columns: max-content 1fr; gap: 8px 22px; margin: 0 0 28px; }
+		.ds-facts dt { color: var(--muted); }
+		.ds-facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+		.ds-facts a { color: var(--accent); }
+		.ds-section h2 { font-size: 1.15rem; margin: 28px 0 10px; }
+		.ds-files { width: 100%; border-collapse: collapse; font-size: .95rem; }
+		.ds-files td { padding: 6px 0; border-bottom: 1px solid var(--line); }
+		.ds-files td.size { text-align: right; color: var(--muted); white-space: nowrap; padding-left: 16px; font-variant-numeric: tabular-nums; }
+		.ds-files-wrap { overflow-x: auto; }
+		.ds-more { color: var(--muted); margin-top: 8px; }
+		.ds-cite { display: flex; gap: 10px; align-items: flex-start; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+		.ds-cite p { margin: 0; flex: 1; overflow-wrap: anywhere; }
+		.ds-cite button { flex: 0 0 auto; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; font: inherit; }
+		.ds-cite button:hover, .ds-cite button:focus-visible { border-color: var(--accent); color: var(--accent); }
+		@media (max-width: 600px) { .ds-facts { grid-template-columns: 1fr; gap: 2px 0; } .ds-facts dd { margin-bottom: 8px; } }
+		/* the menu wraps to a second line on phones: make room under the taller header */
+		@media (max-width: 600px) { .repo-main { padding-top: 130px; } }
 	</style>
 </head>
 <body>
@@ -80,6 +116,58 @@
 </header>
 
 <main class="repo-main">
+	{% if ds %}
+	{% set skip = ['authors', 'creators', 'creator', 'author', 'license', 'licence', 'doi', 'description', 'publication_date', 'date', 'year'] %}
+	<a class="ds-back" href="{{ config.sd_catalog_url }}">&larr; All public data</a>
+	<span class="ds-kind">{{ ds.kind == 'notebook' ? 'Jupyter notebooks' : (ds.kind == 'dataset' ? 'Dataset' : 'File') }}</span>
+	<h1>{{ ds.display_title|default(ds.title) }}</h1>
+	<p class="ds-byline">Shared by {{ ds.owner_name }}{% if ds.institution %} ({{ ds.institution }}){% endif %}{% if ds.stime %}, {{ ds.stime|date('j F Y') }}{% endif %}</p>
+	{% if ds.description %}<p class="ds-desc">{{ ds.description }}</p>{% endif %}
+	<div class="ds-actions">
+		<a class="ds-btn primary" href="{{ ds.url }}">Browse files</a>
+		{% if ds.download_url %}<a class="ds-btn" href="{{ ds.download_url }}">Download{% if ds.contents|length > 0 %} all{% endif %}{% if ds.size_human %} ({{ ds.size_human }}){% endif %}</a>{% endif %}
+	</div>
+	<dl class="ds-facts">
+		<dt>Creators</dt><dd>{{ ds.creators }}</dd>
+		<dt>Published</dt><dd>{{ ds.year|default('—') }}</dd>
+		{% if ds.doi %}<dt>DOI</dt><dd><a href="https://doi.org/{{ ds.doi }}">{{ ds.doi }}</a></dd>{% endif %}
+		<dt>Licence</dt><dd>{{ ds.license|default('Not stated — ask the owner before reusing') }}</dd>
+		{% if ds.size_human %}<dt>Size</dt><dd>{{ ds.size_human }}{% if ds.files > 1 %} in {{ ds.files }} files{% endif %}</dd>{% endif %}
+		{% if ds.tags|default([])|length > 0 %}<dt>Tags</dt><dd>{{ ds.tags|join(', ') }}</dd>{% endif %}
+		{% for k, v in ds.meta %}{% if k|lower not in skip %}<dt>{{ k }}</dt><dd>{{ v }}</dd>{% endif %}{% endfor %}
+		<dt>Address</dt><dd><a href="{{ ds.landing_url }}">{{ ds.landing_url }}</a></dd>
+	</dl>
+	{% if ds.contents|length > 0 %}
+	<section class="ds-section">
+		<h2>Contents</h2>
+		<div class="ds-files-wrap"><table class="ds-files">
+			{% for f in ds.contents %}
+			<tr><td>{{ f.dir ? '📁 ' : '' }}{{ f.name }}</td><td class="size">{{ f.size >= 0 ? (f.size >= 1000000000 ? (f.size / 1000000000)|number_format(1) ~ ' GB' : (f.size >= 1000000 ? (f.size / 1000000)|number_format(1) ~ ' MB' : (f.size / 1000)|number_format(0) ~ ' kB')) : '' }}</td></tr>
+			{% endfor %}
+		</table></div>
+		{% if ds.more > 0 %}<p class="ds-more">… and {{ ds.more }} more — <a href="{{ ds.url }}">browse all</a></p>{% endif %}
+	</section>
+	{% endif %}
+	<section class="ds-section">
+		<h2>Cite</h2>
+		<div class="ds-cite"><p id="dsCitation">{{ ds.citation }}</p><button type="button" id="dsCopy">Copy</button></div>
+	</section>
+	<script>
+	(function () {
+		var b = document.getElementById('dsCopy')
+		if (!b || !navigator.clipboard) { if (b) b.hidden = true; return }
+		b.addEventListener('click', function () {
+			navigator.clipboard.writeText(document.getElementById('dsCitation').textContent.trim()).then(function () {
+				b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy' }, 1600)
+			})
+		})
+	})()
+	</script>
+	{% elseif config.sd_dataset_missing|default(false) %}
+	<a class="ds-back" href="{{ config.sd_catalog_url }}">&larr; All public data</a>
+	<h1>Not found</h1>
+	<p class="repo-intro">This record is not in the catalogue — it may have been removed, or the link is wrong.</p>
+	{% else %}
 	<div class="repo-head">
 		<div class="repo-head-main">
 			<h1>{{ meta.title|default('Public data') }}</h1>
@@ -128,7 +216,7 @@
 				{% for tg in e.tags|default([]) %}{% set hay = hay ~ ' ' ~ tg %}{% endfor %}
 				<li class="repo-item" data-search="{{ hay|lower }}" data-stime="{{ e.stime|default(0) }}"
 					data-tags="{{ e.tags|default([])|join('||') }}">
-					<h3><a href="{{ e.url }}">{{ e.display_title|default(e.title) }}</a></h3>
+					<h3><a href="{{ e.token is defined and e.token ? config.sd_catalog_url ~ '?dataset=' ~ e.token|url_encode : e.url }}">{{ e.display_title|default(e.title) }}</a></h3>
 					<div class="repo-byline">
 						Shared by {{ e.owner_name }}{% if e.institution %} ({{ e.institution }}){% endif %}{% if e.stime %}, {{ e.stime|date('j M Y') }}{% endif %}
 					</div>
@@ -164,6 +252,7 @@
 	</section>
 	{% if catalog|length == 0 %}
 		<p class="repo-empty">Nothing has been listed yet.</p>
+	{% endif %}
 	{% endif %}
 </main>
 

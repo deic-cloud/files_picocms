@@ -518,6 +518,22 @@ if ($siteName !== null && in_array($siteName, $sdRepoSites, true)) {
 	$catSites = array_filter(array_map('trim', explode(',', (string)$config->getSystemValue('files_picocms.repository_sites', 'public'))));
 	$picoConfig['sd_catalog_url'] = $webRoot . '/remote.php/sites/' . rawurlencode($catSites !== [] ? reset($catSites) : 'public') . '/';
 	$picoConfig['sd_catalog']   = _pico_sd_catalog();
+	// Landing page of one record: ?dataset=<public link token>. Only entries in the
+	// catalogue (opted in by their owner) — anything else is a 404.
+	$dsToken = isset($_GET['dataset']) ? (string)$_GET['dataset'] : '';
+	if ($dsToken !== '') {
+		foreach ($picoConfig['sd_catalog'] as $e) {
+			if (($e['token'] ?? '') === $dsToken) {
+				// The permanent address is on the master (cluster), not the node the visitor came in on.
+				$picoConfig['sd_dataset'] = _pico_sd_dataset($e, rtrim($masterBase, '/') . $picoConfig['sd_catalog_url'] . '?dataset=' . rawurlencode($dsToken), $brand ?? $sdBrand);
+				break;
+			}
+		}
+		if (empty($picoConfig['sd_dataset'])) {
+			http_response_code(404);
+			$picoConfig['sd_dataset_missing'] = true;
+		}
+	}
 	$picoConfig['sd_asset_ver'] = (string)(@filemtime($themesDir . 'repository/css/style.css') ?: '1');
 	$picoConfig['sd_theme_static'] = $webRoot . '/apps/files_picocms/themes/repository';
 	$brand = trim((string)$config->getSystemValue('files_picocms.brand_name', 'Nextcloud'));
@@ -1053,6 +1069,91 @@ function _pico_sd_stats(): array {
  *
  * @return list<array{title:string,url:string,institution:string,stime:int}>
  */
+/**
+ * A catalogue entry prepared for its landing page: the fields a record page
+ * shows (creators, year, licence, DOI, citation, download link, sizes) and a
+ * schema.org Dataset in JSON-LD, so search engines (e.g. Google Dataset Search)
+ * can index it. Values come from the entry's metadata where present (keys
+ * matched case-insensitively), else from the share itself.
+ */
+function _pico_sd_dataset(array $e, string $landingUrl, string $publisher): array {
+	$meta = is_array($e['meta'] ?? null) ? $e['meta'] : [];
+	$get = static function (array $keys) use ($meta): string {
+		foreach ($meta as $k => $v) {
+			if (in_array(strtolower((string)$k), $keys, true) && trim((string)$v) !== '') {
+				return trim((string)$v);
+			}
+		}
+		return '';
+	};
+	$creators = $get(['authors', 'creators', 'creator', 'author']);
+	if ($creators !== '' && ($j = json_decode($creators, true)) && is_array($j)) {
+		$creators = implode('; ', array_map(static fn ($c) => is_array($c) ? (string)($c['name'] ?? '') : (string)$c, $j));
+	}
+	$creators = $creators !== '' ? $creators : (string)($e['owner_name'] ?? '');
+	$date = $get(['publication_date', 'date', 'year']);
+	$year = preg_match('/\b(19|20)\d\d\b/', $date, $m) ? $m[0] : (($e['stime'] ?? 0) ? date('Y', (int)$e['stime']) : '');
+	$doi = preg_replace('#^(https?://(dx\.)?doi\.org/|doi:)#i', '', $get(['doi']));
+	$license = $get(['license', 'licence']);
+	$title = (string)($e['display_title'] ?? $e['title'] ?? '');
+	$description = (string)($e['summary'] ?? '') ?: $get(['description']);
+	$url = (string)($e['url'] ?? '');
+	$isFolder = !empty($e['contents']) || (int)($e['files'] ?? 0) > 1;
+	// Nextcloud's own download form on the share's host (in a cluster the master,
+	// which forwards to the data's node) — not the legacy /shared/ form, whose
+	// download handling depends on the web server's rewrites.
+	$token = (string)($e['token'] ?? '');
+	$p = parse_url($url);
+	$download = ($token !== '' && !empty($p['host']))
+		? ($p['scheme'] ?? 'https') . '://' . $p['host'] . (isset($p['port']) ? ':' . $p['port'] : '') . '/index.php/s/' . rawurlencode($token) . '/download'
+		: '';
+	$id = $doi !== '' ? 'https://doi.org/' . $doi : $landingUrl;
+	$citation = trim($creators . ($year !== '' ? ' (' . $year . ')' : '') . '. ' . $title . ' [Data set]. ' . $publisher . '. ' . $id);
+	$ld = array_filter([
+		'@context' => 'https://schema.org/',
+		'@type' => 'Dataset',
+		'name' => $title,
+		'description' => $description !== '' ? $description : $title,
+		'url' => $landingUrl,
+		'identifier' => $doi !== '' ? 'https://doi.org/' . $doi : null,
+		'creator' => array_map(static fn ($n) => ['@type' => 'Person', 'name' => trim($n)], array_values(array_filter(preg_split('/\s*;\s*/', $creators)))),
+		'datePublished' => ($e['stime'] ?? 0) ? date('Y-m-d', (int)$e['stime']) : null,
+		'license' => $license !== '' ? $license : null,
+		'keywords' => !empty($e['tags']) ? array_values($e['tags']) : null,
+		'isAccessibleForFree' => true,
+		'publisher' => ['@type' => 'Organization', 'name' => $publisher],
+		'distribution' => $download !== '' ? [[
+			'@type' => 'DataDownload',
+			'contentUrl' => $download,
+			'encodingFormat' => $isFolder ? 'application/zip' : null,
+		]] : null,
+	], static fn ($v) => $v !== null && $v !== '' && $v !== []);
+	return $e + [
+		'creators' => $creators,
+		'year' => $year,
+		'doi' => $doi,
+		'license' => $license,
+		'description' => $description,
+		'download_url' => $download,
+		'landing_url' => $landingUrl,
+		'citation' => $citation,
+		'size_human' => _pico_human_size((int)($e['size'] ?? -1)),
+		'jsonld' => json_encode($ld, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP),
+	];
+}
+
+function _pico_human_size(int $b): string {
+	if ($b < 0) {
+		return '';
+	}
+	foreach (['B', 'kB', 'MB', 'GB', 'TB'] as $i => $u) {
+		if ($b < 1000 ** ($i + 1) || $u === 'TB') {
+			return $i === 0 ? $b . ' B' : number_format($b / 1000 ** $i, $b / 1000 ** $i < 10 ? 1 : 0) . ' ' . $u;
+		}
+	}
+	return '';
+}
+
 function _pico_sd_catalog(): array {
 	$cache = null;
 	try {

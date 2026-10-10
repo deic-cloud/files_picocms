@@ -103,6 +103,10 @@ class CatalogService {
 				}
 			}
 
+			// Size, file count and the top level of each shared item, for its landing
+			// page — computed here, on the node that holds it.
+			$stats = $this->contentStats($fileIds);
+
 			// user metadata (meta_data app; guarded)
 			$meta = [];
 			if ($fileIds !== []) {
@@ -183,6 +187,11 @@ class CatalogService {
 						return $t;
 					})($meta[$fid] ?? [], $title),
 					'url'         => $this->publicLinkUrl($token),
+					'token'       => $token,
+					'size'        => $stats[$fid]['size'] ?? -1,
+					'files'       => $stats[$fid]['files'] ?? 0,
+					'contents'    => $stats[$fid]['contents'] ?? [],
+					'more'        => $stats[$fid]['more'] ?? 0,
 					'owner'       => $owner,
 					'owner_name'  => $ownerName,
 					'institution' => $at !== false ? strtolower(substr($owner, $at + 1)) : '',
@@ -197,6 +206,75 @@ class CatalogService {
 			}
 		} catch (\Throwable $e) {
 			$this->logger->warning('files_picocms: catalog localEntries: ' . $e->getMessage());
+		}
+		return $out;
+	}
+
+	private const CONTENTS_MAX = 50;
+
+	/**
+	 * Per shared file id: size (bytes, -1 if unknown), number of files in it (1 for
+	 * a file), and its top level (name, size, folder?) — at most CONTENTS_MAX,
+	 * folders first.
+	 *
+	 * @param list<int> $fileIds
+	 * @return array<int, array{size: int, files: int, contents: list<array{name: string, size: int, dir: bool}>}>
+	 */
+	private function contentStats(array $fileIds): array {
+		$out = [];
+		if ($fileIds === []) {
+			return $out;
+		}
+		try {
+			$dirMime = null;
+			$mq = $this->db->getQueryBuilder();
+			$mq->select('id')->from('mimetypes')->where($mq->expr()->eq('mimetype', $mq->createNamedParameter('httpd/unix-directory')));
+			$mr = $mq->executeQuery();
+			$dirMime = $mr->fetchOne();
+			$mr->closeCursor();
+			$dirMime = $dirMime === false ? -1 : (int)$dirMime;
+
+			$q = $this->db->getQueryBuilder();
+			$q->select('fileid', 'storage', 'path', 'size', 'mimetype')->from('filecache')
+				->where($q->expr()->in('fileid', $q->createNamedParameter($fileIds, IQueryBuilder::PARAM_INT_ARRAY)));
+			$r = $q->executeQuery();
+			$nodes = $r->fetchAll();
+			$r->closeCursor();
+			foreach ($nodes as $n) {
+				$fid = (int)$n['fileid'];
+				$isDir = (int)$n['mimetype'] === $dirMime;
+				$out[$fid] = ['size' => (int)$n['size'], 'files' => $isDir ? 0 : 1, 'contents' => []];
+				if (!$isDir) {
+					continue;
+				}
+				$cq = $this->db->getQueryBuilder();
+				$cq->select($cq->func()->count('fileid'))->from('filecache')
+					->where($cq->expr()->eq('storage', $cq->createNamedParameter((int)$n['storage'], IQueryBuilder::PARAM_INT)))
+					->andWhere($cq->expr()->like('path', $cq->createNamedParameter($this->db->escapeLikeParameter((string)$n['path']) . '/%')))
+					->andWhere($cq->expr()->neq('mimetype', $cq->createNamedParameter($dirMime, IQueryBuilder::PARAM_INT)));
+				$cr = $cq->executeQuery();
+				$out[$fid]['files'] = (int)$cr->fetchOne();
+				$cr->closeCursor();
+				$tq = $this->db->getQueryBuilder();
+				$tq->select('name', 'size', 'mimetype')->from('filecache')
+					->where($tq->expr()->eq('parent', $tq->createNamedParameter($fid, IQueryBuilder::PARAM_INT)))
+					->setMaxResults(500);
+				$tr = $tq->executeQuery();
+				$kids = [];
+				while (($k = $tr->fetch()) !== false) {
+					$name = (string)$k['name'];
+					if ($name === '' || $name[0] === '.') {
+						continue;
+					}
+					$kids[] = ['name' => $name, 'size' => (int)$k['size'], 'dir' => (int)$k['mimetype'] === $dirMime];
+				}
+				$tr->closeCursor();
+				usort($kids, static fn ($a, $b) => $a['dir'] === $b['dir'] ? strnatcasecmp($a['name'], $b['name']) : ($a['dir'] ? -1 : 1));
+				$out[$fid]['contents'] = array_slice($kids, 0, self::CONTENTS_MAX);
+				$out[$fid]['more'] = max(0, count($kids) - self::CONTENTS_MAX);
+			}
+		} catch (\Throwable $e) {
+			$this->logger->warning('files_picocms: catalog contentStats: ' . $e->getMessage());
 		}
 		return $out;
 	}
