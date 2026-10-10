@@ -258,8 +258,8 @@
 
 <footer class="site-foot">
 	<div class="foot-inner">
-		<span>ScienceData — i2, Technical University of Denmark (DTU)</span>
-		<a href="mailto:support@sciencedata.dk">support@sciencedata.dk</a>
+		{# operator line + support address from config (files_picocms.footer_html), as on the frontpage #}
+		{% if config.sd_footer_html|default('') %}{{ config.sd_footer_html|raw }}{% else %}<span>{{ config.sd_brand_name|default('') }}</span>{% endif %}
 	</div>
 </footer>
 
