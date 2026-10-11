@@ -97,6 +97,7 @@
 		.ds-cite-head select { font: inherit; font-size: .9rem; padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
 		.ds-cite-body { padding: 14px 16px; }
 		.ds-cite-body p { margin: 0 0 12px; line-height: 1.55; overflow-wrap: anywhere; }
+		.ds-cite-body button + button { margin-left: 6px; }
 		.ds-cite-body button { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--line); background: #fff; cursor: pointer; font: inherit; font-size: .9rem; }
 		.ds-cite-body button:hover, .ds-cite-body button:focus-visible { border-color: var(--accent); color: var(--accent); }
 		@media (max-width: 600px) { .ds-facts { grid-template-columns: 1fr; gap: 2px 0; } .ds-facts dd { margin-bottom: 8px; } }
@@ -171,6 +172,7 @@
 			<div class="ds-cite-body">
 				<p id="dsCitation">{{ ds.citation }}</p>
 				<button type="button" id="dsCopy">Copy</button>
+				<button type="button" id="dsBibtex">Download BibTeX</button>
 			</div>
 		</div>
 		<script type="application/json" id="dsCiteData">{{ ds.cite_json|raw }}</script>
@@ -226,6 +228,29 @@
 			sel.addEventListener('change', function () { try { localStorage.setItem('repo.citeStyle', sel.value) } catch (e) {} render() })
 			render()
 		}
+		// BibTeX entry (@misc, the type every reference manager reads), downloaded as a .bib file
+		function bib(v) { return String(v == null ? '' : v).replace(/[{}\\]/g, '') }
+		var bb = document.getElementById('dsBibtex')
+		if (bb && d.title) {
+			bb.addEventListener('click', function () {
+				var first = c[0] ? c[0].family : 'data'
+				var word = (String(d.title).match(/[A-Za-z0-9]+/) || ['dataset'])[0]
+				var key = (first + (d.year || '') + word).normalize('NFD').replace(/[^A-Za-z0-9]/g, '').toLowerCase()
+				var lines = ['@misc{' + key + ',',
+					'  author    = {' + bib(c.map(function (p) { return p.family + (p.given.length ? ', ' + p.given.join(' ') : '') }).join(' and ')) + '},',
+					'  title     = {' + bib(d.title) + '},',
+					'  year      = {' + bib(d.year) + '},',
+					'  publisher = {' + bib(d.publisher) + '},',
+					'  howpublished = {Data set},']
+				if (d.doi) lines.push('  doi       = {' + bib(d.doi) + '},')
+				lines.push('  url       = {' + bib(d.doi ? 'https://doi.org/' + d.doi : d.url) + '}', '}', '')
+				var a = document.createElement('a')
+				a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'application/x-bibtex' }))
+				a.download = key + '.bib'
+				document.body.appendChild(a); a.click(); a.remove()
+				setTimeout(function () { URL.revokeObjectURL(a.href) }, 1000)
+			})
+		} else if (bb) { bb.hidden = true }
 		var b = document.getElementById('dsCopy')
 		if (!b || !navigator.clipboard) { if (b) b.hidden = true; return }
 		b.addEventListener('click', function () {
