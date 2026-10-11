@@ -198,6 +198,7 @@ class CatalogService {
 					'institution' => $at !== false ? strtolower(substr($owner, $at + 1)) : '',
 					'stime'       => (int)($row['stime'] ?? 0),
 					'kind'        => $kind,
+					'mime'        => $mime,
 					'tags'        => $tags[$fid] ?? [],
 					// 'summary' is presented as the record's summary line, not a chip
 					// ('abstract' accepted as a legacy alias).

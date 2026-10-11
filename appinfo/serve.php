@@ -1164,7 +1164,22 @@ function _pico_sd_dataset(array $e, string $landingUrl, string $publisher): arra
 		? ($p['scheme'] ?? 'https') . '://' . $p['host'] . (isset($p['port']) ? ':' . $p['port'] : '') . '/index.php/s/' . rawurlencode($token) . '/download'
 		: '';
 	$id = $doi !== '' ? 'https://doi.org/' . $doi : $landingUrl;
-	$citation = trim($creators . ($year !== '' ? ' (' . $year . ')' : '') . '. ' . $title . ' [Data set]. ' . $publisher . '. ' . $id);
+	// What the record is, for the bracketed description APA/Harvard put after the
+	// title ("[Data set]"): the DOI record's DataCite resource type when it has one,
+	// else the catalogue's kind (and a single file's media type); none for text.
+	$byResourceType = [
+		'Dataset' => 'Data set', 'Software' => 'Computer software', 'ComputationalNotebook' => 'Computational notebook',
+		'Image' => 'Image', 'Audiovisual' => 'Audiovisual material', 'Collection' => 'Collection', 'Text' => '', 'Other' => '',
+	];
+	$rt = $get(['resource_type']);
+	$mime = (string)($e['mime'] ?? '');
+	$typeLabel = array_key_exists($rt, $byResourceType) ? $byResourceType[$rt] : match ((string)($e['kind'] ?? '')) {
+		'dataset'  => 'Data set',
+		'notebook' => 'Jupyter notebook',
+		default    => str_starts_with($mime, 'image/') ? 'Image'
+			: (str_starts_with($mime, 'video/') ? 'Video' : (str_starts_with($mime, 'audio/') ? 'Audio recording' : '')),
+	};
+	$citation = trim($creators . ($year !== '' ? ' (' . $year . ')' : '') . '. ' . $title . ($typeLabel !== '' ? ' [' . $typeLabel . ']' : '') . '. ' . $publisher . '. ' . $id);
 	$ld = array_filter([
 		'@context' => 'https://schema.org/',
 		'@type' => 'Dataset',
@@ -1202,6 +1217,7 @@ function _pico_sd_dataset(array $e, string $landingUrl, string $publisher): arra
 			'year' => $year,
 			'title' => $title,
 			'publisher' => $publisher,
+			'type' => $typeLabel,
 			'doi' => $doi,
 			'url' => $id,
 		], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP),

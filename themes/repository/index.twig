@@ -194,15 +194,16 @@
 		function ini(g, dot) { return g.map(function (x) { return x.charAt(0).toUpperCase() + (dot ? '.' : '') }).join(dot ? ' ' : '') }
 		function list(a, sep, last) { return a.length <= 1 ? a.join('') : a.slice(0, -1).join(sep) + last + a[a.length - 1] }
 		var c = (d.creators || []).map(split), y = d.year || 'n.d.', t = esc(d.title || ''), pub = esc(d.publisher || ''),
-			url = esc(d.url || ''), doi = d.doi ? 'https://doi.org/' + esc(d.doi) : url
+			url = esc(d.url || ''), doi = d.doi ? 'https://doi.org/' + esc(d.doi) : url,
+			ty = d.type ? ' [' + esc(d.type) + ']' : ''  // what the record is ("[Data set]"), none for plain text
 		var styles = {
 			apa: function () {
 				var a = c.map(function (p) { return esc(p.family) + (p.given.length ? ', ' + ini(p.given, true) : '') })
-				return list(a, ', ', a.length > 2 ? ', &amp; ' : ' &amp; ') + ' (' + y + '). <i>' + t + '</i> [Data set]. ' + pub + '. ' + doi
+				return list(a, ', ', a.length > 2 ? ', &amp; ' : ' &amp; ') + ' (' + y + '). <i>' + t + '</i>' + ty + '. ' + pub + '. ' + doi
 			},
 			harvard: function () {
 				var a = c.map(function (p) { return esc(p.family) + (p.given.length ? ', ' + ini(p.given, true) : '') })
-				return list(a, ', ', ' and ') + ' (' + y + ') <i>' + t + '</i> [Data set]. ' + pub + '. Available at: ' + doi
+				return list(a, ', ', ' and ') + ' (' + y + ') <i>' + t + '</i>' + ty + '. ' + pub + '. Available at: ' + doi
 			},
 			mla: function () {
 				var a = c.length === 0 ? '' : (c.length > 2 ? esc(c[0].family) + ', ' + esc(c[0].given.join(' ')) + ', et al'
@@ -215,7 +216,7 @@
 			},
 			vancouver: function () {
 				var a = c.map(function (p) { return esc(p.family) + (p.given.length ? ' ' + ini(p.given, false) : '') })
-				return a.join(', ') + '. ' + t + ' [dataset]. ' + pub + '; ' + y + '. Available from: ' + doi
+				return a.join(', ') + '. ' + t + (d.type === 'Data set' ? ' [dataset]' : ty) + '. ' + pub + '; ' + y + '. Available from: ' + doi
 			},
 			ieee: function () {
 				var a = c.map(function (p) { return (p.given.length ? ini(p.given, true) + ' ' : '') + esc(p.family) })
@@ -240,8 +241,8 @@
 					'  author    = {' + bib(c.map(function (p) { return p.family + (p.given.length ? ', ' + p.given.join(' ') : '') }).join(' and ')) + '},',
 					'  title     = {' + bib(d.title) + '},',
 					'  year      = {' + bib(d.year) + '},',
-					'  publisher = {' + bib(d.publisher) + '},',
-					'  howpublished = {Data set},']
+					'  publisher = {' + bib(d.publisher) + '},']
+				if (d.type) lines.push('  howpublished = {' + bib(d.type) + '},')
 				if (d.doi) lines.push('  doi       = {' + bib(d.doi) + '},')
 				lines.push('  url       = {' + bib(d.doi ? 'https://doi.org/' + d.doi : d.url) + '}', '}', '')
 				var a = document.createElement('a')
