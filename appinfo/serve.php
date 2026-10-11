@@ -1137,6 +1137,15 @@ function _pico_sd_dataset(array $e, string $landingUrl, string $publisher): arra
 		'download_url' => $download,
 		'landing_url' => $landingUrl,
 		'citation' => $citation,
+		// structured, for the citation box's styles (formatted in the browser)
+		'cite_json' => json_encode([
+			'creators' => array_values(array_filter(array_map('trim', preg_split('/\s*;\s*/', $creators)))),
+			'year' => $year,
+			'title' => $title,
+			'publisher' => $publisher,
+			'doi' => $doi,
+			'url' => $id,
+		], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP),
 		'size_human' => _pico_human_size((int)($e['size'] ?? -1)),
 		'jsonld' => json_encode($ld, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP),
 	];

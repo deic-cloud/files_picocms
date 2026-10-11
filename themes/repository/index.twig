@@ -90,10 +90,15 @@
 		.ds-files td.size { text-align: right; color: var(--muted); white-space: nowrap; padding-left: 16px; font-variant-numeric: tabular-nums; }
 		.ds-files-wrap { overflow-x: auto; }
 		.ds-more { color: var(--muted); margin-top: 8px; }
-		.ds-cite { display: flex; gap: 10px; align-items: flex-start; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
-		.ds-cite p { margin: 0; flex: 1; overflow-wrap: anywhere; }
-		.ds-cite button { flex: 0 0 auto; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; font: inherit; }
-		.ds-cite button:hover, .ds-cite button:focus-visible { border-color: var(--accent); color: var(--accent); }
+		.ds-cite { background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+		.ds-cite-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--bg); }
+		.ds-cite-head h2 { margin: 0; font-size: 1rem; }
+		.ds-cite-head label { font-size: .85rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+		.ds-cite-head select { font: inherit; font-size: .9rem; padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+		.ds-cite-body { padding: 14px 16px; }
+		.ds-cite-body p { margin: 0 0 12px; line-height: 1.55; overflow-wrap: anywhere; }
+		.ds-cite-body button { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--line); background: #fff; cursor: pointer; font: inherit; font-size: .9rem; }
+		.ds-cite-body button:hover, .ds-cite-body button:focus-visible { border-color: var(--accent); color: var(--accent); }
 		@media (max-width: 600px) { .ds-facts { grid-template-columns: 1fr; gap: 2px 0; } .ds-facts dd { margin-bottom: 8px; } }
 		/* the menu wraps to a second line on phones: make room under the taller header */
 		@media (max-width: 600px) { .repo-main { padding-top: 130px; } }
@@ -149,15 +154,82 @@
 	</section>
 	{% endif %}
 	<section class="ds-section">
-		<h2>Cite</h2>
-		<div class="ds-cite"><p id="dsCitation">{{ ds.citation }}</p><button type="button" id="dsCopy">Copy</button></div>
+		<div class="ds-cite">
+			<div class="ds-cite-head">
+				<h2>Citation</h2>
+				<label>Style
+					<select id="dsCiteStyle">
+						<option value="apa">APA</option>
+						<option value="harvard">Harvard</option>
+						<option value="mla">MLA</option>
+						<option value="chicago">Chicago</option>
+						<option value="vancouver">Vancouver</option>
+						<option value="ieee">IEEE</option>
+					</select>
+				</label>
+			</div>
+			<div class="ds-cite-body">
+				<p id="dsCitation">{{ ds.citation }}</p>
+				<button type="button" id="dsCopy">Copy</button>
+			</div>
+		</div>
+		<script type="application/json" id="dsCiteData">{{ ds.cite_json|raw }}</script>
 	</section>
 	<script>
 	(function () {
+		// Citation in the common styles, from the record's structured data.
+		var d = {}
+		try { d = JSON.parse(document.getElementById('dsCiteData').textContent) } catch (e) {}
+		var out = document.getElementById('dsCitation'), sel = document.getElementById('dsCiteStyle')
+		function esc(s) { var x = document.createElement('div'); x.textContent = s == null ? '' : String(s); return x.innerHTML }
+		// "Given Middle Family" or "Family, Given" -> {family, given[]}
+		function split(n) {
+			n = String(n).trim()
+			if (n.indexOf(',') > 0) { var p = n.split(','); return { family: p[0].trim(), given: p.slice(1).join(' ').trim().split(/\s+/).filter(Boolean) } }
+			var w = n.split(/\s+/)
+			return w.length < 2 ? { family: n, given: [] } : { family: w[w.length - 1], given: w.slice(0, -1) }
+		}
+		function ini(g, dot) { return g.map(function (x) { return x.charAt(0).toUpperCase() + (dot ? '.' : '') }).join(dot ? ' ' : '') }
+		function list(a, sep, last) { return a.length <= 1 ? a.join('') : a.slice(0, -1).join(sep) + last + a[a.length - 1] }
+		var c = (d.creators || []).map(split), y = d.year || 'n.d.', t = esc(d.title || ''), pub = esc(d.publisher || ''),
+			url = esc(d.url || ''), doi = d.doi ? 'https://doi.org/' + esc(d.doi) : url
+		var styles = {
+			apa: function () {
+				var a = c.map(function (p) { return esc(p.family) + (p.given.length ? ', ' + ini(p.given, true) : '') })
+				return list(a, ', ', a.length > 2 ? ', &amp; ' : ' &amp; ') + ' (' + y + '). <i>' + t + '</i> [Data set]. ' + pub + '. ' + doi
+			},
+			harvard: function () {
+				var a = c.map(function (p) { return esc(p.family) + (p.given.length ? ', ' + ini(p.given, true) : '') })
+				return list(a, ', ', ' and ') + ' (' + y + ') <i>' + t + '</i> [Data set]. ' + pub + '. Available at: ' + doi
+			},
+			mla: function () {
+				var a = c.length === 0 ? '' : (c.length > 2 ? esc(c[0].family) + ', ' + esc(c[0].given.join(' ')) + ', et al'
+					: esc(c[0].family) + (c[0].given.length ? ', ' + esc(c[0].given.join(' ')) : '') + (c[1] ? ', and ' + esc(c[1].given.concat([c[1].family]).join(' ')) : ''))
+				return a + '. <i>' + t + '</i>. ' + pub + ', ' + y + ', ' + doi + '.'
+			},
+			chicago: function () {
+				var a = c.map(function (p, i) { return i === 0 ? esc(p.family) + (p.given.length ? ', ' + esc(p.given.join(' ')) : '') : esc(p.given.concat([p.family]).join(' ')) })
+				return list(a, ', ', ', and ') + '. ' + y + '. <i>' + t + '</i>. ' + pub + '. ' + doi + '.'
+			},
+			vancouver: function () {
+				var a = c.map(function (p) { return esc(p.family) + (p.given.length ? ' ' + ini(p.given, false) : '') })
+				return a.join(', ') + '. ' + t + ' [dataset]. ' + pub + '; ' + y + '. Available from: ' + doi
+			},
+			ieee: function () {
+				var a = c.map(function (p) { return (p.given.length ? ini(p.given, true) + ' ' : '') + esc(p.family) })
+				return list(a, ', ', a.length > 2 ? ', and ' : ' and ') + ', &ldquo;' + t + ',&rdquo; ' + pub + ', ' + y + '. [Online]. Available: ' + doi
+			},
+		}
+		function render() { var f = styles[sel.value] || styles.apa; out.innerHTML = f() }
+		if (sel && out && d.title) {
+			try { var s = localStorage.getItem('repo.citeStyle'); if (s && styles[s]) sel.value = s } catch (e) {}
+			sel.addEventListener('change', function () { try { localStorage.setItem('repo.citeStyle', sel.value) } catch (e) {} render() })
+			render()
+		}
 		var b = document.getElementById('dsCopy')
 		if (!b || !navigator.clipboard) { if (b) b.hidden = true; return }
 		b.addEventListener('click', function () {
-			navigator.clipboard.writeText(document.getElementById('dsCitation').textContent.trim()).then(function () {
+			navigator.clipboard.writeText(out.textContent.trim()).then(function () {
 				b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy' }, 1600)
 			})
 		})
