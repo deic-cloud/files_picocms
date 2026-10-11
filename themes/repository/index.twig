@@ -130,7 +130,7 @@
 	<p class="ds-byline">Shared by {{ ds.owner_name }}{% if ds.institution %} ({{ ds.institution }}){% endif %}{% if ds.stime %}, {{ ds.stime|date('j F Y') }}{% endif %}</p>
 	{% if ds.description %}<p class="ds-desc">{{ ds.description }}</p>{% endif %}
 	<div class="ds-actions">
-		<a class="ds-btn primary" href="{{ ds.url }}">Browse files</a>
+		<a class="ds-btn primary" href="{{ ds.browse_url }}">Browse files</a>
 		{% if ds.download_url %}<a class="ds-btn" href="{{ ds.download_url }}">Download{% if ds.contents|length > 0 %} all{% endif %}{% if ds.size_human %} ({{ ds.size_human }}){% endif %}</a>{% endif %}
 	</div>
 	<dl class="ds-facts">
@@ -151,7 +151,7 @@
 			<tr><td>{{ f.dir ? '📁 ' : '' }}{{ f.name }}</td><td class="size">{{ f.size >= 0 ? (f.size >= 1000000000 ? (f.size / 1000000000)|number_format(1) ~ ' GB' : (f.size >= 1000000 ? (f.size / 1000000)|number_format(1) ~ ' MB' : (f.size / 1000)|number_format(0) ~ ' kB')) : '' }}</td></tr>
 			{% endfor %}
 		</table></div>
-		{% if ds.more > 0 %}<p class="ds-more">… and {{ ds.more }} more — <a href="{{ ds.url }}">browse all</a></p>{% endif %}
+		{% if ds.more > 0 %}<p class="ds-more">… and {{ ds.more }} more — <a href="{{ ds.browse_url }}">browse all</a></p>{% endif %}
 	</section>
 	{% endif %}
 	<section class="ds-section">
@@ -324,7 +324,7 @@
 				{% for tg in e.tags|default([]) %}{% set hay = hay ~ ' ' ~ tg %}{% endfor %}
 				<li class="repo-item" data-search="{{ hay|lower }}" data-stime="{{ e.stime|default(0) }}"
 					data-tags="{{ e.tags|default([])|join('||') }}">
-					<h3><a href="{{ e.token is defined and e.token ? config.sd_catalog_url ~ '?dataset=' ~ e.token|url_encode : e.url }}">{{ e.display_title|default(e.title) }}</a></h3>
+					<h3><a href="{{ e.url }}">{{ e.display_title|default(e.title) }}</a></h3>
 					<div class="repo-byline">
 						Shared by {{ e.owner_name }}{% if e.institution %} ({{ e.institution }}){% endif %}{% if e.stime %}, {{ e.stime|date('j M Y') }}{% endif %}
 					</div>

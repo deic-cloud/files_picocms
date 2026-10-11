@@ -164,7 +164,7 @@ if ($userEmail !== null) {
 			? rtrim($remote['server_url'], '/')
 			: rtrim((string)$config->getSystemValue('files_sharding_master_url', ''), '/');
 		if ($target !== '' && $target !== $thisBase) {
-			header('Location: ' . $target . $_SERVER['REQUEST_URI']);
+			header('Location: ' . $target . ($_SERVER['SD_LANDING_URI'] ?? $_SERVER['REQUEST_URI']));
 			http_response_code(307);
 			exit;
 		}
@@ -188,7 +188,7 @@ if (class_exists(\OCA\FilesSharding\Service\ShardingService::class)) {
 			$ownerServer = $shardingService->getUserServer($uid);
 			$ownerUrl    = $ownerServer ? rtrim($ownerServer->getUrl(), '/') : '';
 			if ($ownerUrl !== '' && $ownerUrl !== 'https://' . $_SERVER['HTTP_HOST'] . $webRoot) {
-				header('Location: ' . $ownerUrl . $_SERVER['REQUEST_URI']);
+				header('Location: ' . $ownerUrl . ($_SERVER['SD_LANDING_URI'] ?? $_SERVER['REQUEST_URI']));
 				http_response_code(307);
 				exit;
 			}
@@ -476,7 +476,7 @@ $sdRepoSites = array_filter(array_map('trim',
 // Brand identity stays in config (app-store-installable, no hardcoded name).
 $sdBrand = trim((string)$config->getSystemValue('files_picocms.brand_name', 'Nextcloud'));
 $sdBrand = $sdBrand !== '' ? $sdBrand : 'Nextcloud';
-$picoConfig['sd_home_url']   = $webRoot . '/remote.php/sites/' . rawurlencode($sdFrontpage) . '/';
+$picoConfig['sd_home_url']   = $webRoot . $urlPrefix . '/sites/' . rawurlencode($sdFrontpage) . '/';
 $picoConfig['sd_brand_name'] = $sdBrand;
 // Shared footer line (HTML allowed), e.g. operator + support address — set once in
 // config.php (files_picocms.footer_html) and rendered by every theme that has a
@@ -513,56 +513,47 @@ $picoConfig['sd_show_backlink'] = $sdServiceSite || !empty($blVal);
 if ($siteName !== null && in_array($siteName, $sdRepoSites, true)) {
 	// Top-left brand links to the WELCOME page (like on the welcome page itself),
 	// not the bare root (whose handler bounces logged-in users to their files).
-	$picoConfig['sd_home_url']  = $webRoot . '/remote.php/sites/' . rawurlencode($sdFrontpage) . '/';
+	$picoConfig['sd_home_url']  = $webRoot . $urlPrefix . '/sites/' . rawurlencode($sdFrontpage) . '/';
 	// Where the public catalog lives (first configured catalog site; default 'public')
 	$catSites = array_filter(array_map('trim', explode(',', (string)$config->getSystemValue('files_picocms.repository_sites', 'public'))));
-	$picoConfig['sd_catalog_url'] = $webRoot . '/remote.php/sites/' . rawurlencode($catSites !== [] ? reset($catSites) : 'public') . '/';
+	$picoConfig['sd_catalog_url'] = $webRoot . $urlPrefix . '/sites/' . rawurlencode($catSites !== [] ? reset($catSites) : 'public') . '/';
 	$picoConfig['sd_catalog']   = _pico_sd_catalog();
-	// Landing page of one record: ?dataset=<public link token>. Only entries in the
-	// catalogue (opted in by their owner) — anything else is a 404.
-	$dsToken = isset($_GET['dataset']) ? (string)$_GET['dataset'] : '';
-	if ($dsToken !== '') {
-		foreach ($picoConfig['sd_catalog'] as $e) {
-			if (($e['token'] ?? '') === $dsToken) {
-				// The permanent address is on the master (cluster), not the node the visitor came in on.
-				$picoConfig['sd_dataset'] = _pico_sd_dataset($e, rtrim($masterBase, '/') . $picoConfig['sd_catalog_url'] . '?dataset=' . rawurlencode($dsToken), $brand ?? $sdBrand);
-				break;
-			}
-		}
-		if (empty($picoConfig['sd_dataset'])) {
-			http_response_code(404);
-			$picoConfig['sd_dataset_missing'] = true;
-		}
-	}
-	// Landing page by DOI: /doi/<suffix> (web server rewrite) → ?doi=<suffix or
-	// full DOI>. The item is found by the DOI recorded in its metadata; a DOI
-	// whose item has left the catalogue gets a withdrawn page from DataCite's
-	// own record (a DOI must keep resolving to something).
-	$doiQ = isset($_GET['doi']) ? strtolower(trim(preg_replace('#^(https?://(dx\.)?doi\.org/|doi:)#i', '', (string)$_GET['doi']), '/ ')) : '';
-	if ($doiQ !== '') {
+	// Landing page of one record, at the record's own address: /shared/<token>
+	// (its public link) or /doi/<suffix>. The web server sends both to
+	// appinfo/landing.php, which passes them here in SD_LANDING; an unlisted
+	// /shared/ link goes on to Nextcloud's share page.
+	$landing = is_array($GLOBALS['SD_LANDING'] ?? null) ? $GLOBALS['SD_LANDING'] : null;
+	if ($landing !== null) {
 		$doiPrefix = '';
 		try {
 			$doiPrefix = strtolower(trim(\OCP\Server::get(\OCP\IAppConfig::class)->getValueString('files_publish', 'datacite.prefix', ''), '/ '));
 		} catch (\Throwable) {
 		}
-		$doiFull = str_starts_with($doiQ, '10.') ? $doiQ : ($doiPrefix !== '' ? $doiPrefix . '/' . $doiQ : '');
-		$findDoi = static function (array $catalog) use ($doiFull): ?array {
+		$token = (string)($landing['token'] ?? '');
+		$doiQ  = strtolower(trim(preg_replace('#^(https?://(dx\.)?doi\.org/|doi:)#i', '', (string)($landing['doi'] ?? '')), '/ '));
+		$doiFull = $doiQ === '' ? '' : (str_starts_with($doiQ, '10.') ? $doiQ : ($doiPrefix !== '' ? $doiPrefix . '/' . $doiQ : ''));
+		$match = static function (array $catalog) use ($token, $doiFull): ?array {
 			foreach ($catalog as $e) {
-				foreach (($e['meta'] ?? []) as $k => $v) {
-					if (strtolower((string)$k) === 'doi'
-						&& strtolower(preg_replace('#^(https?://(dx\.)?doi\.org/|doi:)#i', '', trim((string)$v))) === $doiFull) {
-						return $e;
+				if ($token !== '' && ($e['token'] ?? '') === $token) {
+					return $e;
+				}
+				if ($doiFull !== '') {
+					foreach (($e['meta'] ?? []) as $k => $v) {
+						if (strtolower((string)$k) === 'doi'
+							&& strtolower(preg_replace('#^(https?://(dx\.)?doi\.org/|doi:)#i', '', trim((string)$v))) === $doiFull) {
+							return $e;
+						}
 					}
 				}
 			}
 			return null;
 		};
-		$e = $doiFull !== '' ? $findDoi($picoConfig['sd_catalog']) : null;
-		if ($e === null && $doiFull !== '') {
-			// A DOI assigned within the catalogue cache's lifetime: look again, uncached.
+		$e = ($token !== '' || $doiFull !== '') ? $match($picoConfig['sd_catalog']) : null;
+		if ($e === null && ($token !== '' || $doiFull !== '')) {
+			// Listed (or given a DOI) within the catalogue cache's lifetime: look again, uncached.
 			try {
 				$fresh = \OCP\Server::get(\OCA\FilesPicoCMS\Service\CatalogService::class)->clusterEntries();
-				$e = $findDoi($fresh);
+				$e = $match($fresh);
 				if ($e !== null) {
 					$picoConfig['sd_catalog'] = $fresh;
 					$cf = \OCP\Server::get(\OCP\ICacheFactory::class);
@@ -574,7 +565,18 @@ if ($siteName !== null && in_array($siteName, $sdRepoSites, true)) {
 			}
 		}
 		if ($e !== null) {
-			$picoConfig['sd_dataset'] = _pico_sd_dataset($e, rtrim($masterBase, '/') . '/doi/' . rawurlencode(substr($doiFull, strpos($doiFull, '/') + 1)), $brand ?? $sdBrand);
+			// The permanent address is on the master (cluster), not the node the visitor came in on.
+			$landingUrl = $doiFull !== ''
+				? rtrim($masterBase, '/') . '/doi/' . rawurlencode(substr($doiFull, strpos($doiFull, '/') + 1))
+				: (string)$e['url'];
+			$picoConfig['sd_dataset'] = _pico_sd_dataset($e, $landingUrl, $brand ?? $sdBrand);
+		} elseif ($token !== '') {
+			// Not in the catalogue: an ordinary public link — Nextcloud's share page.
+			$qs = $_GET;
+			unset($qs['t']);
+			header('Location: ' . rtrim($masterBase, '/') . '/index.php/s/' . rawurlencode($token) . ($qs !== [] ? '?' . http_build_query($qs) : ''));
+			http_response_code(302);
+			exit;
 		} else {
 			$withdrawn = $doiFull !== '' ? _pico_sd_doi_record($doiFull) : null;
 			if ($withdrawn !== null) {
@@ -617,6 +619,8 @@ if ($siteName !== null && $siteName === $sdFrontpage) {
 	$picoConfig['sd_catalog'] = _pico_sd_catalog();
 	// The stats line advertises DATASETS (folders) — count them from the same
 	// catalog the listing shows, so the two numbers can never disagree.
+	$sdCat = array_filter(array_map('trim', explode(',', (string)$config->getSystemValue('files_picocms.repository_sites', 'public'))));
+	$picoConfig['sd_catalog_url'] = $webRoot . $urlPrefix . '/sites/' . rawurlencode($sdCat !== [] ? reset($sdCat) : 'public') . '/';
 	$picoConfig['sd_catalog_datasets'] = array_values(array_filter(
 		$picoConfig['sd_catalog'],
 		static fn ($e) => ($e['kind'] ?? '') === 'dataset'
@@ -1188,6 +1192,8 @@ function _pico_sd_dataset(array $e, string $landingUrl, string $publisher): arra
 		'license' => $license,
 		'description' => $description,
 		'download_url' => $download,
+		// the file browser (Nextcloud's share page); /shared/<token> is the landing page itself
+		'browse_url' => $download !== '' ? substr($download, 0, -strlen('/download')) : $url,
 		'landing_url' => $landingUrl,
 		'citation' => $citation,
 		// structured, for the citation box's styles (formatted in the browser)

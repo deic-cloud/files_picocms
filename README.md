@@ -82,6 +82,25 @@ forgot the rewrite is flagged rather than silently serving unstyled pages.
 
 ---
 
+## Public catalogue: record addresses
+
+A link share whose owner ticked "List in the public datasets catalog"
+(share attribute `files_picocms:catalog_listed`) is a catalogue **record**.
+Its address is its public link, `/shared/<token>`, which then shows the
+record's landing page (description, files, citation, download) instead of
+the file browser; "Browse files" leads on to Nextcloud's share page
+`/index.php/s/<token>`. A record with a DOI (files_publish "Assign DOI…")
+is also shown at `/doi/<suffix>`, and once it leaves the catalogue that
+address shows a withdrawn page built from DataCite's public record (410).
+
+The web server sends both forms to `appinfo/landing.php` (internal rewrite;
+mfsbsd `nc_htaccess_custom.conf`), which renders the catalogue site
+(first of `files_picocms.repository_sites`) in landing mode, or sends an
+unlisted `/shared/` link on to `/index.php/s/<token>` with its query.
+`?download` and `?path=` forms are redirected straight to the data by the
+web server. The catalogue is cached for 10 minutes; a record not found in
+the cache is looked up again uncached.
+
 ## Deployment settings (`config.php`)
 
 All optional; unset, the app behaves like a plain app-store install.
