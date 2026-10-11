@@ -140,7 +140,7 @@
 		<dt>Licence</dt><dd>{{ ds.license|default('Not stated — ask the owner before reusing') }}</dd>
 		{% if ds.size_human %}<dt>Size</dt><dd>{{ ds.size_human }}{% if ds.files > 1 %} in {{ ds.files }} files{% endif %}</dd>{% endif %}
 		{% if ds.tags|default([])|length > 0 %}<dt>Tags</dt><dd>{{ ds.tags|join(', ') }}</dd>{% endif %}
-		{% for k, v in ds.meta %}{% if k|lower not in skip %}<dt>{{ k }}</dt><dd>{{ v }}</dd>{% endif %}{% endfor %}
+		{% for k, v in ds.meta %}{% if k|lower not in skip and not (k|lower == 'url' and v == ds.landing_url) %}<dt>{{ k|replace({'_': ' '})|capitalize }}</dt><dd>{{ v }}</dd>{% endif %}{% endfor %}
 		<dt>Address</dt><dd><a href="{{ ds.landing_url }}">{{ ds.landing_url }}</a></dd>
 	</dl>
 	{% if ds.contents|length > 0 %}
@@ -260,6 +260,17 @@
 		})
 	})()
 	</script>
+	{% elseif config.sd_dataset_withdrawn|default(null) %}
+	{% set wd = config.sd_dataset_withdrawn %}
+	<a class="ds-back" href="{{ config.sd_catalog_url }}">&larr; All public data</a>
+	<p class="ds-kind">Withdrawn</p>
+	<h1>{{ wd.title }}</h1>
+	<p class="ds-byline">{{ wd.creators }}{% if wd.year %} ({{ wd.year }}){% endif %}</p>
+	<p class="repo-intro">This record is no longer available here: its owner has removed it from the catalogue. The DOI and the details below remain for reference.</p>
+	<dl class="ds-facts">
+		<dt>DOI</dt><dd><a href="https://doi.org/{{ wd.doi }}">{{ wd.doi }}</a></dd>
+		{% if wd.publisher %}<dt>Publisher</dt><dd>{{ wd.publisher }}</dd>{% endif %}
+	</dl>
 	{% elseif config.sd_dataset_missing|default(false) %}
 	<a class="ds-back" href="{{ config.sd_catalog_url }}">&larr; All public data</a>
 	<h1>Not found</h1>

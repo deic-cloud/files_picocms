@@ -534,6 +534,58 @@ if ($siteName !== null && in_array($siteName, $sdRepoSites, true)) {
 			$picoConfig['sd_dataset_missing'] = true;
 		}
 	}
+	// Landing page by DOI: /doi/<suffix> (web server rewrite) → ?doi=<suffix or
+	// full DOI>. The item is found by the DOI recorded in its metadata; a DOI
+	// whose item has left the catalogue gets a withdrawn page from DataCite's
+	// own record (a DOI must keep resolving to something).
+	$doiQ = isset($_GET['doi']) ? strtolower(trim(preg_replace('#^(https?://(dx\.)?doi\.org/|doi:)#i', '', (string)$_GET['doi']), '/ ')) : '';
+	if ($doiQ !== '') {
+		$doiPrefix = '';
+		try {
+			$doiPrefix = strtolower(trim(\OCP\Server::get(\OCP\IAppConfig::class)->getValueString('files_publish', 'datacite.prefix', ''), '/ '));
+		} catch (\Throwable) {
+		}
+		$doiFull = str_starts_with($doiQ, '10.') ? $doiQ : ($doiPrefix !== '' ? $doiPrefix . '/' . $doiQ : '');
+		$findDoi = static function (array $catalog) use ($doiFull): ?array {
+			foreach ($catalog as $e) {
+				foreach (($e['meta'] ?? []) as $k => $v) {
+					if (strtolower((string)$k) === 'doi'
+						&& strtolower(preg_replace('#^(https?://(dx\.)?doi\.org/|doi:)#i', '', trim((string)$v))) === $doiFull) {
+						return $e;
+					}
+				}
+			}
+			return null;
+		};
+		$e = $doiFull !== '' ? $findDoi($picoConfig['sd_catalog']) : null;
+		if ($e === null && $doiFull !== '') {
+			// A DOI assigned within the catalogue cache's lifetime: look again, uncached.
+			try {
+				$fresh = \OCP\Server::get(\OCA\FilesPicoCMS\Service\CatalogService::class)->clusterEntries();
+				$e = $findDoi($fresh);
+				if ($e !== null) {
+					$picoConfig['sd_catalog'] = $fresh;
+					$cf = \OCP\Server::get(\OCP\ICacheFactory::class);
+					if ($cf->isAvailable()) {
+						$cf->createDistributed('files_picocms_stats')->set('catalog', $fresh, 600);
+					}
+				}
+			} catch (\Throwable) {
+			}
+		}
+		if ($e !== null) {
+			$picoConfig['sd_dataset'] = _pico_sd_dataset($e, rtrim($masterBase, '/') . '/doi/' . rawurlencode(substr($doiFull, strpos($doiFull, '/') + 1)), $brand ?? $sdBrand);
+		} else {
+			$withdrawn = $doiFull !== '' ? _pico_sd_doi_record($doiFull) : null;
+			if ($withdrawn !== null) {
+				http_response_code(410);
+				$picoConfig['sd_dataset_withdrawn'] = $withdrawn;
+			} else {
+				http_response_code(404);
+				$picoConfig['sd_dataset_missing'] = true;
+			}
+		}
+	}
 	$picoConfig['sd_asset_ver'] = (string)(@filemtime($themesDir . 'repository/css/style.css') ?: '1');
 	$picoConfig['sd_theme_static'] = $webRoot . '/apps/files_picocms/themes/repository';
 	$brand = trim((string)$config->getSystemValue('files_picocms.brand_name', 'Nextcloud'));
@@ -1119,7 +1171,8 @@ function _pico_sd_dataset(array $e, string $landingUrl, string $publisher): arra
 		'creator' => array_map(static fn ($n) => ['@type' => 'Person', 'name' => trim($n)], array_values(array_filter(preg_split('/\s*;\s*/', $creators)))),
 		'datePublished' => ($e['stime'] ?? 0) ? date('Y-m-d', (int)$e['stime']) : null,
 		'license' => $license !== '' ? $license : null,
-		'keywords' => !empty($e['tags']) ? array_values($e['tags']) : null,
+		// the record's own keywords (e.g. a DOI record's) rather than schema/tag names
+		'keywords' => ($kw = array_values(array_filter(array_map('trim', explode(',', $get(['keywords', 'subject'])))))) !== [] ? $kw : (!empty($e['tags']) ? array_values($e['tags']) : null),
 		'isAccessibleForFree' => true,
 		'publisher' => ['@type' => 'Organization', 'name' => $publisher],
 		'distribution' => $download !== '' ? [[
@@ -1161,6 +1214,44 @@ function _pico_human_size(int $b): string {
 		}
 	}
 	return '';
+}
+
+/**
+ * A DOI's public record at DataCite (title, creators, year, publisher), for the
+ * withdrawn page. Only findable DOIs are public; null for anything else. The
+ * API is the one files_publish registers with (test or production).
+ */
+function _pico_sd_doi_record(string $doi): ?array {
+	try {
+		$api = rtrim(\OCP\Server::get(\OCP\IAppConfig::class)->getValueString('files_publish', 'datacite.apiUrl', ''), '/');
+	} catch (\Throwable) {
+		return null;
+	}
+	if ($api === '' || !preg_match('#^10\.\d+/[^\s]+$#', $doi)) {
+		return null;
+	}
+	try {
+		$resp = \OCP\Server::get(\OCP\Http\Client\IClientService::class)->newClient()->get($api . '/dois/' . $doi, [
+			'timeout' => 10, 'headers' => ['Accept' => 'application/vnd.api+json'], 'http_errors' => false,
+		]);
+		if ($resp->getStatusCode() !== 200) {
+			return null;
+		}
+		$a = json_decode((string)$resp->getBody(), true)['data']['attributes'] ?? null;
+	} catch (\Throwable) {
+		return null;
+	}
+	if (!is_array($a) || ($a['state'] ?? '') !== 'findable') {
+		return null;
+	}
+	$pub = $a['publisher'] ?? '';
+	return [
+		'doi'       => $doi,
+		'title'     => (string)($a['titles'][0]['title'] ?? $doi),
+		'creators'  => implode('; ', array_map(static fn ($c) => (string)($c['name'] ?? ''), $a['creators'] ?? [])),
+		'year'      => (string)($a['publicationYear'] ?? ''),
+		'publisher' => is_array($pub) ? (string)($pub['name'] ?? '') : (string)$pub,
+	];
 }
 
 function _pico_sd_catalog(): array {

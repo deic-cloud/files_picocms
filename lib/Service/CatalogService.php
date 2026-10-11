@@ -119,7 +119,8 @@ class CatalogService {
 						->andWhere($kq->expr()->neq('d.value', $kq->createNamedParameter('')));
 					$kr = $kq->executeQuery();
 					while (($k = $kr->fetch()) !== false) {
-						$meta[(int)$k['fileid']][(string)$k['name']] = (string)$k['value'];
+						// meta_data stores values HTML-encoded (DocKeyMapper::encodeValue)
+						$meta[(int)$k['fileid']][(string)$k['name']] = html_entity_decode((string)$k['value'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
 					}
 					$kr->closeCursor();
 				} catch (\Throwable) {
