@@ -189,8 +189,27 @@ class CatalogService {
 				$mime = $mimes[$fid] ?? '';
 				$kind = $mime === 'httpd/unix-directory' ? (isset($notebookFolders[$fid]) ? 'notebook' : 'dataset')
 					: ($mime === 'application/x-ipynb+json' ? 'notebook' : 'file');
+				// Creator(s) and year for bylines and citations, from the record's
+				// metadata (same keys and normalisation as the landing page):
+				// a JSON list of {name,…} (DataCite) becomes 'A; B'.
+				$m = $meta[$fid] ?? [];
+				$pick = static function (array $keys) use ($m): string {
+					foreach ($m as $k => $v) {
+						if (in_array(strtolower((string)$k), $keys, true) && trim((string)$v) !== '') {
+							return trim((string)$v);
+						}
+					}
+					return '';
+				};
+				$creators = $pick(['authors', 'creators', 'creator', 'author']);
+				if ($creators !== '' && ($j = json_decode($creators, true)) && is_array($j)) {
+					$creators = implode('; ', array_filter(array_map(static fn ($c) => is_array($c) ? (string)($c['name'] ?? '') : (string)$c, $j)));
+				}
+				$year = preg_match('/\b(19|20)\d\d\b/', $pick(['publication_date', 'date', 'year']), $ym) ? $ym[0] : '';
 				$out[] = [
 					'title'       => $title,
+					'creators'    => $creators,
+					'year'        => $year,
 					// Display title: an explicit 'title' metadata value from ANY of
 					// the file's schemas wins; otherwise the actual file/folder name,
 					// verbatim (owners rename the file or set the metadata — no

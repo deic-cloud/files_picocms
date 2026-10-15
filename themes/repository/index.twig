@@ -328,10 +328,8 @@
 				<li class="repo-item" data-search="{{ hay|lower }}" data-stime="{{ e.stime|default(0) }}"
 					data-tags="{{ e.tags|default([])|join('||') }}">
 					<h3><a href="{{ e.url }}">{{ e.display_title|default(e.title) }}</a></h3>
-					{% set by = e.meta.creators|default(e.meta.creator|default(e.meta.authors|default(e.meta.author|default('')))) %}
-					{% set when = e.meta.publication_date|default(e.meta.date|default(e.meta.year|default(''))) %}
 					<div class="repo-byline">
-						{% if by %}{{ by }}{% if when %}, {{ when|slice(0, 4) }}{% endif %} &middot; shared by {{ e.owner_name }}{% else %}Shared by {{ e.owner_name }}{% if e.institution %} ({{ e.institution }}){% endif %}{% if e.stime %}, {{ e.stime|date('j M Y') }}{% endif %}{% endif %}
+						{% if e.creators|default('') %}{{ e.creators }}{% if e.year|default('') %}, {{ e.year }}{% endif %} &middot; shared by {{ e.owner_name }}{% else %}Shared by {{ e.owner_name }}{% if e.institution %} ({{ e.institution }}){% endif %}{% if e.stime %}, {{ e.stime|date('j M Y') }}{% endif %}{% endif %}
 					</div>
 					{% if e.summary|default('') %}
 					<p class="repo-abstract">{{ e.summary }}</p>
