@@ -287,13 +287,24 @@ if (str_starts_with($sitePath, 'mathjax/')) {
 // ── Read _config.md and enforce access ───────────────────────────────────────
 
 $siteConfig = _pico_site_config($contentDir, $sitePath);
-$access     = strtolower(trim($siteConfig['access'] ?? 'public'));
+// `access:` or `Access:` — the README writes both.
+$access     = strtolower(trim((string)($siteConfig['access'] ?? $siteConfig['Access'] ?? 'public')));
 
 if ($access === 'private') {
 	$loggedIn = false;
 	try {
 		$loggedIn = \OC::$server->get(\OCP\IUserSession::class)->isLoggedIn();
 	} catch (\Throwable) {}
+
+	// A private site is for its owner and whoever the site folder is shared
+	// with (README, "Private sites"): a login alone is not enough.
+	if ($loggedIn && !_pico_site_shared_with_viewer($uid, $contentDir, $dataDir)) {
+		http_response_code(403);
+		header('Content-Type: text/html; charset=utf-8');
+		echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>403 Forbidden</title></head>'
+		   . '<body><h1>403 Forbidden</h1><p>This page is private.</p></body></html>';
+		exit;
+	}
 
 	if (!$loggedIn) {
 		http_response_code(403);
@@ -1408,6 +1419,57 @@ function _pico_silo_broadcast_lookup(IConfig $config, string $siteName): ?array 
 		$cache->set($siteName, 1, 60);
 	}
 	return null;
+}
+
+/**
+ * Is the site folder readable by the current user: the owner, or someone the
+ * folder is shared with (local mount, or an outgoing user/group/federated
+ * share of the owner's)? Same two strategies as the edit-access detection
+ * further down; read-only, fail-closed.
+ */
+function _pico_site_shared_with_viewer(string $uid, string $contentDir, string $dataDir): bool {
+	try {
+		$viewer = \OC::$server->get(\OCP\IUserSession::class)->getUser();
+		if ($viewer === null) {
+			return false;
+		}
+		$viewerUid = $viewer->getUID();
+		if ($viewerUid === $uid) {
+			return true;
+		}
+		$filesRoot  = $dataDir . '/' . $uid . '/files';
+		$relative   = ltrim(substr($contentDir, strlen($filesRoot)), '/');
+		$rootFolder = \OC::$server->get(\OCP\Files\IRootFolder::class);
+		$siteNode   = $rootFolder->getUserFolder($uid)->get($relative);
+		if ($rootFolder->getUserFolder($viewerUid)->getById($siteNode->getId()) !== []) {
+			return true;
+		}
+		$shareManager = \OC::$server->get(\OCP\Share\IManager::class);
+		$cloudIdMgr   = \OC::$server->get(\OCP\Federation\ICloudIdManager::class);
+		$groupManager = \OC::$server->get(\OCP\IGroupManager::class);
+		foreach ([\OCP\Share\IShare::TYPE_REMOTE, \OCP\Share\IShare::TYPE_USER, \OCP\Share\IShare::TYPE_GROUP] as $type) {
+			foreach ($shareManager->getSharesBy($uid, $type, $siteNode, false, -1) as $share) {
+				if ($type === \OCP\Share\IShare::TYPE_GROUP) {
+					$grp = $groupManager->get($share->getSharedWith());
+					if ($grp !== null && $grp->inGroup($viewer)) {
+						return true;
+					}
+					continue;
+				}
+				try {
+					$sharedUser = $cloudIdMgr->resolveCloudId($share->getSharedWith())->getUser();
+				} catch (\Throwable) {
+					$sharedUser = strstr($share->getSharedWith(), '@', true) ?: $share->getSharedWith();
+				}
+				if ($sharedUser === $viewerUid) {
+					return true;
+				}
+			}
+		}
+	} catch (\Throwable $e) {
+		error_log('files_picocms private-site access: ' . $e->getMessage());
+	}
+	return false;
 }
 
 /**
