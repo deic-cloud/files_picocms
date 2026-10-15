@@ -132,29 +132,13 @@ class CatalogService {
 			if ($fileIds !== []) {
 				try {
 					$tq = $this->db->getQueryBuilder();
-					$tq->select('om.objectid', 'om.systemtagid', 'st.name')
+					$tq->select('om.objectid', 'st.name')
 						->from('systemtag_object_mapping', 'om')
 						->innerJoin('om', 'systemtag', 'st', $tq->expr()->eq('om.systemtagid', 'st.id'))
 						->where($tq->expr()->eq('om.objecttype', $tq->createNamedParameter('files')))
 						->andWhere($tq->expr()->in('om.objectid', $tq->createNamedParameter(array_map('strval', $fileIds), IQueryBuilder::PARAM_STR_ARRAY)));
-					// Tags that are metadata schemas (tags with fields, e.g. public_data)
-					// are not topic chips: their values are shown as metadata already.
-					$schemaTags = [];
-					try {
-						$sq = $this->db->getQueryBuilder();
-						$sq->selectDistinct('tagid')->from('meta_data_keys');
-						$sr = $sq->executeQuery();
-						while (($st = $sr->fetch()) !== false) {
-							$schemaTags[(int)$st['tagid']] = true;
-						}
-						$sr->closeCursor();
-					} catch (\Throwable) {
-					}
 					$tr = $tq->executeQuery();
 					while (($t = $tr->fetch()) !== false) {
-						if (isset($schemaTags[(int)$t['systemtagid']])) {
-							continue;
-						}
 						$tags[(int)$t['objectid']][] = (string)$t['name'];
 					}
 					$tr->closeCursor();
