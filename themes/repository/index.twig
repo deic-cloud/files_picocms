@@ -46,6 +46,8 @@
 		.repo-chip { font-size: .75rem; background: var(--bg-alt); border: 1px solid var(--line);
 			border-radius: 999px; padding: 2px 10px; color: var(--ink); }
 		.repo-chip b { font-weight: 600; color: var(--muted); }
+		.ds-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+		.ds-tags .repo-itemtag { text-decoration: none; }
 		.repo-empty { color: var(--muted); font-style: italic; padding: 14px 4px; }
 		.repo-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
 			margin: 26px 0 4px; padding: 12px 0; border-bottom: 1px solid var(--line); }
@@ -139,7 +141,7 @@
 		{% if ds.doi %}<dt>DOI</dt><dd><a href="https://doi.org/{{ ds.doi }}">{{ ds.doi }}</a></dd>{% endif %}
 		<dt>Licence</dt><dd>{{ ds.license|default('Not stated — ask the owner before reusing') }}</dd>
 		{% if ds.size_human %}<dt>Size</dt><dd>{{ ds.size_human }}{% if ds.files > 1 %} in {{ ds.files }} files{% endif %}</dd>{% endif %}
-		{% if ds.tags|default([])|length > 0 %}<dt>Tags</dt><dd>{{ ds.tags|join(', ') }}</dd>{% endif %}
+		{% if ds.tags|default([])|length > 0 %}<dt>Tags</dt><dd class="ds-tags">{% for tg in ds.tags %}<a class="repo-itemtag" href="{{ config.sd_catalog_url }}#tag={{ tg|url_encode }}">{{ tg }}</a>{% endfor %}</dd>{% endif %}
 		{% for k, v in ds.meta %}{% if k|lower not in skip and not (k|lower == 'url' and v == ds.landing_url) %}<dt>{{ k|replace({'_': ' '})|capitalize }}</dt><dd>{{ v }}</dd>{% endif %}{% endfor %}
 		<dt>Address</dt><dd><a href="{{ ds.landing_url }}">{{ ds.landing_url }}</a></dd>
 	</dl>
@@ -326,8 +328,10 @@
 				<li class="repo-item" data-search="{{ hay|lower }}" data-stime="{{ e.stime|default(0) }}"
 					data-tags="{{ e.tags|default([])|join('||') }}">
 					<h3><a href="{{ e.url }}">{{ e.display_title|default(e.title) }}</a></h3>
+					{% set by = e.meta.creators|default(e.meta.creator|default(e.meta.authors|default(e.meta.author|default('')))) %}
+					{% set when = e.meta.publication_date|default(e.meta.date|default(e.meta.year|default(''))) %}
 					<div class="repo-byline">
-						Shared by {{ e.owner_name }}{% if e.institution %} ({{ e.institution }}){% endif %}{% if e.stime %}, {{ e.stime|date('j M Y') }}{% endif %}
+						{% if by %}{{ by }}{% if when %}, {{ when|slice(0, 4) }}{% endif %} &middot; shared by {{ e.owner_name }}{% else %}Shared by {{ e.owner_name }}{% if e.institution %} ({{ e.institution }}){% endif %}{% if e.stime %}, {{ e.stime|date('j M Y') }}{% endif %}{% endif %}
 					</div>
 					{% if e.summary|default('') %}
 					<p class="repo-abstract">{{ e.summary }}</p>
@@ -337,9 +341,9 @@
 						{% for tg in e.tags|default([]) %}
 						<span class="repo-itemtag" data-tag="{{ tg }}" role="button" tabindex="0">{{ tg }}</span>
 						{% endfor %}
-						{% for k, v in e.meta %}
+						{% for k, v in e.meta %}{% if k|lower not in ['creators', 'creator', 'authors', 'author', 'publication_date', 'date', 'year', 'license', 'licence', 'doi'] %}
 						<span class="repo-chip"><b>{{ k }}:</b> {{ v }}</span>
-						{% endfor %}
+						{% endif %}{% endfor %}
 					</div>
 					{% endif %}
 				</li>
