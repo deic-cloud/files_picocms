@@ -569,7 +569,7 @@ if ($siteName !== null && in_array($siteName, $sdRepoSites, true)) {
 					$picoConfig['sd_catalog'] = $fresh;
 					$cf = \OCP\Server::get(\OCP\ICacheFactory::class);
 					if ($cf->isAvailable()) {
-						$cf->createDistributed('files_picocms_stats')->set('catalog', $fresh, 600);
+						$cf->createDistributed('files_picocms_stats')->set('catalog', $fresh, 300);
 					}
 				}
 			} catch (\Throwable) {
@@ -1119,14 +1119,14 @@ function _pico_sd_stats(): array {
 	}
 
 	if ($cache !== null) {
-		$cache->set('landing', $out, 600);
+		$cache->set('landing', $out, 300);
 	}
 	return $out;
 }
 
 /**
  * Public dataset catalog: public-link shares whose owner opted in via the share
- * attribute files_picocms:catalog_listed. Cached (10 min). LOCAL to this node for
+ * attribute files_picocms:catalog_listed. Cached (5 min). LOCAL to this node for
  * now — on a multi-silo deployment the master will additionally merge each silo's
  * listings over the files_sharding internal API (later step); public link shares
  * live on the owner's node.
@@ -1313,7 +1313,7 @@ function _pico_sd_catalog(): array {
 		error_log('files_picocms _pico_sd_catalog: ' . $e->getMessage());
 	}
 	if ($cache !== null) {
-		$cache->set('catalog', $out, 600);
+		$cache->set('catalog', $out, 300);
 	}
 	return $out;
 }

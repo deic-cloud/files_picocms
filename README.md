@@ -98,7 +98,7 @@ mfsbsd `nc_htaccess_custom.conf`), which renders the catalogue site
 (first of `files_picocms.repository_sites`) in landing mode, or sends an
 unlisted `/shared/` link on to `/index.php/s/<token>` with its query.
 `?download` and `?path=` forms are redirected straight to the data by the
-web server. The catalogue is cached for 10 minutes; a record not found in
+web server. The catalogue is cached for 5 minutes (APCu); a record not found in
 the cache is looked up again uncached.
 
 ## Deployment settings (`config.php`)
