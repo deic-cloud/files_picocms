@@ -59,7 +59,7 @@
 			background: var(--bg); color: var(--ink); }
 		.repo-tagchip { font-size: .8rem; border: 1px solid var(--line); background: var(--bg-alt);
 			border-radius: 999px; padding: 4px 12px; cursor: pointer; color: var(--ink); user-select: none; }
-		.repo-tagchip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+		.repo-tagchip.active { background: var(--accent); border-color: var(--accent); color: #fff; outline: 2px solid var(--accent-d); outline-offset: 1px; }
 		.repo-itemtag { font-size: .75rem; background: var(--accent); color: #fff;
 			border-radius: 999px; padding: 2px 10px; opacity: .85; }
 		.repo-item.hidden, .repo-section.hidden { display: none; }
@@ -145,7 +145,7 @@
 		<dt>Licence</dt><dd>{{ ds.license|default('Not stated — ask the owner before reusing') }}</dd>
 		{% if ds.size_human %}<dt>Size</dt><dd>{{ ds.size_human }}{% if ds.files > 1 %} in {{ ds.files }} files{% endif %}</dd>{% endif %}
 		{% for r in ds.related|default([]) %}<dt>{{ r.kind == 'notebook' ? 'Example notebook' : (r.kind == 'dataset' ? 'Works with' : 'Related') }}</dt><dd><a href="{{ r.url }}">{{ r.title }}</a></dd>{% endfor %}
-		{% if ds.tags|default([])|length > 0 %}<dt>Tags</dt><dd class="ds-tags">{% for tg in ds.tags %}<a class="repo-itemtag" href="{{ config.sd_catalog_url }}#tag={{ tg|url_encode }}">{{ tg }}</a>{% endfor %}</dd>{% endif %}
+		{% if ds.tags|default([])|length > 0 %}<dt>Tags</dt><dd class="ds-tags">{% for tg in ds.tags %}{% set c = attribute(ds.tag_colors|default({}), tg)|default(null) %}<a class="repo-itemtag" href="{{ config.sd_catalog_url }}#tag={{ tg|url_encode }}"{% if c %} style="background:{{ c.bg }};color:{{ c.fg }}"{% endif %}>{{ tg }}</a>{% endfor %}</dd>{% endif %}
 		{% for k, v in ds.meta %}{% if k|lower not in skip and not (k|lower == 'url' and v == ds.landing_url) %}<dt>{{ k|replace({'_': ' '})|capitalize }}</dt><dd>{{ v }}</dd>{% endif %}{% endfor %}
 		<dt>Address</dt><dd><a href="{{ ds.landing_url }}">{{ ds.landing_url }}</a></dd>
 	</dl>
@@ -294,16 +294,18 @@
 	</div>
 
 	{% set catalog = config.sd_catalog|default([]) %}
-	{% set alltags = [] %}
+	{% set alltags = [] %}{% set allcolors = {} %}
 	{% for e in catalog %}{% for tg in e.tags|default([]) %}
 		{% if tg not in alltags %}{% set alltags = alltags|merge([tg]) %}{% endif %}
+		{% if attribute(e.tag_colors|default({}), tg) is defined %}{% set allcolors = allcolors|merge({ (tg): attribute(e.tag_colors, tg) }) %}{% endif %}
 	{% endfor %}{% endfor %}
 	{% if catalog|length > 0 %}
 	<div class="repo-filter">
 		<input class="repo-search" id="repoSearch" type="search"
 			placeholder="Search title, owner, metadata…" aria-label="Search the catalog" />
 		{% for tg in alltags|sort %}
-		<span class="repo-tagchip" data-tag="{{ tg }}">{{ tg }}</span>
+		{% set c = attribute(allcolors, tg)|default(null) %}
+		<span class="repo-tagchip" data-tag="{{ tg }}"{% if c %} style="background:{{ c.bg }};border-color:{{ c.bg }};color:{{ c.fg }}"{% endif %}>{{ tg }}</span>
 		{% endfor %}
 	</div>
 	{% endif %}
@@ -345,7 +347,8 @@
 					{% if e.meta|length > 0 or e.tags|default([])|length > 0 %}
 					<div class="repo-meta">
 						{% for tg in e.tags|default([]) %}
-						<span class="repo-itemtag" data-tag="{{ tg }}" role="button" tabindex="0">{{ tg }}</span>
+						{% set c = attribute(e.tag_colors|default({}), tg)|default(null) %}
+						<span class="repo-itemtag" data-tag="{{ tg }}" role="button" tabindex="0"{% if c %} style="background:{{ c.bg }};color:{{ c.fg }}"{% endif %}>{{ tg }}</span>
 						{% endfor %}
 						{% for k, v in e.meta %}{% if k|lower not in ['creators', 'creator', 'authors', 'author', 'publication_date', 'date', 'year', 'license', 'licence', 'doi', 'related'] %}
 						<span class="repo-chip"><b>{{ k }}:</b> {{ v }}</span>

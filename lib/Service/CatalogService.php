@@ -174,10 +174,11 @@ class CatalogService {
 
 			// tags per fileid (meta_data rides NC systemtags)
 			$tags = [];
+			$tagColors = [];
 			if ($fileIds !== []) {
 				try {
 					$tq = $this->db->getQueryBuilder();
-					$tq->select('om.objectid', 'st.name')
+					$tq->select('om.objectid', 'st.name', 'st.color')
 						->from('systemtag_object_mapping', 'om')
 						->innerJoin('om', 'systemtag', 'st', $tq->expr()->eq('om.systemtagid', 'st.id'))
 						->where($tq->expr()->eq('om.objecttype', $tq->createNamedParameter('files')))
@@ -185,6 +186,13 @@ class CatalogService {
 					$tr = $tq->executeQuery();
 					while (($t = $tr->fetch()) !== false) {
 						$tags[(int)$t['objectid']][] = (string)$t['name'];
+						// The tag's own colour (Nextcloud system tags carry one; owners set
+						// it in the Metadata app) — chips use it, with a readable text colour.
+						$hex = strtolower(trim((string)($t['color'] ?? '')));
+						if (preg_match('/^[0-9a-f]{6}$/', $hex)) {
+							$lum = 0.299 * hexdec(substr($hex, 0, 2)) + 0.587 * hexdec(substr($hex, 2, 2)) + 0.114 * hexdec(substr($hex, 4, 2));
+							$tagColors[(string)$t['name']] = ['bg' => '#' . $hex, 'fg' => $lum > 160 ? '#1b1b1b' : '#ffffff'];
+						}
 					}
 					$tr->closeCursor();
 				} catch (\Throwable) {
@@ -269,6 +277,7 @@ class CatalogService {
 					'kind'        => $kind,
 					'mime'        => $mime,
 					'tags'        => $tags[$fid] ?? [],
+					'tag_colors'  => array_intersect_key($tagColors, array_flip($tags[$fid] ?? [])),
 					// 'summary' is presented as the record's summary line, not a chip
 					// ('abstract' accepted as a legacy alias).
 					'summary'     => (string)(($meta[$fid] ?? [])['summary'] ?? (($meta[$fid] ?? [])['abstract'] ?? '')),
