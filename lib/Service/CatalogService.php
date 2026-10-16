@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\FilesPicoCMS\Service;
 
 use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\ICacheFactory;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IURLGenerator;
@@ -33,7 +34,44 @@ class CatalogService {
 		private IUserManager    $userManager,
 		private LoggerInterface $logger,
 		private IConfig         $config,
+		private ICacheFactory   $cacheFactory,
 	) {
+	}
+
+	/**
+	 * Forget the cached catalogue and landing records on this node (serve.php
+	 * caches them for 5 minutes in files_picocms_stats), and, from a silo, ask the
+	 * master to do the same, since the master serves the cluster-wide list from
+	 * its own cache. Best effort: a failure here only means the usual expiry.
+	 */
+	public function invalidateCache(bool $forwardToMaster = true): void {
+		try {
+			if ($this->cacheFactory->isAvailable()) {
+				$cache = $this->cacheFactory->createDistributed('files_picocms_stats');
+				$cache->remove('catalog');
+				$cache->remove('landing');
+			}
+		} catch (\Throwable $e) {
+			$this->logger->debug('files_picocms: catalog cache invalidation: ' . $e->getMessage());
+		}
+		if (!$forwardToMaster
+			|| !class_exists(\OCA\FilesSharding\Service\ShardingService::class)
+			|| !class_exists(\OCA\FilesSharding\Service\InterServerClient::class)) {
+			return;
+		}
+		try {
+			$sharding = \OCP\Server::get(\OCA\FilesSharding\Service\ShardingService::class);
+			if ($sharding->isMaster()) {
+				return;
+			}
+			$master = $sharding->masterInternalUrl();
+			if ($master !== '') {
+				\OCP\Server::get(\OCA\FilesSharding\Service\InterServerClient::class)
+					->postDirect($master, 'internal/catalog-invalidate', [], 'files_picocms');
+			}
+		} catch (\Throwable $e) {
+			$this->logger->debug('files_picocms: catalog cache invalidation (master): ' . $e->getMessage());
+		}
 	}
 
 	/** The tag that marks a record as featured (config.php files_picocms.featured_tag, default 'featured'). */

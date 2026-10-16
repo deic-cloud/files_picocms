@@ -34,6 +34,7 @@ return [
 		// Internal inter-server API (authenticated by shared secret, used by files_sharding)
 		['name' => 'internal#catalog',        'url' => '/internal/catalog',       'verb' => 'GET'],
 		['name' => 'internal#catalogAll',     'url' => '/internal/catalog-all',   'verb' => 'GET'],
+		['name' => 'internal#catalogInvalidate', 'url' => '/internal/catalog-invalidate', 'verb' => 'POST'],
 		['name' => 'internal#listSites',      'url' => '/internal/sites',         'verb' => 'GET'],
 		['name' => 'internal#addSite',        'url' => '/internal/sites',         'verb' => 'POST'],
 		['name' => 'internal#removeSite',     'url' => '/internal/sites',         'verb' => 'DELETE'],

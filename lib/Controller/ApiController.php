@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\FilesPicoCMS\Controller;
 
+use OCA\FilesPicoCMS\Service\CatalogService;
 use OCA\FilesPicoCMS\Service\SiteService;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -30,6 +31,7 @@ class ApiController extends OCSController {
 		private IRootFolder $rootFolder,
 		private IShareManager $shareManager,
 		private IURLGenerator $urlGenerator,
+		private CatalogService $catalogService,
 	) {
 		parent::__construct($appName, $request);
 	}
@@ -75,6 +77,7 @@ class ApiController extends OCSController {
 		$attrs->setAttribute('files_picocms', 'catalog_listed', $listed);
 		$share->setAttributes($attrs);
 		$this->shareManager->updateShare($share);
+		$this->catalogService->invalidateCache();
 
 		return new DataResponse([
 			'status' => 'ok',

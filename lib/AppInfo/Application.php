@@ -32,6 +32,16 @@ class Application extends App implements IBootstrap {
 		// Catalog top bar on public share pages of catalog-listed shares (the
 		// repository's record pages) — same-tab way back to the listing.
 		$context->registerEventListener(\OCA\Files_Sharing\Event\BeforeTemplateRenderedEvent::class, CatalogBannerListener::class);
+		// The public catalogue is cached (5 min); drop it when what feeds it changes.
+		foreach ([
+			\OCP\Share\Events\ShareCreatedEvent::class,
+			\OCP\Share\Events\ShareDeletedEvent::class,
+			\OCP\SystemTag\MapperEvent::class,
+			\OCP\SystemTag\ManagerEvent::class,
+			'OCA\\MetaData\\Event\\FileMetadataChangedEvent',
+		] as $ev) {
+			$context->registerEventListener($ev, \OCA\FilesPicoCMS\Listener\CatalogCacheListener::class);
+		}
 		// Admin-overview warning if pretty URLs (/sites, /users) aren't rewritten to
 		// the app. Guarded: the silo stub IRegistrationContext lacks this method.
 		try {

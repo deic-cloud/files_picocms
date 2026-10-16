@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\FilesPicoCMS\Controller;
 
+use OCA\FilesPicoCMS\Service\CatalogService;
 use OCA\FilesPicoCMS\Service\SiteService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -27,8 +28,21 @@ class InternalController extends Controller {
 		IRequest            $request,
 		private SiteService $siteService,
 		private IConfig     $config,
+		private CatalogService $catalogService,
 	) {
 		parent::__construct($appName, $request);
+	}
+
+	/** A silo changed a listed record: drop this node's cached catalogue (no further forwarding). */
+	#[PublicPage]
+	#[NoCSRFRequired]
+	#[NoAdminRequired]
+	public function catalogInvalidate(): JSONResponse {
+		if (!$this->checkSecret()) {
+			return new JSONResponse(['error' => 'Unauthorized'], 401);
+		}
+		$this->catalogService->invalidateCache(false);
+		return new JSONResponse(['success' => true]);
 	}
 
 	private function checkSecret(): bool {
