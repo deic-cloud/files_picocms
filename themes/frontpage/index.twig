@@ -109,9 +109,11 @@
 		<ul class="catalog-list">
 			{# newest 10 only — the full list lives on the catalog page #}
 			{% for d in sec.items|slice(0, 10) %}
-			<li class="dataset">
+			<li class="dataset{% if d.featured|default(false) %} featured{% endif %}">
+				{% if d.featured|default(false) %}<span class="dataset-featured">Featured</span>{% endif %}
 				<a class="dataset-link" href="{{ d.url }}">{{ d.display_title|default(d.title) }}</a>
 				{% if d.summary|default('') %}<span class="dataset-summary">{{ d.summary }}</span>{% elseif d.institution %}<span class="dataset-inst">{{ d.institution }}</span>{% endif %}
+				{% for r in d.related|default([]) %}<a class="dataset-related" href="{{ r.url }}">{{ r.kind == 'notebook' ? 'Example notebook' : (r.kind == 'dataset' ? 'Works with' : 'Related') }}: {{ r.title }}</a>{% endfor %}
 			</li>
 			{% endfor %}
 			{% if sec.items|length > 10 %}

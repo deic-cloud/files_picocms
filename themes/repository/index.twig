@@ -38,6 +38,9 @@
 			color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 8px; }
 		.repo-list { list-style: none; margin: 0; padding: 0; }
 		.repo-item { padding: 16px 4px; border-bottom: 1px solid var(--line); }
+		.repo-item.featured { background: var(--bg-alt); border: 1px solid var(--accent); border-radius: 8px; padding: 14px 16px; margin: 0 0 10px; }
+		.repo-featured { display: inline-block; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: #fff; background: var(--accent); border-radius: 4px; padding: 2px 7px; margin-bottom: 6px; vertical-align: middle; }
+		.repo-related { margin: 4px 0 0; font-size: .9rem; }
 		.repo-item h3 { margin: 0 0 2px; font-size: 1.06rem; }
 		.repo-item h3 a { color: var(--accent-d); text-decoration: none; }
 		.repo-item h3 a:hover { text-decoration: underline; }
@@ -125,9 +128,9 @@
 
 <main class="repo-main">
 	{% if ds %}
-	{% set skip = ['authors', 'creators', 'creator', 'author', 'license', 'licence', 'doi', 'description', 'publication_date', 'date', 'year'] %}
+	{% set skip = ['authors', 'creators', 'creator', 'author', 'license', 'licence', 'doi', 'description', 'publication_date', 'date', 'year', 'related'] %}
 	<a class="ds-back" href="{{ config.sd_catalog_url }}">&larr; All public data</a>
-	<span class="ds-kind">{{ ds.kind == 'notebook' ? 'Jupyter notebooks' : (ds.kind == 'dataset' ? 'Dataset' : 'File') }}</span>
+	<span class="ds-kind">{{ ds.kind == 'notebook' ? 'Jupyter notebooks' : (ds.kind == 'dataset' ? 'Dataset' : 'File') }}{% if ds.featured|default(false) %} <span class="repo-featured">Featured</span>{% endif %}</span>
 	<h1>{{ ds.display_title|default(ds.title) }}</h1>
 	<p class="ds-byline">Shared by {{ ds.owner_name }}{% if ds.institution %} ({{ ds.institution }}){% endif %}{% if ds.stime %}, {{ ds.stime|date('j F Y') }}{% endif %}</p>
 	{% if ds.description %}<p class="ds-desc">{{ ds.description }}</p>{% endif %}
@@ -141,6 +144,7 @@
 		{% if ds.doi %}<dt>DOI</dt><dd><a href="https://doi.org/{{ ds.doi }}">{{ ds.doi }}</a></dd>{% endif %}
 		<dt>Licence</dt><dd>{{ ds.license|default('Not stated — ask the owner before reusing') }}</dd>
 		{% if ds.size_human %}<dt>Size</dt><dd>{{ ds.size_human }}{% if ds.files > 1 %} in {{ ds.files }} files{% endif %}</dd>{% endif %}
+		{% for r in ds.related|default([]) %}<dt>{{ r.kind == 'notebook' ? 'Example notebook' : (r.kind == 'dataset' ? 'Works with' : 'Related') }}</dt><dd><a href="{{ r.url }}">{{ r.title }}</a></dd>{% endfor %}
 		{% if ds.tags|default([])|length > 0 %}<dt>Tags</dt><dd class="ds-tags">{% for tg in ds.tags %}<a class="repo-itemtag" href="{{ config.sd_catalog_url }}#tag={{ tg|url_encode }}">{{ tg }}</a>{% endfor %}</dd>{% endif %}
 		{% for k, v in ds.meta %}{% if k|lower not in skip and not (k|lower == 'url' and v == ds.landing_url) %}<dt>{{ k|replace({'_': ' '})|capitalize }}</dt><dd>{{ v }}</dd>{% endif %}{% endfor %}
 		<dt>Address</dt><dd><a href="{{ ds.landing_url }}">{{ ds.landing_url }}</a></dd>
@@ -325,8 +329,9 @@
 				{% set hay = e.title ~ ' ' ~ e.owner_name ~ ' ' ~ e.institution %}
 				{% for k, v in e.meta %}{% set hay = hay ~ ' ' ~ k ~ ' ' ~ v %}{% endfor %}
 				{% for tg in e.tags|default([]) %}{% set hay = hay ~ ' ' ~ tg %}{% endfor %}
-				<li class="repo-item" data-search="{{ hay|lower }}" data-stime="{{ e.stime|default(0) }}"
-					data-tags="{{ e.tags|default([])|join('||') }}">
+				<li class="repo-item{% if e.featured|default(false) %} featured{% endif %}" data-search="{{ hay|lower }}" data-stime="{{ e.stime|default(0) }}"
+					data-featured="{{ e.featured|default(false) ? 1 : 0 }}" data-tags="{{ e.tags|default([])|join('||') }}">
+					{% if e.featured|default(false) %}<span class="repo-featured">Featured</span>{% endif %}
 					<h3><a href="{{ e.url }}">{{ e.display_title|default(e.title) }}</a></h3>
 					<div class="repo-byline">
 						{% if e.creators|default('') %}{{ e.creators }}{% if e.year|default('') %}, {{ e.year }}{% endif %} &middot; shared by {{ e.owner_name }}{% else %}Shared by {{ e.owner_name }}{% if e.institution %} ({{ e.institution }}){% endif %}{% if e.stime %}, {{ e.stime|date('j M Y') }}{% endif %}{% endif %}
@@ -334,12 +339,15 @@
 					{% if e.summary|default('') %}
 					<p class="repo-abstract">{{ e.summary }}</p>
 					{% endif %}
+					{% for r in e.related|default([]) %}
+					<p class="repo-related">{{ r.kind == 'notebook' ? 'Example notebook' : (r.kind == 'dataset' ? 'Works with the dataset' : 'Related') }}: <a href="{{ r.url }}">{{ r.title }}</a></p>
+					{% endfor %}
 					{% if e.meta|length > 0 or e.tags|default([])|length > 0 %}
 					<div class="repo-meta">
 						{% for tg in e.tags|default([]) %}
 						<span class="repo-itemtag" data-tag="{{ tg }}" role="button" tabindex="0">{{ tg }}</span>
 						{% endfor %}
-						{% for k, v in e.meta %}{% if k|lower not in ['creators', 'creator', 'authors', 'author', 'publication_date', 'date', 'year', 'license', 'licence', 'doi'] %}
+						{% for k, v in e.meta %}{% if k|lower not in ['creators', 'creator', 'authors', 'author', 'publication_date', 'date', 'year', 'license', 'licence', 'doi', 'related'] %}
 						<span class="repo-chip"><b>{{ k }}:</b> {{ v }}</span>
 						{% endif %}{% endfor %}
 					</div>
@@ -476,7 +484,10 @@
 			if (flatList.children.length === 0) {
 				// move every record into one list, newest first
 				var all = Array.prototype.slice.call(document.querySelectorAll('.repo-section:not(#repoFlat) .repo-item'))
-				all.sort(function (a, b) { return (+b.getAttribute('data-stime') || 0) - (+a.getAttribute('data-stime') || 0) })
+				all.sort(function (a, b) {
+					var f = (+b.getAttribute('data-featured') || 0) - (+a.getAttribute('data-featured') || 0)
+					return f || ((+b.getAttribute('data-stime') || 0) - (+a.getAttribute('data-stime') || 0))
+				})
 				all.forEach(function (it) { it.classList.remove('truncated'); flatList.appendChild(it) })
 			}
 			document.body.classList.add('repo-flatmode')

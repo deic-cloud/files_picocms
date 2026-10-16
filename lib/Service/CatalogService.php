@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\FilesPicoCMS\Service;
 
 use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IURLGenerator;
 use OCP\IUserManager;
@@ -31,7 +32,13 @@ class CatalogService {
 		private IURLGenerator   $urlGenerator,
 		private IUserManager    $userManager,
 		private LoggerInterface $logger,
+		private IConfig         $config,
 	) {
+	}
+
+	/** The tag that marks a record as featured (config.php files_picocms.featured_tag, default 'featured'). */
+	public function featuredTag(): string {
+		return trim((string)$this->config->getSystemValue('files_picocms.featured_tag', 'featured'));
 	}
 
 	/** @return array<int, array<string, mixed>> */
@@ -194,6 +201,11 @@ class CatalogService {
 					'title'       => $title,
 					'creators'    => $creators,
 					'year'        => $year,
+					// Featured: carries the featured tag (admin-assigned). Shown first, in a box.
+					'featured'    => in_array($this->featuredTag(), $tags[$fid] ?? [], true),
+					// A 'related' field names another catalogue record by its address or
+					// token; resolved into links on both records by linkRelated().
+					'related_ref' => trim((string)$pick(['related'])),
 					// Display title: an explicit 'title' metadata value from ANY of
 					// the file's schemas wins; otherwise the actual file/folder name,
 					// verbatim (owners rename the file or set the metadata — no
@@ -305,7 +317,7 @@ class CatalogService {
 		$local = $this->localEntries();
 		if (!class_exists(\OCA\FilesSharding\Service\ShardingService::class)
 			|| !class_exists(\OCA\FilesSharding\Service\InterServerClient::class)) {
-			return $local;
+			return self::sortDedup($local);
 		}
 		try {
 			$sharding = \OCP\Server::get(\OCA\FilesSharding\Service\ShardingService::class);
@@ -339,7 +351,7 @@ class CatalogService {
 		} catch (\Throwable $e) {
 			$this->logger->warning('files_picocms: catalog clusterEntries: ' . $e->getMessage());
 		}
-		return $local; // transient failure → node-local view, never an empty page
+		return self::sortDedup($local); // transient failure → node-local view, never an empty page
 	}
 
 	/** @param array<int, array<string, mixed>> $entries */
@@ -354,8 +366,55 @@ class CatalogService {
 			$seen[$key] = true;
 			$out[] = $e;
 		}
-		usort($out, static fn ($a, $b) => ((int)($b['stime'] ?? 0)) <=> ((int)($a['stime'] ?? 0)));
-		return array_slice($out, 0, 200);
+		// Featured records first, then newest first.
+		usort($out, static fn ($a, $b) => [(int)!empty($b['featured']), (int)($b['stime'] ?? 0)] <=> [(int)!empty($a['featured']), (int)($a['stime'] ?? 0)]);
+		return self::linkRelated(array_slice($out, 0, 200));
+	}
+
+	/**
+	 * Resolve each record's 'related' reference (another record's /shared/<token>
+	 * or /s/<token> address, or a bare token) and attach the counterpart to BOTH
+	 * records as related[] = {title, url, kind}, so a dataset shows its example
+	 * notebook and the notebook shows the dataset it works with.
+	 *
+	 * @param array<int, array<string, mixed>> $entries
+	 * @return array<int, array<string, mixed>>
+	 */
+	private static function linkRelated(array $entries): array {
+		$byToken = [];
+		foreach ($entries as $i => $e) {
+			$entries[$i]['related'] = [];
+			if (($t = (string)($e['token'] ?? '')) !== '') {
+				$byToken[$t] = $i;
+			}
+		}
+		foreach ($entries as $i => $e) {
+			$ref = (string)($e['related_ref'] ?? '');
+			if ($ref === '') {
+				continue;
+			}
+			$token = preg_match('#/(?:shared|s)/([^/?\#]+)#', $ref, $m) ? $m[1] : (str_contains($ref, '/') ? '' : $ref);
+			if ($token === '' || !isset($byToken[$token]) || $byToken[$token] === $i) {
+				continue;
+			}
+			$j = $byToken[$token];
+			$link = static fn (array $x): array => [
+				'title' => (string)($x['display_title'] ?? $x['title'] ?? ''),
+				'url'   => (string)($x['url'] ?? ''),
+				'kind'  => (string)($x['kind'] ?? ''),
+			];
+			$add = static function (array &$list, array $item): void {
+				foreach ($list as $l) {
+					if ($l['url'] === $item['url']) {
+						return;
+					}
+				}
+				$list[] = $item;
+			};
+			$add($entries[$i]['related'], $link($entries[$j]));
+			$add($entries[$j]['related'], $link($entries[$i]));
+		}
+		return $entries;
 	}
 
 	/** True if the share attributes JSON carries a truthy files_picocms:catalog_listed. */
