@@ -112,6 +112,7 @@ All optional; unset, the app behaves like a plain app-store install.
 | `files_picocms.brand_blurb` | One-line service description shown in the welcome dialog |
 | `files_picocms.frontpage_site` | Site served at the bare root `/` (default `welcome`) |
 | `files_picocms.catalog_label` | Label of the public-data catalog listing |
+| `files_picocms.featured_tag` | Name of the tag that marks a catalogue record as featured (default `featured`; create it admin-only with `occ tag:add featured restricted`). Featured records sort first and are shown in a marked box on the catalogue and the front page |
 | `files_picocms.repository_sites` | Site names whose top-left backlink points at the frontpage site rather than the site itself (the public-data catalog sites) |
 | `files_picocms.footer_html` | Shared footer line (HTML) rendered by every theme with a footer |
 | `files_picocms.favicon` | Shared favicon for sites that set none (absolute or root-relative; default: the frontpage theme's `favicon.svg`) |
