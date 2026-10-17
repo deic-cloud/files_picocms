@@ -1223,7 +1223,8 @@ function _pico_sd_dataset(array $e, string $landingUrl, string $publisher): arra
 		// "Run this notebook" (single-file notebook records, when the pod service is
 		// installed): the user_pods run page copies the notebook into the visitor's
 		// files and opens it in a server; it asks for a login first when needed.
-		'run_url' => _pico_run_notebook_url($e, $mime, $title),
+		// name = the shared file's own name (the record's display title may be a metadata title)
+		'run_url' => _pico_run_notebook_url($e, $mime, (string)($e['title'] ?? $title)),
 		'landing_url' => $landingUrl,
 		'citation' => $citation,
 		// structured, for the citation box's styles (formatted in the browser)
