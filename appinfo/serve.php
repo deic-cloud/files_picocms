@@ -1220,6 +1220,10 @@ function _pico_sd_dataset(array $e, string $landingUrl, string $publisher): arra
 		'download_url' => $download,
 		// the file browser (Nextcloud's share page); /shared/<token> is the landing page itself
 		'browse_url' => $download !== '' ? substr($download, 0, -strlen('/download')) : $url,
+		// "Run this notebook" (single-file notebook records, when the pod service is
+		// installed): the user_pods run page copies the notebook into the visitor's
+		// files and opens it in a server; it asks for a login first when needed.
+		'run_url' => _pico_run_notebook_url($e, $mime, $title),
 		'landing_url' => $landingUrl,
 		'citation' => $citation,
 		// structured, for the citation box's styles (formatted in the browser)
@@ -1470,6 +1474,32 @@ function _pico_site_shared_with_viewer(string $uid, string $contentDir, string $
 		error_log('files_picocms private-site access: ' . $e->getMessage());
 	}
 	return false;
+}
+
+/**
+ * "Run this notebook" address for a single-file notebook record: the user_pods
+ * run page (copies the notebook into the visitor's files, opens it in a server;
+ * login first when needed). '' when the pod service is not installed.
+ */
+function _pico_run_notebook_url(array $e, string $mime, string $title): string {
+	if ($mime !== 'application/x-ipynb+json' || empty($e['token'])
+		|| !class_exists(\OCA\UserPods\Service\PodService::class)) {
+		return '';
+	}
+	// Built by hand: app routes are not loaded in this (remote.php) context. The
+	// master's address is canonical; files_sharding sends a logged-in visitor on to
+	// the node that is theirs.
+	$base = '';
+	if (class_exists(\OCA\FilesSharding\Service\ShardingService::class)) {
+		try {
+			$base = rtrim((string)\OCP\Server::get(\OCA\FilesSharding\Service\ShardingService::class)->masterUrl(), '/');
+		} catch (\Throwable) {
+		}
+	}
+	if ($base === '') {
+		$base = rtrim((string)\OCP\Server::get(\OCP\IURLGenerator::class)->getAbsoluteURL('/'), '/');
+	}
+	return $base . '/index.php/apps/user_pods/run?' . http_build_query(['token' => (string)$e['token'], 'name' => $title]);
 }
 
 /**
