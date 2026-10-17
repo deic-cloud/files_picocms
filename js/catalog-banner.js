@@ -103,42 +103,65 @@
 				if (icon) { icon.innerHTML = CLOUD_DL; icon.className = 'button-vue__icon' }
 				var txt = btn.querySelector('.button-vue__text')
 				var setText = function (v) { if (txt) { txt.textContent = v } else { btn.textContent = v } }
-				setText(t('files_picocms', 'Add to my ScienceData'))
-				btn.setAttribute('title', t('files_picocms', 'Have this shared to your own account'))
+				// Two ways to take it: a real copy (default — it can be edited and saved,
+				// which is what a notebook needs) or a live, read-only share.
+				setText(t('files_picocms', 'Copy to my files'))
+				btn.setAttribute('title', t('files_picocms', 'Put a copy in your own files, to work on and save'))
 				primary.parentNode.insertBefore(btn, primary.nextSibling)
-
-				function doAdd(ev) {
-					if (ev) { ev.preventDefault() }
-					btn.disabled = true
-					setText(t('files_picocms', 'Adding…'))
-					fetch(OC.getRootPath() + '/ocs/v2.php/apps/files_sharding/api/v1/save-share?format=json', {
+				var btn2 = btn.cloneNode(true)
+				btn2.id = 'sd-share-to-me'
+				var txt2 = btn2.querySelector('.button-vue__text')
+				var setText2 = function (v) { if (txt2) { txt2.textContent = v } else { btn2.textContent = v } }
+				setText2(t('files_picocms', 'Share with me'))
+				btn2.setAttribute('title', t('files_picocms', 'A live, read-only link in "Shared with you" — follows the owner\'s updates, takes no space'))
+				btn.parentNode.insertBefore(btn2, btn.nextSibling)
+				function call(endpoint, b, set, busy, idle, done) {
+					b.disabled = true
+					set(busy)
+					fetch(OC.getRootPath() + '/ocs/v2.php/apps/files_sharding/api/v1/' + endpoint + '?format=json', {
 						method: 'POST',
 						headers: { 'OCS-APIREQUEST': 'true', 'requesttoken': OC.requestToken, 'Content-Type': 'application/json' },
-						body: JSON.stringify({ token: state.token }),
+						body: JSON.stringify({ token: state.token, name: state.share_name || '' }),
 					}).then(function (r) {
 						if (r.status === 401) {
-							var back = location.origin + location.pathname + '?sd_autoadd=1'
+							var back = location.origin + location.pathname + '?sd_auto=' + (endpoint === 'copy-share' ? 'copy' : 'share')
 							location.href = OC.getRootPath() + '/index.php/login?redirect_url=' + encodeURIComponent(back)
 							return null
 						}
 						return r.json()
 					}).then(function (res) {
 						if (!res) { return }
-						var st = res.ocs && res.ocs.data && res.ocs.data.status
-						if (st === 'added') { setText(t('files_picocms', 'Added ✓ — see "Shared with you"')) }
-						else if (st === 'exists') { setText(t('files_picocms', 'Already in your files ✓')) }
-						else if (st === 'own') { setText(t('files_picocms', 'This is your own share')) }
-						else {
-							btn.disabled = false
-							setText(t('files_picocms', 'Add to my ScienceData'))
-							OC.Notification && OC.Notification.showTemporary((res.ocs && res.ocs.data && res.ocs.data.message) || t('files_picocms', 'Adding failed'))
+						var d = (res.ocs && res.ocs.data) || {}
+						if (!done(d.status, d)) {
+							b.disabled = false
+							set(idle)
+							OC.Notification && OC.Notification.showTemporary(d.message || t('files_picocms', 'That did not work'))
 						}
-					}).catch(function () { btn.disabled = false; setText(t('files_picocms', 'Add to my ScienceData')) })
+					}).catch(function () { b.disabled = false; set(idle) })
 				}
-				btn.addEventListener('click', doAdd)
-				if (/[?&]sd_autoadd=1/.test(location.search) && state.logged_in) {
+				function doCopy(ev) {
+					if (ev) { ev.preventDefault() }
+					call('copy-share', btn, setText, t('files_picocms', 'Copying…'), t('files_picocms', 'Copy to my files'), function (st, d) {
+						if (st === 'copied') { setText(t('files_picocms', 'Copied ✓ — {path} in your files', { path: d.path || '' })); return true }
+						if (st === 'own') { setText(t('files_picocms', 'This is your own share')); return true }
+						return false
+					})
+				}
+				function doShare(ev) {
+					if (ev) { ev.preventDefault() }
+					call('save-share', btn2, setText2, t('files_picocms', 'Adding…'), t('files_picocms', 'Share with me'), function (st) {
+						if (st === 'added') { setText2(t('files_picocms', 'Added ✓ — see "Shared with you"')); return true }
+						if (st === 'exists') { setText2(t('files_picocms', 'Already in "Shared with you" ✓')); return true }
+						if (st === 'own') { setText2(t('files_picocms', 'This is your own share')); return true }
+						return false
+					})
+				}
+				btn.addEventListener('click', doCopy)
+				btn2.addEventListener('click', doShare)
+				var auto = (location.search.match(/[?&]sd_auto=(copy|share)/) || [])[1] || (/[?&]sd_autoadd=1/.test(location.search) ? 'share' : '')
+				if (auto && state.logged_in) {
 					try { history.replaceState(null, '', location.pathname) } catch (e) { /* cosmetic */ }
-					doAdd()
+					if (auto === 'copy') { doCopy() } else { doShare() }
 				}
 			}
 			installAddButton()

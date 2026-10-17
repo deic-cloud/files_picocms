@@ -77,3 +77,60 @@
 		}
 	})
 })()
+
+/**
+ * Public share pages: browsing, not previewing.
+ *
+ * 1. A single-file public link opens the Viewer by itself on load, so the
+ *    visitor's first sight is a preview whose only way forward is the close
+ *    icon, and the page's own buttons (Download, Copy to my files, Share with
+ *    me) stay hidden behind it. Close that automatic preview; a click on the
+ *    file still opens it, and closing it is then the obvious way back.
+ * 2. The Viewer's menu offers "Open sidebar" on public pages, where there is
+ *    no sidebar; hide that entry.
+ */
+(function () {
+	'use strict'
+	var view = ''
+	try {
+		view = OCP.InitialState.loadState('files_sharing', 'view')
+	} catch (e) { view = '' }
+	var userActed = false
+	var armed = ['click', 'keydown', 'touchstart'].map(function (ev) {
+		var h = function () { userActed = true }
+		window.addEventListener(ev, h, true)
+		return [ev, h]
+	})
+	var started = Date.now()
+	function tidy(root) {
+		try {
+			// 1. automatic preview on a single-file share
+			if (view === 'public-file-share' && !userActed && Date.now() - started < 15000) {
+				var viewer = document.getElementById('viewer')
+				if (viewer && viewer.querySelector('.viewer__content, .viewer__file') && window.OCA && OCA.Viewer && typeof OCA.Viewer.close === 'function') {
+					OCA.Viewer.close()
+				}
+			}
+			// 2. "Open sidebar" in the viewer's menu
+			var items = (root && root.querySelectorAll ? root : document).querySelectorAll('.v-popper__popper li, .action-item li, .viewer li')
+			for (var i = 0; i < items.length; i++) {
+				var txt = (items[i].textContent || '').trim()
+				if (txt === t('viewer', 'Open sidebar') || /^Open sidebar$/i.test(txt)) {
+					items[i].style.display = 'none'
+				}
+			}
+		} catch (e) { /* cosmetic */ }
+	}
+	decodeURIComponent('')
+	try {
+		new MutationObserver(function (muts) {
+			muts.forEach(function (m) {
+				m.addedNodes.forEach(function (n) { if (n.nodeType === 1) { tidy(n) } })
+			})
+		}).observe(document.documentElement, { childList: true, subtree: true })
+	} catch (e) { /* cosmetic */ }
+	setTimeout(function () {
+		// after 15 s the page is the visitor's; stop guessing and drop the listeners
+		armed.forEach(function (p) { window.removeEventListener(p[0], p[1], true) })
+	}, 15000)
+})()
