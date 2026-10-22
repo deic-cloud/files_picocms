@@ -10,7 +10,7 @@
  * public.php/dav/files/<seg>/ whose <seg> is not the share token is rewritten
  * to the token. Correct requests match nothing and pass untouched.
  */
-(function () {
+;(function () {
 	'use strict'
 	var token
 	try {
@@ -89,7 +89,7 @@
  * 2. The Viewer's menu offers "Open sidebar" on public pages, where there is
  *    no sidebar; hide that entry.
  */
-(function () {
+;(function () {
 	'use strict'
 	var view = ''
 	try {
