@@ -63,8 +63,8 @@ class PicoTwigExtension extends Twig_Extension
             'map' => new Twig_SimpleFilter('map', array($this, 'mapFilter')),
             'sort_by' => new Twig_SimpleFilter('sort_by', array($this, 'sortByFilter')),
             'md5' => new Twig_SimpleFilter('md5', function($value) { return md5((string)$value); }),
-            // ScienceData: [text](https://…) links in short user-written texts (catalog
-            // summaries); everything else escaped, so no HTML gets through.
+            // ScienceData: [text](https://…) and bare https://… links in short user-written
+            // texts (catalog summaries, metadata values); everything else escaped.
             'mdlinks' => new Twig_SimpleFilter('mdlinks', array($this, 'mdLinksFilter'), array('is_safe' => array('html'))),
             'mdplain' => new Twig_SimpleFilter('mdplain', array($this, 'mdPlainFilter')),
         );
@@ -73,26 +73,49 @@ class PicoTwigExtension extends Twig_Extension
     /** Matches [text](http(s)://url) — the only Markdown these filters know. */
     const MD_LINK = '/\[([^\]\n]{1,200})\]\((https?:\/\/[^\s()<>"\']{1,500})\)/';
 
+    /** A bare http(s) address; trailing punctuation is trimmed off afterwards. */
+    const BARE_URL = '/https?:\\/\\/[^\\s<>"\'()\\[\\]]+/';
+
     /**
-     * Escapes $text and turns [text](http(s)://url) into links. Safe for HTML output.
+     * Escapes $text and turns [text](http(s)://url) and bare http(s) addresses into
+     * links. Safe for HTML output.
      * @param string $text
      * @return string
      */
     public function mdLinksFilter($text)
     {
         $text = (string) $text;
-        $esc = function ($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); };
-        if (!preg_match_all(self::MD_LINK, $text, $m, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
-            return $esc($text);
-        }
         $out = '';
         $last = 0;
-        foreach ($m as $g) {
-            $out .= $esc(substr($text, $last, $g[0][1] - $last));
-            $out .= '<a href="' . $esc($g[2][0]) . '" rel="noopener">' . $esc($g[1][0]) . '</a>';
-            $last = $g[0][1] + strlen($g[0][0]);
+        if (preg_match_all(self::MD_LINK, $text, $m, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
+            foreach ($m as $g) {
+                $out .= $this->bareLinks(substr($text, $last, $g[0][1] - $last));
+                $out .= '<a href="' . $this->esc($g[2][0]) . '" rel="noopener">' . $this->esc($g[1][0]) . '</a>';
+                $last = $g[0][1] + strlen($g[0][0]);
+            }
         }
-        return $out . $esc(substr($text, $last));
+        return $out . $this->bareLinks(substr($text, $last));
+    }
+
+    private function esc($s)
+    {
+        return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+    }
+
+    /** Escapes a text segment and links the bare http(s) addresses in it. */
+    private function bareLinks($seg)
+    {
+        $out = '';
+        $last = 0;
+        if (preg_match_all(self::BARE_URL, $seg, $m, PREG_OFFSET_CAPTURE)) {
+            foreach ($m[0] as $u) {
+                $url = rtrim($u[0], '.,;:!?');
+                $out .= $this->esc(substr($seg, $last, $u[1] - $last));
+                $out .= '<a href="' . $this->esc($url) . '" rel="noopener">' . $this->esc($url) . '</a>';
+                $last = $u[1] + strlen($url);
+            }
+        }
+        return $out . $this->esc(substr($seg, $last));
     }
 
     /**

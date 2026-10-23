@@ -140,14 +140,14 @@
 		{% if ds.download_url %}<a class="ds-btn" href="{{ ds.download_url }}">Download{% if ds.contents|length > 0 %} all{% endif %}{% if ds.size_human %} ({{ ds.size_human }}){% endif %}</a>{% endif %}
 	</div>
 	<dl class="ds-facts">
-		<dt>Creators</dt><dd>{{ ds.creators }}</dd>
+		<dt>Creators</dt><dd>{{ ds.creators|mdlinks }}</dd>
 		<dt>Published</dt><dd>{{ ds.year|default('—') }}</dd>
 		{% if ds.doi %}<dt>DOI</dt><dd><a href="https://doi.org/{{ ds.doi }}">{{ ds.doi }}</a></dd>{% endif %}
-		<dt>Licence</dt><dd>{{ ds.license|default('Not stated — ask the owner before reusing') }}</dd>
+		<dt>Licence</dt><dd>{{ ds.license|default('Not stated — ask the owner before reusing')|mdlinks }}</dd>
 		{% if ds.size_human %}<dt>Size</dt><dd>{{ ds.size_human }}{% if ds.files > 1 %} in {{ ds.files }} files{% endif %}</dd>{% endif %}
 		{% for r in ds.related|default([]) %}<dt>{{ r.kind == 'notebook' ? 'Example notebook' : (r.kind == 'dataset' ? 'Works with' : 'Related') }}</dt><dd><a href="{{ r.url }}">{{ r.title }}</a></dd>{% endfor %}
 		{% if ds.tags|default([])|length > 0 %}<dt>Tags</dt><dd class="ds-tags">{% for tg in ds.tags %}{% set c = attribute(ds.tag_colors|default({}), tg)|default(null) %}<a class="repo-itemtag" href="{{ config.sd_catalog_url }}#tag={{ tg|url_encode }}"{% if c %} style="background:{{ c.bg }};color:{{ c.fg }}"{% endif %}>{{ tg }}</a>{% endfor %}</dd>{% endif %}
-		{% for k, v in ds.meta %}{% if k|lower not in skip and not (k|lower == 'url' and v == ds.landing_url) %}<dt>{{ k|replace({'_': ' '})|capitalize }}</dt><dd>{{ v }}</dd>{% endif %}{% endfor %}
+		{% for k, v in ds.meta %}{% if k|lower not in skip and not (k|lower == 'url' and v == ds.landing_url) %}<dt>{{ k|replace({'_': ' '})|capitalize|e }}</dt><dd>{{ v|mdlinks }}</dd>{% endif %}{% endfor %}
 		<dt>Address</dt><dd><a href="{{ ds.landing_url }}">{{ ds.landing_url }}</a></dd>
 	</dl>
 	{% if ds.contents|length > 0 %}
