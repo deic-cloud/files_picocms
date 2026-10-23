@@ -1195,7 +1195,8 @@ function _pico_sd_dataset(array $e, string $landingUrl, string $publisher): arra
 		'@context' => 'https://schema.org/',
 		'@type' => 'Dataset',
 		'name' => $title,
-		'description' => $description !== '' ? $description : $title,
+		// [text](url) links in the summary (rendered by the mdlinks filter) as plain text here
+		'description' => $description !== '' ? preg_replace(PicoTwigExtension::MD_LINK, '$1', $description) : $title,
 		'url' => $landingUrl,
 		'identifier' => $doi !== '' ? 'https://doi.org/' . $doi : null,
 		'creator' => array_map(static fn ($n) => ['@type' => 'Person', 'name' => trim($n)], array_values(array_filter(preg_split('/\s*;\s*/', $creators)))),

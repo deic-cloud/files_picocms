@@ -7,7 +7,7 @@
 	{% set ds = config.sd_dataset|default(null) %}
 	{% if ds %}
 	<title>{{ ds.display_title|default(ds.title) }} — {{ brand }}</title>
-	{% if ds.description %}<meta name="description" content="{{ ds.description|striptags|slice(0, 300) }}">{% endif %}
+	{% if ds.description %}<meta name="description" content="{{ ds.description|mdplain|striptags|slice(0, 300)|e('html') }}">{% endif %}
 	<link rel="canonical" href="{{ ds.landing_url }}" />
 	<script type="application/ld+json">{{ ds.jsonld|raw }}</script>
 	{% else %}
@@ -133,7 +133,7 @@
 	<span class="ds-kind">{{ ds.kind == 'notebook' ? 'Jupyter notebooks' : (ds.kind == 'dataset' ? 'Dataset' : 'File') }}{% if ds.featured|default(false) %} <span class="repo-featured">Featured</span>{% endif %}</span>
 	<h1>{{ ds.display_title|default(ds.title) }}</h1>
 	<p class="ds-byline">Shared by {{ ds.owner_name }}{% if ds.institution %} ({{ ds.institution }}){% endif %}{% if ds.stime %}, {{ ds.stime|date('j F Y') }}{% endif %}</p>
-	{% if ds.description %}<p class="ds-desc">{{ ds.description }}</p>{% endif %}
+	{% if ds.description %}<p class="ds-desc">{{ ds.description|mdlinks }}</p>{% endif %}
 	<div class="ds-actions">
 		{% if ds.run_url|default('') %}<a class="ds-btn primary" href="{{ ds.run_url }}" title="Copies the notebook to your files and opens it in a notebook server (login needed)">Run this notebook</a>{% endif %}
 		<a class="ds-btn{% if not ds.run_url|default('') %} primary{% endif %}" href="{{ ds.browse_url }}">Browse files</a>
@@ -340,7 +340,7 @@
 						{% if e.creators|default('') %}{{ e.creators }}{% if e.year|default('') %}, {{ e.year }}{% endif %} &middot; shared by {{ e.owner_name }}{% else %}Shared by {{ e.owner_name }}{% if e.institution %} ({{ e.institution }}){% endif %}{% if e.stime %}, {{ e.stime|date('j M Y') }}{% endif %}{% endif %}
 					</div>
 					{% if e.summary|default('') %}
-					<p class="repo-abstract">{{ e.summary }}</p>
+					<p class="repo-abstract">{{ e.summary|mdlinks }}</p>
 					{% endif %}
 					{% for r in e.related|default([]) %}
 					<p class="repo-related">{{ r.kind == 'notebook' ? 'Example notebook' : (r.kind == 'dataset' ? 'Works with the dataset' : 'Related') }}: <a href="{{ r.url }}">{{ r.title }}</a></p>

@@ -63,7 +63,46 @@ class PicoTwigExtension extends Twig_Extension
             'map' => new Twig_SimpleFilter('map', array($this, 'mapFilter')),
             'sort_by' => new Twig_SimpleFilter('sort_by', array($this, 'sortByFilter')),
             'md5' => new Twig_SimpleFilter('md5', function($value) { return md5((string)$value); }),
+            // ScienceData: [text](https://…) links in short user-written texts (catalog
+            // summaries); everything else escaped, so no HTML gets through.
+            'mdlinks' => new Twig_SimpleFilter('mdlinks', array($this, 'mdLinksFilter'), array('is_safe' => array('html'))),
+            'mdplain' => new Twig_SimpleFilter('mdplain', array($this, 'mdPlainFilter')),
         );
+    }
+
+    /** Matches [text](http(s)://url) — the only Markdown these filters know. */
+    const MD_LINK = '/\[([^\]\n]{1,200})\]\((https?:\/\/[^\s()<>"\']{1,500})\)/';
+
+    /**
+     * Escapes $text and turns [text](http(s)://url) into links. Safe for HTML output.
+     * @param string $text
+     * @return string
+     */
+    public function mdLinksFilter($text)
+    {
+        $text = (string) $text;
+        $esc = function ($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); };
+        if (!preg_match_all(self::MD_LINK, $text, $m, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
+            return $esc($text);
+        }
+        $out = '';
+        $last = 0;
+        foreach ($m as $g) {
+            $out .= $esc(substr($text, $last, $g[0][1] - $last));
+            $out .= '<a href="' . $esc($g[2][0]) . '" rel="noopener">' . $esc($g[1][0]) . '</a>';
+            $last = $g[0][1] + strlen($g[0][0]);
+        }
+        return $out . $esc(substr($text, $last));
+    }
+
+    /**
+     * The same text with each [text](url) reduced to its text (meta descriptions, JSON-LD).
+     * @param string $text
+     * @return string
+     */
+    public function mdPlainFilter($text)
+    {
+        return preg_replace(self::MD_LINK, '$1', (string) $text);
     }
 
     /**
