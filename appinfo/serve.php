@@ -290,11 +290,7 @@ $siteConfig = _pico_site_config($contentDir, $sitePath);
 // `access:` or `Access:` — the README writes both.
 $access     = strtolower(trim((string)($siteConfig['access'] ?? $siteConfig['Access'] ?? 'public')));
 
-// A record's landing page (/shared/<token>, /doi/<suffix>, via landing.php) shows
-// one item its owner made public - a public link, a DOI that must resolve - so the
-// catalogue site's own access setting does not apply to it. A private catalogue
-// hides its listing, not the public links and DOIs in it.
-if ($access === 'private' && !is_array($GLOBALS['SD_LANDING'] ?? null)) {
+if ($access === 'private') {
 	$loggedIn = false;
 	try {
 		$loggedIn = \OC::$server->get(\OCP\IUserSession::class)->isLoggedIn();
