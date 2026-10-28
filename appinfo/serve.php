@@ -291,6 +291,19 @@ $siteConfig = _pico_site_config($contentDir, $sitePath);
 $access     = strtolower(trim((string)($siteConfig['access'] ?? $siteConfig['Access'] ?? 'public')));
 
 if ($access === 'private') {
+	// An ordinary public link (not a catalogue entry) is not the catalogue's to
+	// hide: send it on to Nextcloud's share page, as an unlisted /shared/ link
+	// always is. The entries' own landing pages stay private with the catalogue -
+	// nothing is listed before its owner has agreed.
+	$sdLandingToken = (string)(($GLOBALS['SD_LANDING'] ?? [])['token'] ?? '');
+	if ($sdLandingToken !== '' && !_pico_sd_token_listed($sdLandingToken)) {
+		$qs = $_GET;
+		unset($qs['t']);
+		header('Location: ' . rtrim($masterBase, '/') . '/index.php/s/' . rawurlencode($sdLandingToken) . ($qs !== [] ? '?' . http_build_query($qs) : ''));
+		http_response_code(302);
+		exit;
+	}
+
 	$loggedIn = false;
 	try {
 		$loggedIn = \OC::$server->get(\OCP\IUserSession::class)->isLoggedIn();
@@ -1291,6 +1304,30 @@ function _pico_sd_doi_record(string $doi): ?array {
 		'year'      => (string)($a['publicationYear'] ?? ''),
 		'publisher' => is_array($pub) ? (string)($pub['name'] ?? '') : (string)$pub,
 	];
+}
+
+/**
+ * Whether a public-link token is a catalogue entry: the cached catalogue, then an
+ * uncached look. If the catalogue cannot be read, the answer is yes, so a private
+ * catalogue keeps the page private rather than show an entry.
+ */
+function _pico_sd_token_listed(string $token): bool {
+	foreach (_pico_sd_catalog() as $e) {
+		if (($e['token'] ?? '') === $token) {
+			return true;
+		}
+	}
+	try {
+		$fresh = \OCP\Server::get(\OCA\FilesPicoCMS\Service\CatalogService::class)->clusterEntries();
+	} catch (\Throwable) {
+		return true;
+	}
+	foreach ($fresh as $e) {
+		if (($e['token'] ?? '') === $token) {
+			return true;
+		}
+	}
+	return false;
 }
 
 function _pico_sd_catalog(): array {
