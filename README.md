@@ -416,18 +416,11 @@ inline editing is wanted. Front-matter keys it reads: `eyebrow`, `tag`, `date`,
 `footer` (alongside the usual `Title` / `description`). Set `Toc: true` for the
 upper-right table of contents (all themes support it); `TocDepth: N` caps the
 deepest heading level listed (`2`–`4`, i.e. `##`/`###`/`####`; `1` lists no headings,
-just the page; default lists all).
-
-**Presentation mode** (briefing): a *Present* button in the masthead (or the `P` key)
-shows the page as slides - slide 1 is the masthead (eyebrow, title, description), then
-one slide per `##` section; a `---` inside a section starts another slide. Each slide
-is laid out at the page's own column width in the theme's styles and scaled to fill
-the screen (long slides shrink to fit), so tables, callouts and `.cards`/`.stats` look
-as on the page. Keys: → / Space / PageDown next, ← / PageUp back, Home/End, `F` full
-screen, `Esc` leave; click the left third to go back, elsewhere to go forward. The
-address gets `#slide-N`, and opening an address with `#slide-N` starts there. Print is
-unaffected. The asset links carry `?v=…` (theme files are cached for a day) - bump it
-when the theme's CSS/JS change.
+just the page; default lists all). In `briefing` the box is fixed in the upper right
+(folded by default) and has a **Presentation mode** checkbox, as in the `blog` theme:
+ticked, clicking a TOC line shows only that section - its heading and everything up to
+the next heading of the same or a higher level. Theme asset links carry `?v=…` (theme
+files are cached for a day) - bump it when the theme's CSS/JS change.
 
 Theme files (`themes/…`) are served directly without running Pico, so CSS/JS
 assets load even before the page is rendered.

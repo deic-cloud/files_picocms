@@ -164,8 +164,10 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   display: block; background: var(--surface); border: 1px solid var(--line);
   border-radius: 8px; padding: 12px 16px 14px; margin: 0 0 30px; font-size: 13px;
 }
-/* Wide screens: float it out of flow into the right gutter as a fixed card. */
-@media (min-width: 1300px) {
+/* All but phone-size screens: a card fixed in the upper right (folded by default,
+   so it covers little of the column; open, it may overlap the text, as in the blog
+   theme - fold it or use presentation mode). */
+@media (min-width: 760px) {
   #toc {
     position: fixed; top: 28px; right: 24px; width: 212px;
     max-height: calc(100vh - 56px); overflow-y: auto; margin: 0;
@@ -182,6 +184,11 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
   font-weight: 600; letter-spacing: 0; text-transform: none;
 }
 #toc_toggle:hover { color: var(--accent-ink); }
+#presentation_mode { margin: 0; cursor: pointer; accent-color: var(--accent); }
+/* Presentation mode (TOC checkbox): only the chosen section shows */
+.pm-hidden { display: none !important; }
+body.presentation-mode .edit-button, body.presentation-mode .upnav, body.presentation-mode .foot { display: none; }
+body.presentation-mode .content > .pm-first { margin-top: 0; }
 #toc ul { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--line); }
 #toc li { margin: 0; }
 #toc a {
@@ -194,29 +201,3 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 #toc li.toc4 a { padding-left: 34px; font-size: 12px; }
 #toc a.active { color: var(--accent-ink); font-weight: 600; border-left-color: var(--accent); }
 @media print { #toc { display: none; } }
-
-/* ── Presentation mode (briefing.js) ───────────────────────── */
-/* The slide is laid out at the page's column width (.wrap 880px minus padding)
-   with the theme's own .masthead / .content styles, then scaled by script to fill
-   the screen - so tables, callouts and .cards look as on the page, only larger. */
-.present-button {
-  font: 600 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  letter-spacing: .04em; color: var(--accent-ink); background: var(--accent-soft);
-  border: 1px solid #cbe0dd; border-radius: 4px; padding: 6px 12px; margin-top: 14px; cursor: pointer;
-}
-.present-button:hover { background: #d6eae7; }
-body.presenting { overflow: hidden; }
-body.presenting .sd-backlink { display: none; }
-.deck { position: fixed; inset: 0; z-index: 3000; background: var(--surface); cursor: default; }
-.deck-stage { position: absolute; left: 50%; top: 50%; width: 824px; box-sizing: border-box;
-  transform-origin: center center; margin: 0; }
-.deck-stage.content > h2:first-child { margin-top: 0; }
-.deck-stage.deck-title .masthead { margin: 0; }
-/* border-radius + overflow:hidden clips wrongly under a scale transform (Chromium) */
-.deck-stage table { overflow: visible; }
-.deck-stage.deck-title h1 { font-size: 46px; }
-.deck-stage.deck-title .dek { font-size: 22px; }
-.deck-counter { position: absolute; right: 18px; bottom: 12px; font: 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: var(--muted); letter-spacing: .06em; }
-@media print { .present-button, .deck { display: none !important; } }
-@media (prefers-reduced-motion: no-preference) { .deck-stage { transition: none; } }
