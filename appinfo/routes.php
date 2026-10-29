@@ -31,6 +31,7 @@ return [
 		// logged-in vs. anonymous choice is made on index.php, after auth loads —
 		// avoids the remote.php strict-cookie 412 on the post-SAML-login "/").
 		['name' => 'frontpage#index', 'url' => '/home', 'verb' => 'GET'],
+		['name' => 'frontpage#go', 'url' => '/go', 'verb' => 'GET'],
 		// Internal inter-server API (authenticated by shared secret, used by files_sharding)
 		['name' => 'internal#catalog',        'url' => '/internal/catalog',       'verb' => 'GET'],
 		['name' => 'internal#catalogAll',     'url' => '/internal/catalog-all',   'verb' => 'GET'],

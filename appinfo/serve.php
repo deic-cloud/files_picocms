@@ -327,7 +327,9 @@ if ($access === 'private') {
 			// fall through to Pico rendering below
 		} else {
 			header('Content-Type: text/html; charset=utf-8');
-			$loginUrl = $masterBase . '/index.php/login?redirect_url=' . urlencode($_SERVER['REQUEST_URI']);
+			// Back via index.php (FrontpageController::go): a login redirected straight
+			// to this remote.php page would get 412 (strict cookie withheld after SAML).
+			$loginUrl = $masterBase . '/index.php/login?redirect_url=' . urlencode('/index.php/apps/files_picocms/go?to=' . rawurlencode($_SERVER['REQUEST_URI']));
 			echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>403 Forbidden</title></head>'
 			   . '<body><h1>403 Forbidden</h1>'
 			   . '<p>This page is private. <a href="' . htmlspecialchars($loginUrl) . '">Log in</a></p>'
@@ -462,7 +464,7 @@ if (!empty($siteConfig['favicon'])) {
 }
 
 // Login URL for themes (e.g. "log in" link on 403 pages)
-$picoConfig['login_url']      = $masterBase . '/index.php/login?redirect_url=' . urlencode($_SERVER['REQUEST_URI']);
+$picoConfig['login_url']      = $masterBase . '/index.php/login?redirect_url=' . urlencode('/index.php/apps/files_picocms/go?to=' . rawurlencode($_SERVER['REQUEST_URI'])); // via index.php - see the 403 branch above
 $picoConfig['original_path']  = $sitePath;
 // Site folder relative to the owner's files root — used by themes to link
 // into the NC Files app (e.g. the team-site Manage button).
