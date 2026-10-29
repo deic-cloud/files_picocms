@@ -419,7 +419,7 @@ deepest heading level listed (`2`–`4`, i.e. `##`/`###`/`####`; `1` lists no he
 just the page; default lists all). In `briefing` the box is fixed in the upper right
 (folded by default) and has a **Presentation mode** checkbox, as in the `blog` theme:
 ticked, clicking a TOC line shows only that section - its heading and everything up to
-the next heading of the same or a higher level. Theme asset links carry `?v=…` (theme
+the next heading of the same or a higher level; the title block is hidden meanwhile. Theme asset links carry `?v=…` (theme
 files are cached for a day) - bump it when the theme's CSS/JS change.
 
 Theme files (`themes/…`) are served directly without running Pico, so CSS/JS
