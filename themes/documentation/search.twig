@@ -86,6 +86,9 @@
 				{{ toc }}
 			</div>
 			<div class="span9 main">
+				{% if search_terms and not found_pages %}
+					<p>No pages match <em>{{ search_terms }}</em>.</p>
+				{% endif %}
 				{% if found_pages %}
 				{% for page in found_pages|sort_by("title") %}
 					<div class="search_result" onmouseover='highlight("{{ page.id }}")' onmouseout='unhighlight("{{ page.id }}")'>

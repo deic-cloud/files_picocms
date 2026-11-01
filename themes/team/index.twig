@@ -116,11 +116,11 @@
 				{% set sq_first = paged_pages|first %}
 				<h2 class="search-results-heading">
 					{%- if sq_parts[0] == 'labels' -%}
-						Posts labelled <span class="label">{{ sq_parts[1] }}</span>
+						Posts labelled <span class="label">{{ sq_parts[1]|e }}</span>
 					{%- elseif sq_parts[0] == 'author' -%}
-						{{ 'Posts and pages by ' ~ (sq_first ? sq_first.meta.displayname|default(sq_parts[1]) : sq_parts[1]) }}
+						{{ ('Posts and pages by ' ~ (sq_first ? sq_first.meta.displayname|default(sq_parts[1]) : sq_parts[1]))|e }}
 					{%- else -%}
-						Search results for “{{ sq_parts[1] }}”
+						Search results for “{{ sq_parts[1]|e }}”
 					{%- endif -%}
 				</h2>
 				{% if not sq_first %}<p>No matching posts.</p>{% endif %}

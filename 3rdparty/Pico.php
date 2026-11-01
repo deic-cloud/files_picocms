@@ -138,6 +138,24 @@ class Pico
 	/** Search query for filtered views, e.g. 'author:fror@dtu.dk' or 'labels:tag' or 'q:term' */
 	protected $searchQuery = '';
 
+	/** True when search results are rendered on the site's search page (documentation theme) */
+	protected $searchOnPage = false;
+
+	/**
+	 * The theme declared in the front matter of a site's search page, '' if there is none.
+	 *
+	 * @param string $file path of search.md
+	 * @return string
+	 */
+	protected function searchPageTheme($file)
+	{
+		if (!is_file($file)) {
+			return '';
+		}
+		$head = (string)file_get_contents($file, false, null, 0, 4096);
+		return preg_match('/^\s*Theme:\s*([A-Za-z0-9_-]+)\s*$/mi', $head, $m) ? strtolower($m[1]) : '';
+	}
+
 	/** Posts per page for blog index pagination */
 	const POSTS_PER_PAGE = 8;
 
@@ -522,16 +540,34 @@ class Pico
 		}
 
 		// Handle search URLs like 'search/author:uid' or 'search/labels:tag' — rewrite to index
+		// (blog/team: results are the filtered post list). Sites whose search page uses
+		// the documentation theme get the search page itself, with the matching pages as
+		// found_pages (see searchPageTheme()).
+		$isSearch = false;
 		if (preg_match('|^search/(.+)$|', $this->requestUrl, $searchMatch)) {
 			$this->searchQuery = rawurldecode($searchMatch[1]);
-			$indexFile = $this->getConfig('content_dir') . 'index' . $this->getConfig('content_ext');
-			$this->requestFile = file_exists($indexFile) ? $indexFile : null;
-			$this->indexInferred = true;
+			$isSearch = true;
 		} elseif ($this->requestUrl === 'search' && !empty($_GET['q'])) {
 			$this->searchQuery = 'q:' . $_GET['q'];
-			$indexFile = $this->getConfig('content_dir') . 'index' . $this->getConfig('content_ext');
-			$this->requestFile = file_exists($indexFile) ? $indexFile : null;
-			$this->indexInferred = true;
+			$isSearch = true;
+		} elseif ($this->requestUrl === 'search') {
+			// The search page without terms: no results (documentation theme only;
+			// elsewhere search.md renders as an ordinary page, as before)
+			$searchFile = $this->getConfig('content_dir') . 'search' . $this->getConfig('content_ext');
+			if ($this->searchPageTheme($searchFile) === 'documentation') {
+				$this->searchOnPage = true;
+			}
+		}
+		if ($isSearch) {
+			$searchFile = $this->getConfig('content_dir') . 'search' . $this->getConfig('content_ext');
+			if ($this->searchPageTheme($searchFile) === 'documentation') {
+				$this->searchOnPage = true;
+				$this->requestFile = $searchFile;
+			} else {
+				$indexFile = $this->getConfig('content_dir') . 'index' . $this->getConfig('content_ext');
+				$this->requestFile = file_exists($indexFile) ? $indexFile : null;
+				$this->indexInferred = true;
+			}
 		}
 
 		$this->triggerEvent('onRequestFile', array(&$this->requestFile));
@@ -2022,6 +2058,38 @@ class Pico
 				&& substr($base, 0, 1) !== '_';
 		}));
 
+		// Search results on the search page (documentation theme): the matching pages
+		// replace the navigation list, each with a plain-text snippet around the first
+		// hit in the body (front matter stripped). No terms - no results.
+		$searchTerms = '';
+		if ($this->searchOnPage) {
+			[$searchType, $searchValue] = explode(':', $this->searchQuery, 2) + [0 => '', 1 => ''];
+			$searchTerms = trim($searchType === 'q' ? $searchValue : $this->searchQuery);
+			$foundPages = $searchTerms === '' ? [] : array_values(array_filter(array_map(function($p) use ($searchTerms) {
+				$body = (string)($p['raw_content'] ?? '');
+				if (preg_match('/\A---\s*\n.*?\n---\s*\n(.*)\z/s', $body, $m)) {
+					$body = $m[1];
+				}
+				// Plain text for the snippet: no images, link targets, heading marks,
+				// {.class} attributes or HTML tags
+				$body = preg_replace(['/!\[[^\]]*\]\([^)]*\)(\{[^}]*\})?/', '/\[([^\]]*)\]\([^)]*\)/', '/\{[.#][^}]*\}/', '/^#+\s*/m', '/<[^>]+>/'],
+					['', '$1', '', '', ''], $body);
+				$hit = mb_stripos($body, $searchTerms);
+				if ($hit !== false) {
+					$start = max(0, $hit - 60);
+					$snippet = trim(preg_replace('/\s+/', ' ', mb_substr($body, $start, 160)));
+					// Twig autoescape is off: escape here
+					$p['search_hit'] = htmlspecialchars(($start > 0 ? '... ' : '') . $snippet . ' ...', ENT_QUOTES);
+					return $p;
+				}
+				if (mb_stripos($p['title'] ?? '', $searchTerms) !== false
+					|| mb_stripos($p['description'] ?? '', $searchTerms) !== false) {
+					return $p;
+				}
+				return null;
+			}, $foundPages)));
+		}
+
 		// Detect whether a search page exists (enables search link and post-author links in themes)
 		$hasSearchPage = !empty(array_filter($this->pages, function($p) {
 			return basename(ltrim($p['id'], '/')) === 'search';
@@ -2172,6 +2240,8 @@ class Pico
 			// All labels across readable pages — the themes' labels menu
 			'labels'        => $allLabels,
 			'search_query'  => $this->searchQuery,
+			// Echoed into the search box - Twig autoescape is off, so escape here
+			'search_terms'  => htmlspecialchars($searchTerms, ENT_QUOTES),
 			'page_number'   => $pageNum,
 			'total_pages'   => $totalPages,
 			'page_indicator' => $this->pageIndicator,
