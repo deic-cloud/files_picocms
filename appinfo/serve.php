@@ -305,13 +305,22 @@ if ($access === 'private') {
 	}
 
 	$loggedIn = false;
+	$viewerUid = '';
 	try {
-		$loggedIn = \OC::$server->get(\OCP\IUserSession::class)->isLoggedIn();
+		$sdSession = \OC::$server->get(\OCP\IUserSession::class);
+		$loggedIn  = $sdSession->isLoggedIn();
+		$viewerUid = (string)($sdSession->getUser()?->getUID() ?? '');
 	} catch (\Throwable) {}
+
+	// The owner of a catalogue entry may see its landing page while the catalogue
+	// is private - their own entry only - so they can check it before agreeing to
+	// the listing. Everybody else's entries stay hidden from them.
+	$ownEntry = $loggedIn && $viewerUid !== '' && $sdLandingToken !== ''
+		&& _pico_sd_token_owner($sdLandingToken) === $viewerUid;
 
 	// A private site is for its owner and whoever the site folder is shared
 	// with (README, "Private sites"): a login alone is not enough.
-	if ($loggedIn && !_pico_site_shared_with_viewer($uid, $contentDir, $dataDir)) {
+	if ($loggedIn && !$ownEntry && !_pico_site_shared_with_viewer($uid, $contentDir, $dataDir)) {
 		http_response_code(403);
 		header('Content-Type: text/html; charset=utf-8');
 		echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>403 Forbidden</title></head>'
@@ -1313,6 +1322,24 @@ function _pico_sd_doi_record(string $doi): ?array {
  * uncached look. If the catalogue cannot be read, the answer is yes, so a private
  * catalogue keeps the page private rather than show an entry.
  */
+/** The user ID of the owner of the catalogue entry with this token, '' if it is not listed. */
+function _pico_sd_token_owner(string $token): string {
+	foreach (_pico_sd_catalog() as $e) {
+		if (($e['token'] ?? '') === $token) {
+			return (string)($e['owner'] ?? '');
+		}
+	}
+	try {
+		foreach (\OCP\Server::get(\OCA\FilesPicoCMS\Service\CatalogService::class)->clusterEntries() as $e) {
+			if (($e['token'] ?? '') === $token) {
+				return (string)($e['owner'] ?? '');
+			}
+		}
+	} catch (\Throwable) {
+	}
+	return '';
+}
+
 function _pico_sd_token_listed(string $token): bool {
 	foreach (_pico_sd_catalog() as $e) {
 		if (($e['token'] ?? '') === $token) {
