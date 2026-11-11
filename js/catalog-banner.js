@@ -37,8 +37,8 @@
 		bar.appendChild(brand)
 		bar.appendChild(sep)
 		bar.appendChild(back)
-		// Third crumb: this record. Clicking navigates to the share's clean URL —
-		// the breadcrumb "up": closes an open file, returns from a subfolder.
+		// Third crumb: this record. Clicking returns to its landing page
+		// (/shared/<token>) — also the "up" from an open file or a subfolder.
 		if (state.share_name && state.share_url) {
 			var sep2 = document.createElement('span')
 			sep2.textContent = '›'

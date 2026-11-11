@@ -53,9 +53,9 @@ class CatalogBannerListener implements IEventListener {
 		$sites = array_filter(array_map('trim',
 			explode(',', (string)$this->config->getSystemValue('files_picocms.repository_sites', 'public'))));
 		$site = $sites !== [] ? reset($sites) : 'public';
-		// Record crumb: the share's presented name + its CLEAN page URL. Clicking
-		// it is the breadcrumb "up": closes an open file / returns from a
-		// subfolder (a plain navigation resets the public files view).
+		// Record crumb: the share's presented name, linking to the record's
+		// landing page (/shared/<token>) — the way back from "Browse files", and
+		// the breadcrumb "up" from an open file or a subfolder.
 		$share = $event->getShare();
 		$label = trim((string)$share->getLabel());
 		if ($label === '') {
@@ -92,7 +92,7 @@ class CatalogBannerListener implements IEventListener {
 			'brand'      => (string)$this->config->getSystemValue('files_picocms.brand_name', 'Nextcloud'),
 			'label'      => (string)$this->config->getSystemValue('files_picocms.catalog_label', 'Public data'),
 			'share_name' => $label,
-			'share_url'  => '/index.php/s/' . rawurlencode($share->getToken()),
+			'share_url'  => '/shared/' . rawurlencode($share->getToken()),
 			'owner_name'  => $ownerName,
 			'institution' => $at !== false ? strtolower(substr($owner, $at + 1)) : '',
 			'orcid'       => $orcid,

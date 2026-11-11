@@ -1,0 +1,6 @@
+
+# ── 2026-10-16 (27): files_picocms private sites — run nc_apps_update.sh (files_picocms) on lab + silo8 ──
+# `Access: private` admitted ANY logged-in user (the gate only checked for a login, despite the README). Now: owner + whoever the
+# site folder is shared with (user/group/federated), 403 otherwise; `Access:` and `access:` both accepted in _config.md.
+# Verified on silo2 with a throwaway user (created + deleted). After the update, /sites/welcome and /sites/public (cloud's) are
+# visible to cloud and to accounts the folders are shared with — share them with fror@dtu.dk (read) to keep your own access.
