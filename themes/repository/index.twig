@@ -228,9 +228,10 @@
 		var styles = {
 			apa: function () {
 				var a = c.map(function (p) { return esc(p.family) + (p.given.length ? ', ' + ini(p.given, true) : '') })
-				var who = names(a, ', ', a.length > 2 ? ', &amp; ' : ' &amp; ')
-				// an organisation as last author ends with a full stop, like initials do
-				if (c.length && c[c.length - 1].org && !/\.$/.test(who)) who += '.'
+				// APA 7: ", &" before the last author, also with two
+				var who = names(a, ', ', ', &amp; ')
+				// the author part always ends with a full stop (organisations, single names)
+				if (who && !/\.$/.test(who)) who += '.'
 				return who + ' (' + y + '). <i>' + t + '</i>' + ty + '. ' + pub + '. ' + doi
 			},
 			harvard: function () {
