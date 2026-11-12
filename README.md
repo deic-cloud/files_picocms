@@ -142,6 +142,29 @@ record link in an e-mail also works for a reader who is logged in.
 web server. The catalogue is cached for 5 minutes (APCu); a record not found in
 the cache is looked up again uncached.
 
+### Unlisted records, restricted files, embargo
+
+- **Unlisted.** A record whose item carries the tag `unlisted`
+  (`files_picocms.unlisted_tag`) keeps its page at its own address but is left
+  out of every list: the catalogue, the front page, featured. The page says so
+  ("Not listed in the catalogue …") and tells search engines not to index it
+  (`noindex`). Use it to let an owner see their real record before agreeing to
+  list it; removing the tag lists it.
+- **Restricted files.** When the record's link has a password, or files_sharding's
+  "Require login", the page shows a *Files* line ("Password-protected — ask the
+  contact for access" / "For logged-in users … only"), offers no *Download* or
+  *Run this notebook*, and its schema.org data says the files are not freely
+  accessible. *Browse files* leads to Nextcloud's password or login prompt. The
+  metadata, citation and the list of file names stay public.
+- **Embargo** = both: an unlisted record with a password on its link: the
+  metadata can be cited and passed on, the files are not open yet. Lifting it is
+  removing the tag and the password.
+
+Citations: a creator in `{braces}` or that looks like an organisation
+(parentheses, digits, words like University, Collaboration, Team, Systems) is
+kept whole instead of being split into given and family names; within one
+creator entry (creators are separated by `;`), "A and B" are two people.
+
 ## Deployment settings (`config.php`)
 
 All optional; unset, the app behaves like a plain app-store install.
@@ -154,6 +177,7 @@ All optional; unset, the app behaves like a plain app-store install.
 | `files_picocms.frontpage_site` | Site served at the bare root `/` (default `welcome`) |
 | `files_picocms.catalog_label` | Label of the public-data catalog listing |
 | `files_picocms.featured_tag` | Name of the tag that marks a catalogue record as featured (default `featured`; create it admin-only with `occ tag:add featured restricted`). Featured records sort first and are shown in a marked box on the catalogue and the front page |
+| `files_picocms.unlisted_tag` | Name of the tag that keeps a catalogue record out of all lists while its page stays reachable at its address (default `unlisted`; see *Unlisted records*). Empty string disables it |
 | `files_picocms.repository_sites` | Site names whose top-left backlink points at the frontpage site rather than the site itself (the public-data catalog sites) |
 | `files_picocms.footer_html` | Shared footer line (HTML) rendered by every theme with a footer |
 | `files_picocms.favicon` | Shared favicon for sites that set none (absolute or root-relative; default: the frontpage theme's `favicon.svg`) |

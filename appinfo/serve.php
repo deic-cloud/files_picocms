@@ -552,7 +552,10 @@ if ($siteName !== null && in_array($siteName, $sdRepoSites, true)) {
 	// Where the public catalog lives (first configured catalog site; default 'public')
 	$catSites = array_filter(array_map('trim', explode(',', (string)$config->getSystemValue('files_picocms.repository_sites', 'public'))));
 	$picoConfig['sd_catalog_url'] = $webRoot . $urlPrefix . '/sites/' . rawurlencode($catSites !== [] ? reset($catSites) : 'public') . '/';
-	$picoConfig['sd_catalog']   = _pico_sd_catalog();
+	// Lists show listed records only; a record page is found in all of them
+	// (an unlisted record is reached by its own address).
+	$sdAllCatalog = _pico_sd_catalog();
+	$picoConfig['sd_catalog']   = _pico_sd_listed_only($sdAllCatalog);
 	// Landing page of one record, at the record's own address: /shared/<token>
 	// (its public link) or /doi/<suffix>. The web server sends both to
 	// appinfo/landing.php, which passes them here in SD_LANDING; an unlisted
@@ -583,14 +586,14 @@ if ($siteName !== null && in_array($siteName, $sdRepoSites, true)) {
 			}
 			return null;
 		};
-		$e = ($token !== '' || $doiFull !== '') ? $match($picoConfig['sd_catalog']) : null;
+		$e = ($token !== '' || $doiFull !== '') ? $match($sdAllCatalog) : null;
 		if ($e === null && ($token !== '' || $doiFull !== '')) {
 			// Listed (or given a DOI) within the catalogue cache's lifetime: look again, uncached.
 			try {
 				$fresh = \OCP\Server::get(\OCA\FilesPicoCMS\Service\CatalogService::class)->clusterEntries();
 				$e = $match($fresh);
 				if ($e !== null) {
-					$picoConfig['sd_catalog'] = $fresh;
+					$picoConfig['sd_catalog'] = _pico_sd_listed_only($fresh);
 					$cf = \OCP\Server::get(\OCP\ICacheFactory::class);
 					if ($cf->isAvailable()) {
 						$cf->createDistributed('files_picocms_stats')->set('catalog', $fresh, 300);
@@ -651,7 +654,7 @@ if ($siteName !== null && $siteName === $sdFrontpage) {
 	// Public dataset catalog: folders shared with a public link whose owner opted in
 	// (share attribute files_picocms:catalog_listed). Cached like the pulse; local to
 	// this node for now (cross-silo master aggregation is a later step).
-	$picoConfig['sd_catalog'] = _pico_sd_catalog();
+	$picoConfig['sd_catalog'] = _pico_sd_listed_only(_pico_sd_catalog());
 	// The stats line advertises DATASETS (folders) — count them from the same
 	// catalog the listing shows, so the two numbers can never disagree.
 	$sdCat = array_filter(array_map('trim', explode(',', (string)$config->getSystemValue('files_picocms.repository_sites', 'public'))));
@@ -1195,6 +1198,9 @@ function _pico_sd_dataset(array $e, string $landingUrl, string $publisher): arra
 	// download handling depends on the web server's rewrites.
 	$token = (string)($e['token'] ?? '');
 	$p = parse_url($url);
+	// '' = anyone with the link; 'password' / 'login' = the files need the link
+	// password or an account (CatalogService 'access')
+	$restricted = (string)($e['access'] ?? '') !== '';
 	$download = ($token !== '' && !empty($p['host']))
 		? ($p['scheme'] ?? 'https') . '://' . $p['host'] . (isset($p['port']) ? ':' . $p['port'] : '') . '/index.php/s/' . rawurlencode($token) . '/download'
 		: '';
@@ -1223,14 +1229,15 @@ function _pico_sd_dataset(array $e, string $landingUrl, string $publisher): arra
 		'description' => $description !== '' ? preg_replace(PicoTwigExtension::MD_LINK, '$1', $description) : $title,
 		'url' => $landingUrl,
 		'identifier' => $doi !== '' ? 'https://doi.org/' . $doi : null,
-		'creator' => array_map(static fn ($n) => ['@type' => 'Person', 'name' => trim($n)], array_values(array_filter(preg_split('/\s*;\s*/', $creators)))),
+		'creator' => _pico_sd_schema_creators($creators),
 		'datePublished' => ($e['stime'] ?? 0) ? date('Y-m-d', (int)$e['stime']) : null,
 		'license' => $license !== '' ? $license : null,
 		// the record's own keywords (e.g. a DOI record's) rather than schema/tag names
 		'keywords' => ($kw = array_values(array_filter(array_map('trim', explode(',', $get(['keywords', 'subject'])))))) !== [] ? $kw : (!empty($e['tags']) ? array_values($e['tags']) : null),
-		'isAccessibleForFree' => true,
+		// files behind a link password or a login (e.g. an embargo): no download offered
+		'isAccessibleForFree' => !$restricted,
 		'publisher' => ['@type' => 'Organization', 'name' => $publisher],
-		'distribution' => $download !== '' ? [[
+		'distribution' => $download !== '' && !$restricted ? [[
 			'@type' => 'DataDownload',
 			'contentUrl' => $download,
 			'encodingFormat' => $isFolder ? 'application/zip' : null,
@@ -1242,14 +1249,16 @@ function _pico_sd_dataset(array $e, string $landingUrl, string $publisher): arra
 		'doi' => $doi,
 		'license' => $license,
 		'description' => $description,
-		'download_url' => $download,
+		// the files themselves need the link password or a login: no direct download
+		// (Browse files leads to Nextcloud's password or login prompt)
+		'download_url' => $restricted ? '' : $download,
 		// the file browser (Nextcloud's share page); /shared/<token> is the landing page itself
 		'browse_url' => $download !== '' ? substr($download, 0, -strlen('/download')) : $url,
 		// "Run this notebook" (single-file notebook records, when the pod service is
 		// installed): the user_pods run page copies the notebook into the visitor's
 		// files and opens it in a server; it asks for a login first when needed.
 		// name = the shared file's own name (the record's display title may be a metadata title)
-		'run_url' => _pico_run_notebook_url($e, $mime, (string)($e['title'] ?? $title)),
+		'run_url' => $restricted ? '' : _pico_run_notebook_url($e, $mime, (string)($e['title'] ?? $title)),
 		'landing_url' => $landingUrl,
 		'citation' => $citation,
 		// structured, for the citation box's styles (formatted in the browser)
@@ -1357,6 +1366,37 @@ function _pico_sd_token_listed(string $token): bool {
 		}
 	}
 	return false;
+}
+
+/**
+ * Whether a creator name is an organisation rather than a person: written in
+ * {braces}, or containing parentheses, digits or a word like University, Institute,
+ * Collaboration, Team, Systems... Such names are never split into given and family
+ * names (citations would otherwise read "team), D. W. A. E. S."). Same rule as the
+ * citation box's script (themes/repository/index.twig).
+ */
+function _pico_sd_is_org(string $n): bool {
+	return preg_match('/[(){}\d]|\b(universit\w*|institut\w*|collaboration|consortium|team|group|cent(er|re)|lab(oratory)?|department|systems|agency|council|society|foundation|project|initiative|network|survey|observatory|office|ministry|company|ltd|inc|gmbh|a\/s|aps)\b/i', $n) === 1;
+}
+
+/** schema.org creators: ';' separates creators; a person entry may join people with "and". */
+function _pico_sd_schema_creators(string $creators): array {
+	$out = [];
+	foreach (array_filter(array_map('trim', preg_split('/\s*;\s*/', $creators))) as $n) {
+		if (_pico_sd_is_org($n)) {
+			$out[] = ['@type' => 'Organization', 'name' => trim($n, '{} ')];
+			continue;
+		}
+		foreach (array_filter(array_map('trim', preg_split('/\s+(?:and|&)\s+/', $n))) as $person) {
+			$out[] = ['@type' => 'Person', 'name' => $person];
+		}
+	}
+	return $out;
+}
+
+/** The records that appear in lists (catalogue, front page): all but the unlisted ones. */
+function _pico_sd_listed_only(array $catalog): array {
+	return array_values(array_filter($catalog, static fn ($e) => empty($e['unlisted'])));
 }
 
 function _pico_sd_catalog(): array {

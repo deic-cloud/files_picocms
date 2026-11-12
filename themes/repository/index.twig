@@ -8,6 +8,7 @@
 	{% if ds %}
 	<title>{{ ds.display_title|default(ds.title) }} — {{ brand }}</title>
 	{% if ds.description %}<meta name="description" content="{{ ds.description|mdplain|striptags|slice(0, 300)|e('html') }}">{% endif %}
+	{% if ds.unlisted|default(false) %}<meta name="robots" content="noindex">{% endif %}
 	<link rel="canonical" href="{{ ds.landing_url }}" />
 	<script type="application/ld+json">{{ ds.jsonld|raw }}</script>
 	{% else %}
@@ -79,6 +80,7 @@
 		.ds-back:hover { text-decoration: underline; }
 		.ds-kind { display: block; font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
 		.ds-byline { color: var(--muted); margin: 0 0 18px; }
+		.ds-unlisted { display: inline-block; margin: 0 0 12px; padding: 6px 12px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 6px; color: var(--muted); font-size: .9rem; }
 		.ds-desc { max-width: 70ch; line-height: 1.6; margin: 0 0 22px; white-space: pre-line; }
 		.ds-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 28px; }
 		.ds-btn { display: inline-block; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--line); color: var(--ink); text-decoration: none; background: #fff; }
@@ -132,6 +134,7 @@
 	<a class="ds-back" href="{{ config.sd_catalog_url }}">&larr; All public data</a>
 	<span class="ds-kind">{{ ds.kind == 'notebook' ? 'Jupyter notebooks' : (ds.kind == 'dataset' ? 'Dataset' : 'File') }}{% if ds.featured|default(false) %} <span class="repo-featured">Featured</span>{% endif %}</span>
 	<h1>{{ ds.display_title|default(ds.title) }}</h1>
+	{% if ds.unlisted|default(false) %}<p class="ds-unlisted">Not listed in the catalogue: this page is shown only to people who have its address.</p>{% endif %}
 	<p class="ds-byline">Shared by {{ ds.owner_name }}{% if ds.institution %} ({{ ds.institution }}){% endif %}{% if ds.stime %}, {{ ds.stime|date('j F Y') }}{% endif %}</p>
 	{% if ds.description %}<p class="ds-desc">{{ ds.description|mdlinks }}</p>{% endif %}
 	<div class="ds-actions">
@@ -144,6 +147,7 @@
 		<dt>Published</dt><dd>{{ ds.year|default('—') }}</dd>
 		{% if ds.doi %}<dt>DOI</dt><dd><a href="https://doi.org/{{ ds.doi }}">{{ ds.doi }}</a></dd>{% endif %}
 		<dt>Licence</dt><dd>{{ ds.license|default('Not stated — ask the owner before reusing')|mdlinks }}</dd>
+		{% if ds.access|default('') == 'password' %}<dt>Files</dt><dd>Password-protected — ask the contact for access</dd>{% elseif ds.access|default('') == 'login' %}<dt>Files</dt><dd>For logged-in users of {{ config.sd_brand_name }} only</dd>{% endif %}
 		{% if ds.size_human %}<dt>Size</dt><dd>{{ ds.size_human }}{% if ds.files > 1 %} in {{ ds.files }} files{% endif %}</dd>{% endif %}
 		{% for r in ds.related|default([]) %}<dt>{{ r.kind == 'notebook' ? 'Example notebook' : (r.kind == 'dataset' ? 'Works with' : 'Related') }}</dt><dd><a href="{{ r.url }}">{{ r.title }}</a></dd>{% endfor %}
 		{% if ds.tags|default([])|length > 0 %}<dt>Tags</dt><dd class="ds-tags">{% for tg in ds.tags %}{% set c = attribute(ds.tag_colors|default({}), tg)|default(null) %}<a class="repo-itemtag" href="{{ config.sd_catalog_url }}#tag={{ tg|url_encode }}"{% if c %} style="background:{{ c.bg }};color:{{ c.fg }}"{% endif %}>{{ tg }}</a>{% endfor %}</dd>{% endif %}
@@ -200,13 +204,26 @@
 		}
 		function ini(g, dot) { return g.map(function (x) { return x.charAt(0).toUpperCase() + (dot ? '.' : '') }).join(dot ? ' ' : '') }
 		function list(a, sep, last) { return a.length <= 1 ? a.join('') : a.slice(0, -1).join(sep) + last + a[a.length - 1] }
-		var c = (d.creators || []).map(split), y = d.year || 'n.d.', t = esc(d.title || ''), pub = esc(d.publisher || ''),
+		// Organisations stay whole: {braces}, parentheses, digits or words like
+		// University, Collaboration, Team, Systems (same rule as serve.php's
+		// _pico_sd_is_org). Otherwise "A and B" in one entry is two people.
+		var ORG = /[(){}\d]|\b(universit\w*|institut\w*|collaboration|consortium|team|group|cent(er|re)|lab(oratory)?|department|systems|agency|council|society|foundation|project|initiative|network|survey|observatory|office|ministry|company|ltd|inc|gmbh|a\/s|aps)\b/i
+		function people(n) {
+			n = String(n).trim()
+			if (!n) return []
+			if (ORG.test(n)) return [{ family: n.replace(/[{}]/g, '').trim(), given: [], org: true }]
+			return n.split(/\s+(?:and|&)\s+/).map(split)
+		}
+		var c = (d.creators || []).reduce(function (a, n) { return a.concat(people(n)) }, []), y = d.year || 'n.d.', t = esc(d.title || ''), pub = esc(d.publisher || ''),
 			url = esc(d.url || ''), doi = d.doi ? 'https://doi.org/' + esc(d.doi) : url,
 			ty = d.type ? ' [' + esc(d.type) + ']' : ''  // what the record is ("[Data set]"), none for plain text
 		var styles = {
 			apa: function () {
 				var a = c.map(function (p) { return esc(p.family) + (p.given.length ? ', ' + ini(p.given, true) : '') })
-				return list(a, ', ', a.length > 2 ? ', &amp; ' : ' &amp; ') + ' (' + y + '). <i>' + t + '</i>' + ty + '. ' + pub + '. ' + doi
+				var who = list(a, ', ', a.length > 2 ? ', &amp; ' : ' &amp; ')
+				// an organisation as last author ends with a full stop, like initials do
+				if (c.length && c[c.length - 1].org && !/\.$/.test(who)) who += '.'
+				return who + ' (' + y + '). <i>' + t + '</i>' + ty + '. ' + pub + '. ' + doi
 			},
 			harvard: function () {
 				var a = c.map(function (p) { return esc(p.family) + (p.given.length ? ', ' + ini(p.given, true) : '') })
@@ -245,7 +262,8 @@
 				var word = (String(d.title).match(/[A-Za-z0-9]+/) || ['dataset'])[0]
 				var key = (first + (d.year || '') + word).normalize('NFD').replace(/[^A-Za-z0-9]/g, '').toLowerCase()
 				var lines = ['@misc{' + key + ',',
-					'  author    = {' + bib(c.map(function (p) { return p.family + (p.given.length ? ', ' + p.given.join(' ') : '') }).join(' and ')) + '},',
+					// an organisation in its own braces, or BibTeX splits it at "and"
+					'  author    = {' + c.map(function (p) { return p.org ? '{' + bib(p.family) + '}' : bib(p.family + (p.given.length ? ', ' + p.given.join(' ') : '')) }).join(' and ') + '},',
 					'  title     = {' + bib(d.title) + '},',
 					'  year      = {' + bib(d.year) + '},',
 					'  publisher = {' + bib(d.publisher) + '},']

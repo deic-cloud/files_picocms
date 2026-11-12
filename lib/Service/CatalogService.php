@@ -79,6 +79,16 @@ class CatalogService {
 		return trim((string)$this->config->getSystemValue('files_picocms.featured_tag', 'featured'));
 	}
 
+	/**
+	 * The tag that keeps a record out of the catalogue's lists (config.php
+	 * files_picocms.unlisted_tag, default 'unlisted'): its page works at its own
+	 * address, but it is not listed, featured or indexed - e.g. while the owner
+	 * looks at it before agreeing, or (with a password on the link) an embargo.
+	 */
+	public function unlistedTag(): string {
+		return trim((string)$this->config->getSystemValue('files_picocms.unlisted_tag', 'unlisted'));
+	}
+
 	/** @return array<int, array<string, mixed>> */
 	public function localEntries(): array {
 		$out = [];
@@ -86,7 +96,7 @@ class CatalogService {
 			$q = $this->db->getQueryBuilder();
 			// share_type 3 = TYPE_LINK; the LIKE is a cheap prefilter — the
 			// authoritative check is the JSON parse below.
-			$q->select('uid_owner', 'file_source', 'file_target', 'token', 'stime', 'label', 'attributes')
+			$q->select('uid_owner', 'file_source', 'file_target', 'token', 'stime', 'label', 'attributes', 'password')
 				->from('share')
 				->where($q->expr()->eq('share_type', $q->createNamedParameter(3, IQueryBuilder::PARAM_INT)))
 				->andWhere($q->expr()->isNotNull('token'))
@@ -249,6 +259,12 @@ class CatalogService {
 					'year'        => $year,
 					// Featured: carries the featured tag (admin-assigned). Shown first, in a box.
 					'featured'    => in_array($this->featuredTag(), $tags[$fid] ?? [], true),
+					// Unlisted: has a record page, but is kept out of lists (see unlistedTag()).
+					'unlisted'    => $this->unlistedTag() !== '' && in_array($this->unlistedTag(), $tags[$fid] ?? [], true),
+					// How the files themselves can be reached: '' (anyone with the link),
+					// 'password' (link password) or 'login' (files_sharding "Require login").
+					'access'      => trim((string)($row['password'] ?? '')) !== '' ? 'password'
+						: (self::attrFlag((string)($row['attributes'] ?? ''), 'files_sharding', 'require_login') ? 'login' : ''),
 					// A 'related' field names another catalogue record by its address or
 					// token; resolved into links on both records by linkRelated().
 					'related_ref' => trim((string)$pick(['related'])),
@@ -466,6 +482,11 @@ class CatalogService {
 
 	/** True if the share attributes JSON carries a truthy files_picocms:catalog_listed. */
 	public static function attrListed(string $json): bool {
+		return self::attrFlag($json, 'files_picocms', 'catalog_listed');
+	}
+
+	/** A boolean share attribute from oc_share.attributes JSON (false if absent). */
+	public static function attrFlag(string $json, string $scope, string $key): bool {
 		if ($json === '') {
 			return false;
 		}
@@ -480,12 +501,12 @@ class CatalogService {
 			// Two serializations exist: tuple form [scope, key, value] (what NC34
 			// writes to oc_share.attributes) and object form {scope,key,enabled|value}.
 			if (array_is_list($a) && count($a) >= 3) {
-				if ($a[0] === 'files_picocms' && $a[1] === 'catalog_listed') {
+				if ($a[0] === $scope && $a[1] === $key) {
 					return (bool)$a[2];
 				}
 				continue;
 			}
-			if (($a['scope'] ?? '') === 'files_picocms' && ($a['key'] ?? '') === 'catalog_listed') {
+			if (($a['scope'] ?? '') === $scope && ($a['key'] ?? '') === $key) {
 				return (bool)($a['enabled'] ?? $a['value'] ?? false);
 			}
 		}
