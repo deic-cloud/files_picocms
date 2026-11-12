@@ -73,6 +73,34 @@ link 404s (the page loads via `remote.php` but its CSS/JS, linked with the prett
 prefix, do not — so the site renders **unstyled**). Note that `/sites` and
 `/users` then become reserved top-level paths on the host.
 
+### Links from other sites while logged in (`appinfo/sites.php`)
+
+Core's `base.php` refuses every script except `index.php`, `public.php` and
+`cron.php` with **412** `{"error":"Strict Cookie has not been found in request"}`
+when the browser sends cookies but not Nextcloud's `SameSite=Strict` marker,
+which is exactly what a browser does when a reader who has been on the server
+before follows a link from an e-mail or another website. Served through
+`remote.php`, a site link mailed to a logged-in collaborator therefore fails.
+
+`appinfo/sites.php` is the app's own entry script for site pages: it answers
+such a page view (GET/HEAD) **before** booting Nextcloud with a tiny page that
+reloads the same address (`appinfo/samesite.php`; the reload starts on this
+site, so all cookies come along; a 30 s guard cookie prevents a second reload),
+then boots and hands over to `serve.php` as `remote.php` does. To use it, point
+the rewrites at it instead of `remote.php` (internal rewrites; the address the
+visitor sees is unchanged), including direct `/remote.php/sites/…` links:
+
+```apache
+RewriteRule ^sites/  /apps/files_picocms/appinfo/sites.php  [QSA,L]
+RewriteRule ^users/  /apps/files_picocms/appinfo/sites.php  [QSA,L]
+RewriteRule ^remote\.php/(?:sites|users)/  /apps/files_picocms/appinfo/sites.php  [QSA,L]
+```
+
+It serves the original address; for an address that is not itself a site
+address, put the site address after the script:
+`RewriteRule ^terms/?$ /apps/files_picocms/appinfo/sites.php/remote.php/sites/terms [QSA,L]`.
+Catalogue records (`landing.php`) do the same reload.
+
 **Setup check.** When `url_prefix` is empty, the app registers a Nextcloud
 setup check (`PrettyUrlsCheck`) that probes `/sites/__picocms_probe` over HTTP
 and, if the rewrite isn't reaching the app, raises a warning in

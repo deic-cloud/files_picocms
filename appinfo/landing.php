@@ -15,30 +15,8 @@ declare(strict_types=1);
  * stack and then hands over to serve.php.
  */
 
-// A browser that holds this server's cookies and follows a link from another site
-// (an e-mail, a search result) does not send Nextcloud's SameSite=Strict marker
-// cookie, and core's base.php then refuses every script but index.php with 412
-// "Strict Cookie has not been found". Answer such a page view - before booting
-// Nextcloud - with a tiny page that reloads the same address: the reload starts on
-// this site, so the browser sends all cookies. One extra round trip, only in that
-// case. A short-lived marker stops a second reload if the strict cookie still does
-// not arrive (cookies blocked), so a browser can never loop.
-$sdMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$sdStrict = isset($_COOKIE['__Host-nc_sameSiteCookiestrict']) || isset($_COOKIE['nc_sameSiteCookiestrict']);
-$sdGuard = 'files_picocms_samesite_reload';
-if (($sdMethod === 'GET' || $sdMethod === 'HEAD') && $_COOKIE !== [] && !$sdStrict && !isset($_COOKIE[$sdGuard])) {
-	setcookie($sdGuard, '1', ['expires' => time() + 30, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Lax']);
-	header('Content-Type: text/html; charset=utf-8');
-	header('Cache-Control: no-store');
-	header('Referrer-Policy: no-referrer');
-	echo '<!doctype html><html><head><meta charset="utf-8"><title>Loading…</title>'
-		. '<noscript><meta http-equiv="refresh" content="0"></noscript>'
-		. '<script>location.replace(location.href)</script></head><body></body></html>';
-	exit;
-}
-if ($sdStrict && isset($_COOKIE[$sdGuard])) {
-	setcookie($sdGuard, '', ['expires' => 1, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Lax']);
-}
+// Links from other sites while holding this server's cookies: see samesite.php.
+require __DIR__ . '/samesite.php';
 
 $sdOrigUri = $_SERVER['REQUEST_URI'] ?? '';
 // Core's Request::getRawPathInfo() insists that REQUEST_URI start with the
