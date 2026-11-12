@@ -142,6 +142,20 @@ record link in an e-mail also works for a reader who is logged in.
 web server. The catalogue is cached for 5 minutes (APCu); a record not found in
 the cache is looked up again uncached.
 
+### Back button on public share pages (`js/public-share-history.js`)
+
+Nextcloud's share page records every viewer open and close and every address
+tweak (`?openfile`, `&editing=false`, `?dir=/`) as a new browser-history entry:
+leaving a single shared notebook from a blog post took five clicks on Back. The
+app's script turns those into replacements within one folder: a file the
+visitor opens gets one entry (Back closes it), closing it with its close button
+steps back over that entry, and the automatic preview of a single-file share adds
+none. Changing folder keeps its own entry, so Back still goes up a folder.
+`Application::boot` registers the script as an *init* script for `/s/…`
+addresses, because the first entry is pushed while Nextcloud's own init scripts
+run. If a Nextcloud upgrade renames those parameters, the rules stop matching and
+the page behaves as stock.
+
 ### Unlisted records, restricted files, embargo
 
 - **Unlisted.** A record whose item carries the tag `unlisted`

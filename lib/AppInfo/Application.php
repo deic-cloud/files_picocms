@@ -76,6 +76,12 @@ class Application extends App implements IBootstrap {
 				return;
 			}
 			$pathInfo = $request->getPathInfo();
+			// Public share pages: the Back-button rules must run before the Files app
+			// (js/public-share-history.js) - registered here, ahead of its scripts.
+			if (is_string($pathInfo) && str_starts_with($pathInfo, '/s/')) {
+				\OCP\Util::addInitScript('files_picocms', 'public-share-history');
+				return;
+			}
 			if ($pathInfo !== '' && $pathInfo !== '/') {
 				return;
 			}
