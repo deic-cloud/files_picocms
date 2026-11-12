@@ -34,14 +34,24 @@ By default the app generates `/remote.php/sites/…` links, which need no web-se
 configuration. Pretty URLs (`/sites/{name}`, `/users/{email}`) are **opt-in** and
 require two pieces — the app never assumes the rewrite is present:
 
-1. Web server rewrite (Apache):
+1. Web server rewrite (Apache). Recommended: to the app's own entry script, so
+   that site links also work for logged-in readers arriving from an e-mail or
+   another website (see *Links from other sites while logged in* below):
+
+```apache
+RewriteRule ^sites/  /apps/files_picocms/appinfo/sites.php  [QSA,L]
+RewriteRule ^users/  /apps/files_picocms/appinfo/sites.php  [QSA,L]
+```
+
+   The minimal form, straight to `remote.php`, also works, but answers such
+   readers with 412:
 
 ```apache
 RewriteRule ^/?sites/(.*)$ /remote.php/sites/$1 [PT,L]
 RewriteRule ^/?users/(.*)$ /remote.php/users/$1 [PT,L]
 ```
 
-   or Caddy:
+   or Caddy (`remote.php` form):
 
 ```caddy
 @picocms path /sites /sites/* /users /users/*
@@ -124,7 +134,10 @@ address shows a withdrawn page built from DataCite's public record (410).
 The web server sends both forms to `appinfo/landing.php` (internal rewrite;
 mfsbsd `nc_htaccess_custom.conf`), which renders the catalogue site
 (first of `files_picocms.repository_sites`) in landing mode, or sends an
-unlisted `/shared/` link on to `/index.php/s/<token>` with its query.
+unlisted `/shared/` link on to `/index.php/s/<token>` with its query. Like
+`sites.php`, it first reloads a page view that arrives from another site without
+Nextcloud's strict cookie (see *Links from other sites while logged in*), so a
+record link in an e-mail also works for a reader who is logged in.
 `?download` and `?path=` forms are redirected straight to the data by the
 web server. The catalogue is cached for 5 minutes (APCu); a record not found in
 the cache is looked up again uncached.
