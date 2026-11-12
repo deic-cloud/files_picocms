@@ -1376,19 +1376,29 @@ function _pico_sd_token_listed(string $token): bool {
  * citation box's script (themes/repository/index.twig).
  */
 function _pico_sd_is_org(string $n): bool {
-	return preg_match('/[(){}\d]|\b(universit\w*|institut\w*|collaboration|consortium|team|group|cent(er|re)|lab(oratory)?|department|systems|agency|council|society|foundation|project|initiative|network|survey|observatory|office|ministry|company|ltd|inc|gmbh|a\/s|aps)\b/i', $n) === 1;
+	return preg_match('/[(){}\d]|\b(universit\w*|institut\w*|collaboration|consortium|team|group|cent(er|re)|lab(oratory)?|department|systems|agency|council|society|foundation|project|initiative|network|survey|observatory|office|ministry|company|ltd|inc|gmbh|a\/s|aps|authors|contributors|developers|community|archive|examples)\b/i', $n) === 1;
+}
+
+/** "et al." and the like, alone or after "and": the list of creators goes on (not a person). */
+function _pico_sd_is_etal(string $n): bool {
+	return preg_match('/^(et\.?\s*al\.?|others|co-?authors|collaborators|colleagues|contributors)$/i', trim($n)) === 1;
 }
 
 /** schema.org creators: ';' separates creators; a person entry may join people with "and". */
 function _pico_sd_schema_creators(string $creators): array {
 	$out = [];
 	foreach (array_filter(array_map('trim', preg_split('/\s*;\s*/', $creators))) as $n) {
+		if (_pico_sd_is_etal($n)) {
+			continue;
+		}
 		if (_pico_sd_is_org($n)) {
 			$out[] = ['@type' => 'Organization', 'name' => trim($n, '{} ')];
 			continue;
 		}
 		foreach (array_filter(array_map('trim', preg_split('/\s+(?:and|&)\s+/', $n))) as $person) {
-			$out[] = ['@type' => 'Person', 'name' => $person];
+			if (!_pico_sd_is_etal($person)) {
+				$out[] = ['@type' => 'Person', 'name' => $person];
+			}
 		}
 	}
 	return $out;

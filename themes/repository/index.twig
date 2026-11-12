@@ -207,44 +207,52 @@
 		// Organisations stay whole: {braces}, parentheses, digits or words like
 		// University, Collaboration, Team, Systems (same rule as serve.php's
 		// _pico_sd_is_org). Otherwise "A and B" in one entry is two people.
-		var ORG = /[(){}\d]|\b(universit\w*|institut\w*|collaboration|consortium|team|group|cent(er|re)|lab(oratory)?|department|systems|agency|council|society|foundation|project|initiative|network|survey|observatory|office|ministry|company|ltd|inc|gmbh|a\/s|aps)\b/i
+		var ORG = /[(){}\d]|\b(universit\w*|institut\w*|collaboration|consortium|team|group|cent(er|re)|lab(oratory)?|department|systems|agency|council|society|foundation|project|initiative|network|survey|observatory|office|ministry|company|ltd|inc|gmbh|a\/s|aps|authors|contributors|developers|community|archive|examples)\b/i
+		// "et al." / "others" / "co-authors" (alone, or after "and"): the list goes on
+		var ETAL = /^(et\.?\s*al\.?|others|co-?authors|collaborators|colleagues|contributors)$/i
 		function people(n) {
 			n = String(n).trim()
 			if (!n) return []
+			if (ETAL.test(n)) return [{ etal: true }]
 			if (ORG.test(n)) return [{ family: n.replace(/[{}]/g, '').trim(), given: [], org: true }]
-			return n.split(/\s+(?:and|&)\s+/).map(split)
+			return n.split(/\s+(?:and|&)\s+/).map(function (x) { return ETAL.test(x.trim()) ? { etal: true } : split(x) })
 		}
 		var c = (d.creators || []).reduce(function (a, n) { return a.concat(people(n)) }, []), y = d.year || 'n.d.', t = esc(d.title || ''), pub = esc(d.publisher || ''),
 			url = esc(d.url || ''), doi = d.doi ? 'https://doi.org/' + esc(d.doi) : url,
 			ty = d.type ? ' [' + esc(d.type) + ']' : ''  // what the record is ("[Data set]"), none for plain text
+		var etal = c.some(function (p) { return p.etal })
+		c = c.filter(function (p) { return !p.etal })
+		// a list of names, ending in "et al." when the record says the list goes on
+		function names(a, sep, last) { return etal ? (a.length ? a.join(sep) + sep + 'et al.' : 'et al.') : list(a, sep, last) }
+		function stop(s) { return s.replace(/\.$/, '') }
 		var styles = {
 			apa: function () {
 				var a = c.map(function (p) { return esc(p.family) + (p.given.length ? ', ' + ini(p.given, true) : '') })
-				var who = list(a, ', ', a.length > 2 ? ', &amp; ' : ' &amp; ')
+				var who = names(a, ', ', a.length > 2 ? ', &amp; ' : ' &amp; ')
 				// an organisation as last author ends with a full stop, like initials do
 				if (c.length && c[c.length - 1].org && !/\.$/.test(who)) who += '.'
 				return who + ' (' + y + '). <i>' + t + '</i>' + ty + '. ' + pub + '. ' + doi
 			},
 			harvard: function () {
 				var a = c.map(function (p) { return esc(p.family) + (p.given.length ? ', ' + ini(p.given, true) : '') })
-				return list(a, ', ', ' and ') + ' (' + y + ') <i>' + t + '</i>' + ty + '. ' + pub + '. Available at: ' + doi
+				return names(a, ', ', ' and ') + ' (' + y + ') <i>' + t + '</i>' + ty + '. ' + pub + '. Available at: ' + doi
 			},
 			mla: function () {
-				var a = c.length === 0 ? '' : (c.length > 2 ? esc(c[0].family) + ', ' + esc(c[0].given.join(' ')) + ', et al'
+				var a = c.length === 0 ? '' : (c.length > 2 || etal ? esc(c[0].family) + (c[0].given.length ? ', ' + esc(c[0].given.join(' ')) : '') + ', et al'
 					: esc(c[0].family) + (c[0].given.length ? ', ' + esc(c[0].given.join(' ')) : '') + (c[1] ? ', and ' + esc(c[1].given.concat([c[1].family]).join(' ')) : ''))
-				return a + '. <i>' + t + '</i>. ' + pub + ', ' + y + ', ' + doi + '.'
+				return stop(a) + '. <i>' + t + '</i>. ' + pub + ', ' + y + ', ' + doi + '.'
 			},
 			chicago: function () {
 				var a = c.map(function (p, i) { return i === 0 ? esc(p.family) + (p.given.length ? ', ' + esc(p.given.join(' ')) : '') : esc(p.given.concat([p.family]).join(' ')) })
-				return list(a, ', ', ', and ') + '. ' + y + '. <i>' + t + '</i>. ' + pub + '. ' + doi + '.'
+				return stop(names(a, ', ', ', and ')) + '. ' + y + '. <i>' + t + '</i>. ' + pub + '. ' + doi + '.'
 			},
 			vancouver: function () {
 				var a = c.map(function (p) { return esc(p.family) + (p.given.length ? ' ' + ini(p.given, false) : '') })
-				return a.join(', ') + '. ' + t + (d.type === 'Data set' ? ' [dataset]' : ty) + '. ' + pub + '; ' + y + '. Available from: ' + doi
+				return a.join(', ') + (etal ? ', et al' : '') + '. ' + t + (d.type === 'Data set' ? ' [dataset]' : ty) + '. ' + pub + '; ' + y + '. Available from: ' + doi
 			},
 			ieee: function () {
 				var a = c.map(function (p) { return (p.given.length ? ini(p.given, true) + ' ' : '') + esc(p.family) })
-				return list(a, ', ', a.length > 2 ? ', and ' : ' and ') + ', &ldquo;' + t + ',&rdquo; ' + pub + ', ' + y + '. [Online]. Available: ' + doi
+				return names(a, ', ', a.length > 2 ? ', and ' : ' and ') + ', &ldquo;' + t + ',&rdquo; ' + pub + ', ' + y + '. [Online]. Available: ' + doi
 			},
 		}
 		function render() { var f = styles[sel.value] || styles.apa; out.innerHTML = f() }
@@ -263,7 +271,7 @@
 				var key = (first + (d.year || '') + word).normalize('NFD').replace(/[^A-Za-z0-9]/g, '').toLowerCase()
 				var lines = ['@misc{' + key + ',',
 					// an organisation in its own braces, or BibTeX splits it at "and"
-					'  author    = {' + c.map(function (p) { return p.org ? '{' + bib(p.family) + '}' : bib(p.family + (p.given.length ? ', ' + p.given.join(' ') : '')) }).join(' and ') + '},',
+					'  author    = {' + c.map(function (p) { return p.org ? '{' + bib(p.family) + '}' : bib(p.family + (p.given.length ? ', ' + p.given.join(' ') : '')) }).join(' and ') + (etal ? ' and others' : '') + '},',
 					'  title     = {' + bib(d.title) + '},',
 					'  year      = {' + bib(d.year) + '},',
 					'  publisher = {' + bib(d.publisher) + '},']
