@@ -14,8 +14,9 @@ use OCP\Constants;
  *
  * Core's DirPermissionsMask masks one directory; this masks every frozen item,
  * looked up once per request (lazily, on the first check). On top of the mask,
- * a folder that contains a frozen item cannot be deleted. Moving or renaming
- * such a folder is allowed: the data stays unchanged and its link follows it.
+ * a folder that contains a frozen item cannot be deleted - nor moved to
+ * another folder, since WebDAV checks delete permission on a move's source.
+ * Renaming it in place works; the data and its link are unaffected.
  */
 class FrozenDatasetWrapper extends DirPermissionsMask {
 	/** @var string[]|null */
