@@ -32,6 +32,7 @@ class ApiController extends OCSController {
 		private IShareManager $shareManager,
 		private IURLGenerator $urlGenerator,
 		private CatalogService $catalogService,
+		private \OCA\FilesPicoCMS\Service\FrozenDatasets $frozenDatasets,
 	) {
 		parent::__construct($appName, $request);
 	}
@@ -55,6 +56,15 @@ class ApiController extends OCSController {
 		$node = $nodes[0] ?? null;
 		if ($node === null) {
 			return new DataResponse(['status' => 'error', 'message' => 'not found'], Http::STATUS_NOT_FOUND);
+		}
+
+		// A dataset with a DOI stays listed (and read-only): the DOI promises its
+		// data does not change. A new version is a new catalogue entry.
+		if (!$listed && $this->frozenDatasets->hasDoi($node->getId())) {
+			return new DataResponse([
+				'status'  => 'error',
+				'message' => 'This dataset has a DOI and stays in the catalogue, read-only. To publish changes, make a new version as a new catalogue entry and link to it from this one.',
+			], Http::STATUS_FORBIDDEN);
 		}
 
 		$shares = $this->shareManager->getSharesBy($uid, IShare::TYPE_LINK, $node, false, 50);

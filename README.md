@@ -179,6 +179,15 @@ Citations: a creator in `{braces}` or that looks like an organisation
 kept whole instead of being split into given and family names; within one
 creator entry (creators are separated by `;`), "A and B" are two people.
 
+### Published datasets are read-only (`lib/Storage/FrozenDatasetWrapper.php`)
+
+A published dataset is frozen - read-only for everyone, its owner included:
+
+- an item whose public link is **listed in the catalogue** (share attribute `files_picocms:catalog_listed`). Unticking "List in the public datasets catalog" unfreezes it; the owner can edit and list it again.
+- an item with a **DOI** in its DataCite record (meta_data schema on the system tag `DataCite`, key `doi`, written by files_publish's "Assign DOI"). This holds even if the link is unlisted or deleted, and `POST /api/v1/catalog` refuses to unlist it (403): a DOI promises that the data behind it does not change. Changes are published as a new version - a new catalogue entry, with or without its own DOI - and the old entry's metadata links to it.
+
+Enforcement is a storage wrapper on users' home storages (core's `DirPermissionsMask`, over the set of frozen paths, looked up once per request in `Service/FrozenDatasets.php`). Every write path ends at the owner's storage - web, WebDAV, sync clients, batch jobs, collaborators on other nodes - so all are covered; permissions show as read-only in Files and the clients. A folder containing a frozen item cannot be deleted, but can be renamed or moved (the data does not change; the link follows). Registered at priority 0, outside the trash bin (1), so a delete is refused before it becomes a move to the trash. Metadata lives in the database and stays editable. Core refuses to share a frozen item with edit rights; an editable share made before listing loses its write access while listed.
+
 ## Deployment settings (`config.php`)
 
 All optional; unset, the app behaves like a plain app-store install.
