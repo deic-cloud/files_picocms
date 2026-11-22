@@ -122,6 +122,9 @@ class ApiController extends OCSController {
 	public function addSite(string $folder, string $name, string $group = '', string $rename = 'no'): DataResponse {
 		$uid    = $this->userSession->getUser()?->getUID() ?? '';
 		$doRename = $rename === 'yes';
+		if (!SiteService::isSafePath($folder, $group)) {
+			return new DataResponse(['error' => 'Invalid folder: ' . $folder], 400);
+		}
 		$ok     = $this->siteService->addSite($uid, $folder, $name, $group, $doRename);
 		if (!$ok) {
 			return new DataResponse(['error' => 'Name taken: ' . $name], 400);
@@ -132,6 +135,9 @@ class ApiController extends OCSController {
 	#[NoAdminRequired]
 	public function moveSite(string $name, string $folder): DataResponse {
 		$uid = $this->userSession->getUser()?->getUID() ?? '';
+		if (!SiteService::isSafePath('/' . trim($folder, '/'))) {
+			return new DataResponse(['error' => 'Invalid folder: ' . $folder], 400);
+		}
 		$ok  = $this->siteService->moveSite($uid, $name, $folder);
 		if (!$ok) {
 			return new DataResponse(['error' => 'Unknown site or folder already served'], 400);
@@ -178,6 +184,7 @@ class ApiController extends OCSController {
 			SiteService::FOLDER_NOT_EMPTY    => new DataResponse(['error' => 'The folder ' . $folder . ' already exists and is not empty — choose another folder or rename the existing one.'], 400),
 			SiteService::NO_EMAIL            => new DataResponse(['error' => 'Your account has no e-mail address, and the personal public page is served at /users/<e-mail>. Set an e-mail address under Settings → Personal info first.'], 400),
 			SiteService::COPY_CONTENT_FAILED => new DataResponse(['error' => 'Failed to copy content'], 500),
+			SiteService::INVALID_INPUT       => new DataResponse(['error' => 'Invalid template'], 400),
 			default                          => new DataResponse(['error' => 'Unexpected error'], 500),
 		};
 	}

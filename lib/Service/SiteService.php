@@ -6,6 +6,7 @@ namespace OCA\FilesPicoCMS\Service;
 
 use OCA\FilesPicoCMS\Db\Site;
 use OCA\FilesPicoCMS\Db\SiteMapper;
+use OCP\App\IAppManager;
 use OCP\Files\IRootFolder;
 use OCP\IConfig;
 use OCP\IDBConnection;
@@ -19,6 +20,8 @@ class SiteService {
 	public const FOLDER_NOT_EMPTY   = 3;
 	/** Personal public page requested, but the account has no e-mail address (the page's URL is /users/<email>). */
 	public const NO_EMAIL           = 4;
+	/** The wizard sent a content path, theme or destination outside what it offers. */
+	public const INVALID_INPUT      = 5;
 
 	public function __construct(
 		private SiteMapper    $mapper,
@@ -27,6 +30,7 @@ class SiteService {
 		private IUserManager  $userManager,
 		private IDBConnection $db,
 		private LoggerInterface $logger,
+		private IAppManager   $appManager,
 	) {
 	}
 
@@ -59,7 +63,31 @@ class SiteService {
 		];
 	}
 
+	/**
+	 * A site folder is a path inside its owner's files: serve.php appends it
+	 * to <datadir>/<uid>/files, so '..' (or '.') segments would let a user
+	 * publish other users' files or the server's own. Group ids name a grant
+	 * folder under .uga_grants/ and must be a single segment.
+	 */
+	public static function isSafePath(string $path, string $gid = ''): bool {
+		if (str_contains($path, "\0") || str_contains($path, '\\')
+			|| str_contains($gid, "\0") || str_contains($gid, '/') || str_contains($gid, '\\')
+			|| $gid === '.' || $gid === '..') {
+			return false;
+		}
+		foreach (explode('/', $path) as $segment) {
+			if ($segment === '.' || $segment === '..') {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	public function addSite(string $uid, string $path, string $name, string $gid = '', bool $rename = false): bool {
+		if (!self::isSafePath($path, $gid)) {
+			$this->logger->warning('files_picocms: refused site path ' . $path . ' (group ' . $gid . ') for ' . $uid);
+			return false;
+		}
 		if (!$rename && $this->siteExists($name)) {
 			return false;
 		}
@@ -99,6 +127,10 @@ class SiteService {
 	 */
 	public function moveSite(string $uid, string $name, string $newPath): bool {
 		$newPath = '/' . trim($newPath, '/');
+		if (!self::isSafePath($newPath)) {
+			$this->logger->warning('files_picocms: refused site path ' . $newPath . ' for ' . $uid);
+			return false;
+		}
 		$rows = $this->mapper->findByUid($uid);
 		$site = null;
 		foreach ($rows as $r) {
@@ -310,6 +342,31 @@ class SiteService {
 		?string $theme          = null,
 		bool    $copyThemes     = false,
 	): int {
+		// The wizard's content/theme/destination come from the browser: content
+		// must resolve inside the app's sample-content/ (else any user could copy
+		// config.php or any other server file into their files), theme is a
+		// plain directory name, destination a file name in the site folder.
+		if (!self::isSafePath($folder)) {
+			return self::INVALID_INPUT;
+		}
+		$appDir = dirname(__DIR__, 2); // apps/files_picocms/
+		if ($contentRelPath !== null) {
+			$sampleRoot = realpath($appDir . '/sample-content');
+			$real = realpath($appDir . '/' . ltrim($contentRelPath, '/'));
+			if ($sampleRoot === false || $real === false
+				|| ($real !== $sampleRoot && !str_starts_with($real, $sampleRoot . '/'))) {
+				$this->logger->warning('files_picocms: refused content path ' . $contentRelPath . ' for ' . $uid);
+				return self::INVALID_INPUT;
+			}
+		}
+		if ($theme !== null && !preg_match('/^[A-Za-z0-9_-]+$/', $theme)) {
+			return self::INVALID_INPUT;
+		}
+		if ($destination !== null && $destination !== ''
+			&& (!preg_match('/^[A-Za-z0-9_.-]+$/', $destination) || trim($destination, '.') === '')) {
+			return self::INVALID_INPUT;
+		}
+
 		try {
 			$userFolder = $this->rootFolder->getUserFolder($uid);
 		} catch (\Throwable $e) {
@@ -351,8 +408,6 @@ class SiteService {
 			$userFolder->newFolder($folder);
 		}
 
-		$appDir = dirname(__DIR__, 2); // apps/files_picocms/
-
 		// Copy themes if requested
 		if ($copyThemes && $theme !== null) {
 			$themesDir = $appDir . '/themes';
@@ -381,6 +436,12 @@ class SiteService {
 					'/^Author:.*$/m' => 'Author: ' . $uid,
 					'/^Site:.*$/m'   => 'Site: ' . ($theme === 'blog' ? $displayName : ($theme === 'default' ? 'My website' : $name)),
 				];
+				if ($contentRelPath === '/sample-content/course') {
+					$platform = $this->coursePlatformUrl($uid);
+					$replacements['/%course_platform%/'] = $platform !== ''
+						? '[Moodle](' . $platform . ')'
+						: '[Link to your learning platform]';
+				}
 			}
 			try {
 				if (is_file($srcAbs)) {
@@ -434,6 +495,30 @@ class SiteService {
 		$this->writeDefaultConfig($uid, $folder, $theme === 'default' ? 'My website' : $name, $theme ?? 'default', $pageFavicon);
 
 		return self::OK;
+	}
+
+	/**
+	 * Address of the user's own Moodle container, for the course template's
+	 * "hand-ins, quizzes and grades" line — '' when user_pods is not enabled
+	 * for the user or no Moodle container of theirs is running.
+	 */
+	private function coursePlatformUrl(string $uid): string {
+		try {
+			$user = $this->userManager->get($uid);
+			if ($user === null || !$this->appManager->isEnabledForUser('user_pods', $user)
+				|| !class_exists(\OCA\UserPods\Service\PodService::class)) {
+				return '';
+			}
+			$pods = \OCP\Server::get(\OCA\UserPods\Service\PodService::class)->getContainers($uid);
+			foreach ($pods as $c) {
+				if (stripos((string)($c['image_name'] ?? ''), 'moodle') !== false && ($c['url'] ?? '') !== '') {
+					return (string)$c['url'];
+				}
+			}
+		} catch (\Throwable $e) {
+			$this->logger->info('files_picocms: no Moodle address for the course template: ' . $e->getMessage());
+		}
+		return '';
 	}
 
 	/** @param bool $pageFavicon true when the page header names the favicon — keep the site-level one unset */

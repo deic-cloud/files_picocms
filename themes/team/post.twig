@@ -134,6 +134,9 @@
 		</div>
 	</article>
 	
+	{# Comments: off|no|false in the page header hides the comment link and
+	   section (YAML may hand over the boolean false or the string). #}
+	{% if meta.comments is not same as(false) and meta.comments|lower not in ['off', 'no', 'false'] %}
 	  <div class="col-lg-10">
 		<a id="show_comments">Comments <span class="laquo">&laquo;</span><span class="raquo">&raquo;</span></a>
 	  </div>
@@ -159,6 +162,7 @@
 		  </div>
 	  </div>
 	</comments>
+	{% endif %}
 	
 	<p />
 	<hr class="foot">

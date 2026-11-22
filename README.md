@@ -321,6 +321,16 @@ permissions.  This is the sole read authority for private sites — the old
 `\OC\Files` NC-API permission walk (unreliable in NC34, and it fail-*opened*)
 has been removed.
 
+### Site folders are confined to the owner's files
+
+`serve.php` serves `<datadir>/<owner>/files/<site folder>`. Site folders and
+grant-group ids containing `.`/`..` segments are refused when a site is
+added, moved or created (`SiteService::isSafePath`), and `serve.php` also
+checks that the resolved folder lies inside the owner's files, so rows
+registered before that check cannot serve other users' or the server's files.
+The wizard's sample content must resolve inside `sample-content/`, and its
+theme and destination must be plain names.
+
 ### Write proxy
 
 All file writes (new posts, edits, comments) go through `serve.php` itself
@@ -523,6 +533,21 @@ News section (posts with comments, auto-listed via `Index: true` in
 `news/index.md`), and a private `internal/` section (member-only pages —
 demonstrates `Access: private` with a friendly "Members only" login prompt).
 The wizard fills in Date/Author/Site automatically.
+
+The **course site** template (`sample-content/course/`, team theme) follows
+what university course sites commonly have: a front page with practical
+information (teachers, time and place, exam), a week plan, lectures (one page
+per lecture: slides, reading, recording), exercises with notebooks, solutions,
+notes and literature, software setup, and earlier years. Solutions are
+`Access: private`: sharing the site folder read-only with the course's group
+opens them to the students, and sharing it with co-teachers as *can edit* lets
+them edit pages. Its "Hand-ins, quizzes and grades" line is filled in at
+creation with the owner's running Moodle container (an image whose name
+contains `moodle`) when `user_pods` is enabled for them, else a placeholder.
+Mathematics renders with the bundled MathJax; nothing loads from other hosts.
+
+`Comments: off` (or `no`/`false`) in a page header hides the comment link and
+section in the team theme's `page` and `post` templates.
 
 Note: a folder **without** an `index.md` gets a Pico-generated listing that
 defaults to private; public sections must carry their own `index.md` with

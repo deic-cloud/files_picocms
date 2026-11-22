@@ -228,7 +228,13 @@ if ($gid !== '') {
 	$siteFsPath = $dataDir . '/' . $uid . '/files' . $siteInfo['path'];
 }
 
-if (!is_dir($siteFsPath)) {
+// The resolved folder must lie inside the owner's own files — a registered
+// path with '..' (refused by SiteService::addSite since 1.2.33, but rows from
+// before may exist) would otherwise publish other users' or the server's files.
+$ownFiles = realpath($dataDir . '/' . $uid . '/files');
+$realSite = realpath($siteFsPath);
+if ($ownFiles === false || $realSite === false || !is_dir($realSite)
+	|| ($realSite !== $ownFiles && !str_starts_with($realSite, $ownFiles . '/'))) {
 	http_response_code(404);
 	exit;
 }
