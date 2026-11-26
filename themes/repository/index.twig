@@ -87,6 +87,7 @@
 		.ds-btn:hover { border-color: var(--accent); color: var(--accent); }
 		.ds-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 		.ds-btn.primary:hover { filter: brightness(1.08); color: #fff; }
+		.ds-btn.light { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, #fff); }
 		.ds-facts { display: grid; grid-template-columns: max-content 1fr; gap: 8px 22px; margin: 0 0 28px; }
 		.ds-facts dt { color: var(--muted); }
 		.ds-facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
@@ -138,8 +139,9 @@
 	<p class="ds-byline">Shared by {{ ds.owner_name }}{% if ds.institution %} ({{ ds.institution }}){% endif %}{% if ds.stime %}, {{ ds.stime|date('j F Y') }}{% endif %}</p>
 	{% if ds.description %}<p class="ds-desc">{{ ds.description|mdlinks }}</p>{% endif %}
 	<div class="ds-actions">
-		{% if ds.run_url|default('') %}<a class="ds-btn primary" href="{{ ds.run_url }}" title="Copies the notebook to your files and opens it in a notebook server (login needed)">Run this notebook</a>{% endif %}
-		<a class="ds-btn{% if not ds.run_url|default('') %} primary{% endif %}" href="{{ ds.browse_url }}">Browse files</a>
+		{% if ds.view_url|default('') %}<a class="ds-btn primary" href="{{ ds.view_url }}" title="Shows the notebook with its stored results - nothing is run">View this notebook</a>{% endif %}
+		{% if ds.run_url|default('') %}<a class="ds-btn{% if ds.view_url|default('') %} light{% else %} primary{% endif %}" href="{{ ds.run_url }}" title="Copies the notebook to your files and opens it in a notebook server (login needed)">Run this notebook</a>{% endif %}
+		<a class="ds-btn{% if not ds.run_url|default('') and not ds.view_url|default('') %} primary{% endif %}" href="{{ ds.browse_url }}">Browse files</a>
 		{% if ds.download_url %}<a class="ds-btn" href="{{ ds.download_url }}">Download{% if ds.contents|length > 0 %} all{% endif %}{% if ds.size_human %} ({{ ds.size_human }}){% endif %}</a>{% endif %}
 	</div>
 	<dl class="ds-facts">

@@ -1265,6 +1265,9 @@ function _pico_sd_dataset(array $e, string $landingUrl, string $publisher): arra
 		// files and opens it in a server; it asks for a login first when needed.
 		// name = the shared file's own name (the record's display title may be a metadata title)
 		'run_url' => $restricted ? '' : _pico_run_notebook_url($e, $mime, (string)($e['title'] ?? $title)),
+		// "View this notebook": rendered by the notebook viewer (user_pods nbviewerURL),
+		// nothing to start; shown before - and more prominently than - Run
+		'view_url' => $restricted ? '' : _pico_view_notebook_url($download, $mime, (string)($e['title'] ?? $title)),
 		'landing_url' => $landingUrl,
 		'citation' => $citation,
 		// structured, for the citation box's styles (formatted in the browser)
@@ -1624,6 +1627,26 @@ function _pico_run_notebook_url(array $e, string $mime, string $title): string {
 		$base = rtrim((string)\OCP\Server::get(\OCP\IURLGenerator::class)->getAbsoluteURL('/'), '/');
 	}
 	return $base . '/index.php/apps/user_pods/run?' . http_build_query(['token' => (string)$e['token'], 'name' => $title]);
+}
+
+/**
+ * "View this notebook" address for a single-file notebook record: the notebook viewer
+ * (nbviewer) configured in user_pods (nbviewerURL) rendering the share's download
+ * address. nbviewer renders only addresses ending in .ipynb, so the file name is
+ * appended. '' without a viewer, a download address or a notebook.
+ */
+function _pico_view_notebook_url(string $download, string $mime, string $name): string {
+	if ($mime !== 'application/x-ipynb+json' || $download === '' || !class_exists(\OCA\UserPods\Service\PodService::class)) {
+		return '';
+	}
+	$viewer = rtrim(\OCP\Server::get(\OCP\IAppConfig::class)->getValueString('user_pods', 'nbviewerURL', ''), '/');
+	if ($viewer === '') {
+		return '';
+	}
+	if (!preg_match('/\.ipynb$/i', $name)) {
+		$name .= '.ipynb';
+	}
+	return $viewer . '/urls/' . preg_replace('#^https?://#', '', $download) . '/' . rawurlencode($name);
 }
 
 /**
