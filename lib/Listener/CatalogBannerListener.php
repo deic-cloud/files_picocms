@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\FilesPicoCMS\Listener;
 
+use OCA\FilesPicoCMS\Service\CatalogService;
 use OCA\Files_Sharing\Event\BeforeTemplateRenderedEvent;
 use OCP\AppFramework\Services\IInitialState;
 use OCP\EventDispatcher\Event;
@@ -29,6 +30,7 @@ class CatalogBannerListener implements IEventListener {
 		private IConfig       $config,
 		private IUserManager  $userManager,
 		private IUserSession  $userSession,
+		private CatalogService $catalog,
 	) {
 	}
 
@@ -65,6 +67,19 @@ class CatalogBannerListener implements IEventListener {
 				$label = '';
 			}
 		}
+		// The crumb shows the record's title as the catalogue does (its 'title'
+		// metadata, else the file name): for a single shared file, the file name
+		// alone read as if the file itself were open.
+		$recordTitle = $label;
+		try {
+			foreach ($this->catalog->localEntries() as $entry) {
+				if (($entry['token'] ?? '') === $share->getToken()) {
+					$recordTitle = (string)($entry['display_title'] ?? $entry['title'] ?? $label) ?: $label;
+					break;
+				}
+			}
+		} catch (\Throwable) {
+		}
 		// Attribution (records are public claims): sharer display name, institution,
 		// share date, ORCID when connected (user_orcid pref, lives on this node —
 		// the record renders on the owner's node).
@@ -92,6 +107,7 @@ class CatalogBannerListener implements IEventListener {
 			'brand'      => (string)$this->config->getSystemValue('files_picocms.brand_name', 'Nextcloud'),
 			'label'      => (string)$this->config->getSystemValue('files_picocms.catalog_label', 'Public data'),
 			'share_name' => $label,
+			'record_title' => $recordTitle,
 			'share_url'  => '/shared/' . rawurlencode($share->getToken()),
 			'owner_name'  => $ownerName,
 			'institution' => $at !== false ? strtolower(substr($owner, $at + 1)) : '',

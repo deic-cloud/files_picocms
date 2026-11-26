@@ -45,7 +45,9 @@
 			sep2.style.cssText = 'opacity:.6;'
 			var here = document.createElement('a')
 			here.href = state.share_url
-			here.textContent = state.share_name
+			// the record's title (truncated); share_name stays the file name, used below
+			here.textContent = state.record_title || state.share_name
+			here.title = state.record_title || state.share_name
 			here.style.cssText = 'color:#fff;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40vw;'
 			bar.appendChild(sep2)
 			bar.appendChild(here)
